@@ -61,7 +61,7 @@ local defaults = {
 local CONSTANTS = {
     TEXTURE_BAR = "Interface\\Buttons\\WHITE8X8",
     TEXTURE_SPARK = "Interface\\CastingBar\\UI-CastingBar-Spark",
-    UPDATE_THROTTLE = 1,
+    UPDATE_THROTTLE = 0.1,
     DEFAULT_GAP = 30,
     MIN_TEXT_WIDTH = 100,
     ANCHOR_POINTS = {
@@ -481,13 +481,14 @@ function AB:OnEnable()
     self:RegisterEvent("UPDATE_EXHAUSTION", "UpdateDisplay")
     self:RegisterEvent("PLAYER_LEVEL_UP", "UpdateDisplay")
     self:RegisterEvent("UPDATE_FACTION", "OnUpdateFaction")
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", "OnUpdateFaction")
     self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStart")
     self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatEnd")
     self:RegisterEvent("QUEST_TURNED_IN", "OnQuestTurnIn")
 
     self:HideBlizzardFrames()
     self:ScanParagonRewards()
-    self:UpdateDisplay()
+    self:UpdateDisplay(true)
 
     -- Initialize debug mode if enabled
     if self.db.profile.debugMode then
@@ -635,9 +636,18 @@ function AB:UpdateTextAnchors(factionName, isMaxLevel)
     end
 end
 
-function AB:UpdateDisplay()
+function AB:UpdateDisplay(force)
     local now = GetTime()
-    if now - lastUpdate < CONSTANTS.UPDATE_THROTTLE and not self.state.isConfigMode then
+    local isForce = (force == true) or self.state.isConfigMode
+
+    if not isForce and (now - lastUpdate < CONSTANTS.UPDATE_THROTTLE) then
+        if not self.state.updatePending then
+            self.state.updatePending = true
+            C_Timer.After(CONSTANTS.UPDATE_THROTTLE, function()
+                self.state.updatePending = false
+                self:UpdateDisplay(true)
+            end)
+        end
         return
     end
     lastUpdate = now
@@ -946,12 +956,18 @@ function AB:HideBlizzardFrames()
         MainMenuExpBar,
         MainMenuBarMaxLevelBar,
         ReputationWatchBar,
-        StatusTrackingBarManager
+        StatusTrackingBarManager,
+        ExpBar,
+        ReputationBar,
+        HonorBar,
+        ArtifactWatchBar,
+        AzeriteBar
     }
     for _, frame in pairs(frames) do
         if frame then
             frame:UnregisterAllEvents()
             frame:Hide()
+            frame:SetAlpha(0)
             frame.Show = function() end
         end
     end
@@ -989,7 +1005,6 @@ end
 -- ==========================================================
 function AB:OnUpdateFaction()
     self:ScanParagonRewards()
-    self:UpdateDisplay()
 end
 
 function AB:OnCombatStart()
