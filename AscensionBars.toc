@@ -2,7 +2,7 @@
 ## Title: AscensionBars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
-## Version: 5.0.6
+## Version: 6.0.0
 ## SavedVariables: AscensionBarsDB
 
 # Librerías (Embeds)
@@ -18,3 +18,8 @@ Libs\AceConfig-3.0\AceConfig-3.0.xml
 
 # Core
 AscensionBars.lua
+Constants.lua
+Config.lua
+Utilities.lua
+Frames.lua
+Display.lua
