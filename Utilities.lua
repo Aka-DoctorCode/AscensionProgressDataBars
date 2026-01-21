@@ -1,36 +1,40 @@
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 
 function AB:GetClassColor()
+    -- Safety check: Ensure state exists
+    if not self.state then
+        return { r = 1, g = 1, b = 1, a = 1 }
+    end
+
     if not self.state.cachedClassColor then
-        local class = select(2, UnitClass("player"))
-        self.state.cachedClassColor = RAID_CLASS_COLORS[class] or { r = 1, g = 1, b = 1, a = 1 }
+        local _, classFilename = UnitClass("player")
+        if classFilename and RAID_CLASS_COLORS[classFilename] then
+            self.state.cachedClassColor = RAID_CLASS_COLORS[classFilename]
+        else
+            self.state.cachedClassColor = { r = 1, g = 1, b = 1, a = 1 }
+        end
     end
     return self.state.cachedClassColor
 end
 
-function AB:DebugPrint(msg)
-    if self.db.profile.debugMode then
-        print("AscensionBars: " .. msg)
-    end
-end
-
-function AB:ToggleDebugMode()
-    if self.db.profile.debugMode then
-        self:DebugPrint("Debug mode enabled")
-    else
-        self:DebugPrint("Debug mode disabled")
-    end
-end
-
 function AB:ScanParagonRewards()
+    -- Safety check: Ensure state exists before assignment
+    if not self.state then
+        self.state = { cachedPendingParagons = {} }
+    end
+
     local pending = {}
     if C_Reputation then
-        for i = 1, C_Reputation.GetNumFactions() do
-            local d = C_Reputation.GetFactionDataByIndex(i)
-            if d and d.factionID and C_Reputation.IsFactionParagon(d.factionID) then
-                local _, _, _, hasRewardPending = C_Reputation.GetFactionParagonInfo(d.factionID)
-                if hasRewardPending then
-                    table.insert(pending, { name = d.name })
+        local numFactions = C_Reputation.GetNumFactions()
+        if numFactions and numFactions > 0 then
+            for i = 1, numFactions do
+                local d = C_Reputation.GetFactionDataByIndex(i)
+                -- Need nil check for 'd' and 'd.factionID'
+                if d and d.factionID and C_Reputation.IsFactionParagon(d.factionID) then
+                    local currentValue, threshold, _, hasRewardPending = C_Reputation.GetFactionParagonInfo(d.factionID)
+                    if hasRewardPending then
+                        table.insert(pending, { name = d.name or "Unknown Faction" })
+                    end
                 end
             end
         end

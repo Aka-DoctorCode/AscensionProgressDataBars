@@ -234,7 +234,7 @@ function AB:RenderConfig()
     self.XP.bar:SetMinMaxValues(0, 100)
     self.XP.bar:SetValue(75)
 
-    self.XP.text:SetText("experience information")
+    self.XP.text:SetText("Experience Bar Data | 0/0 (0.0%)")
     self.XP.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     if profile.showRestedBar then
@@ -265,7 +265,7 @@ function AB:RenderConfig()
     self.Rep.bar:SetMinMaxValues(0, 100)
     self.Rep.bar:SetValue(50)
 
-    self.Rep.text:SetText("reputation information")
+    self.Rep.text:SetText("Reputation Bar Data | 0/0 (0.0%)")
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     -- PARAGON TEXT

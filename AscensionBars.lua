@@ -8,20 +8,10 @@ local AB = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceEvent-3.0", "AceCons
 -- INITIALIZATION
 -- ==========================================================
 function AB:OnInitialize()
+    -- Initialize Database first
     self.db = LibStub("AceDB-3.0"):New("AscensionBarsDB", self.defaults, true)
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(ADDON_NAME, self:GetOptionsTable())
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
 
-    self:RegisterChatCommand("ab", function()
-        Settings.OpenToCategory(self.optionsFrame.name)
-    end)
-
-    self:RegisterChatCommand("abdebug", function()
-        self.db.profile.debugMode = not self.db.profile.debugMode
-        self:ToggleDebugMode()
-        print("AscensionBars: Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
-    end)
-
+    -- Initialize State immediately after DB to prevent nil errors in events/methods
     self.state = {
         lastParagonScanTime = 0,
         cachedPendingParagons = {},
@@ -34,7 +24,28 @@ function AB:OnInitialize()
         updatePending = false
     }
 
+    -- Determine font to use
     self.FONT_TO_USE = GameFontNormal:GetFont() or "Fonts\\FRIZQT__.TTF"
+
+    -- Register Options and Dialogs
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(ADDON_NAME, self:GetOptionsTable())
+    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
+
+    self:RegisterChatCommand("ab", function()
+        -- Use modern Settings API for Dragonflight/War Within
+        if Settings and Settings.OpenToCategory then
+            Settings.OpenToCategory(self.optionsFrame.name)
+        else
+            -- Fallback for older clients if needed, though you target Retail
+            InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
+        end
+    end)
+
+    self:RegisterChatCommand("abdebug", function()
+        self.db.profile.debugMode = not self.db.profile.debugMode
+        self:ToggleDebugMode()
+        print("AscensionBars: Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
+    end)
 
     self:CreateFrames()
 end
@@ -82,6 +93,21 @@ function AB:OnQuestTurnIn()
     C_Timer.After(1, function()
         self:ScanParagonRewards()
     end)
+end
+
+-- ==========================================================
+-- DEBUG
+-- ==========================================================
+function AB:ToggleDebugMode()
+    if self.state then
+        self.state.debugMode = self.db.profile.debugMode
+    end
+end
+
+function AB:DebugPrint(msg)
+    if self.db and self.db.profile and self.db.profile.debugMode then
+        self:Print("|cffFF0000[DEBUG]|r " .. tostring(msg))
+    end
 end
 
 -- ==========================================================

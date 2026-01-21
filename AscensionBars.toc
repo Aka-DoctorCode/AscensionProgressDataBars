@@ -1,8 +1,8 @@
-## Interface: 120001
-## Title: AscensionBars
+## Interface: 120000
+## Title: Ascension Bars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
-## Version: 6.0.0
+## Version: 6.1.0
 ## SavedVariables: AscensionBarsDB
 
 # Librerías (Embeds)

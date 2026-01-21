@@ -318,17 +318,6 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    debugMode = {
-                        name = "Debug Mode",
-                        desc = "Enable debug output in chat",
-                        type = "toggle",
-                        order = 10,
-                        get = function() return self.db.profile.debugMode end,
-                        set = function(_, v)
-                            self.db.profile.debugMode = v
-                            self:ToggleDebugMode()
-                        end,
-                    },
                 }
             },
         }
