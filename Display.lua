@@ -70,8 +70,6 @@ function AB:UpdateDisplay(force)
     end
     lastUpdate = now
 
-    self:DebugPrint("UpdateDisplay called")
-
     local profile = self.db.profile
     local isMax = UnitLevel("player") >= GetMaxPlayerLevel()
 

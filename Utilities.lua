@@ -149,8 +149,5 @@ function AB:LoadPreset(presetName)
             self.db.profile[k] = v
         end
         self:UpdateDisplay()
-        self:DebugPrint("Loaded preset: " .. presetName)
-    else
-        self:DebugPrint("Unknown preset: " .. presetName)
     end
 end

@@ -28,7 +28,6 @@ function AB:OnInitialize()
         isConfigMode = false,
         inCombat = false,
         isHovering = false,
-        debugMode = false,
         eventHandlers = {},
         updatePending = false
     }
@@ -41,19 +40,11 @@ function AB:OnInitialize()
     self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
 
     self:RegisterChatCommand("ab", function()
-        -- Use modern Settings API for Dragonflight/War Within
         if Settings and Settings.OpenToCategory then
             Settings.OpenToCategory(self.optionsFrame.name)
         else
-            -- Fallback for older clients if needed, though you target Retail
             InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
         end
-    end)
-
-    self:RegisterChatCommand("abdebug", function()
-        self.db.profile.debugMode = not self.db.profile.debugMode
-        self:ToggleDebugMode()
-        print("AscensionBars: Debug mode " .. (self.db.profile.debugMode and "enabled" or "disabled"))
     end)
 
     self:CreateFrames()
@@ -72,11 +63,6 @@ function AB:OnEnable()
     self:HideBlizzardFrames()
     self:ScanParagonRewards()
     self:UpdateDisplay(true)
-
-    -- Initialize debug mode if enabled
-    if self.db.profile.debugMode then
-        self:ToggleDebugMode()
-    end
 end
 
 -- ==========================================================
@@ -88,13 +74,11 @@ end
 
 function AB:OnCombatStart()
     self.state.inCombat = true
-    self:DebugPrint("Combat started")
     self:UpdateVisibility()
 end
 
 function AB:OnCombatEnd()
     self.state.inCombat = false
-    self:DebugPrint("Combat ended")
     self:UpdateVisibility()
 end
 
@@ -102,21 +86,6 @@ function AB:OnQuestTurnIn()
     C_Timer.After(1, function()
         self:ScanParagonRewards()
     end)
-end
-
--- ==========================================================
--- DEBUG
--- ==========================================================
-function AB:ToggleDebugMode()
-    if self.state then
-        self.state.debugMode = self.db.profile.debugMode
-    end
-end
-
-function AB:DebugPrint(msg)
-    if self.db and self.db.profile and self.db.profile.debugMode then
-        self:Print("|cffFF0000[DEBUG]|r " .. tostring(msg))
-    end
 end
 
 -- ==========================================================
@@ -129,6 +98,4 @@ function AB:OnDisable()
     if self.XP and self.XP.bar then self.XP.bar:Hide() end
     if self.Rep and self.Rep.bar then self.Rep.bar:Hide() end
     if self.textHolder then self.textHolder:Hide() end
-
-    self:DebugPrint("Addon disabled")
 end
