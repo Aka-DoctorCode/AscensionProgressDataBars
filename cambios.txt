@@ -1,0 +1,13 @@
+- bug: 
+    - las reputaciones las recompensas paragon no estan apareciendo correctamente puedes er un problema de la api
+    - No se estan actualizando las barras cuando se gana experiencia.
+    - Renonw rep are broken
+    - Bars that are warband reps need to check the warband rep instead of the character rep level.
+    - Max level renow should show max level color.
+    - Auto swap to last rep gain is not working ignore guild rep gains.
+
+Plans
+    - agregar barras temporales extra
+    - honor
+    - housing bar
+    - renow reps need to show the current renow level

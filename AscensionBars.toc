@@ -2,9 +2,9 @@
 ## Title: Ascension Bars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
-## Version: 19
+## Version: 20
 ## SavedVariables: AscensionBarsDB
-## IconTexture: Interface\AddOns\AscensionNotes\Media\AkaDoctorCode.png
+## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
 
 
 # Librerías (Embeds)
