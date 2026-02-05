@@ -23,7 +23,34 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
     self.XP.txFrame:ClearAllPoints()
     self.Rep.txFrame:ClearAllPoints()
     self.textHolder:ClearAllPoints()
-    self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - 13.5)
+
+    local isBottom = (profile.barAnchor == "BOTTOM")
+    
+    if isBottom then
+        -- Bottom Anchor: Text ABOVE bars
+        -- We anchor textHolder slightly above the calculated Y position
+        -- However, exact positioning depends on bar heights which might vary.
+        -- Simpler approach: Anchor to UIParent BOTTOM, offset by yOffset + fixed amount + estimated bar height?
+        -- Better: Anchor relative to the TOP-most bar.
+        
+        -- To avoid circular dependencies (bars anchor to parent, text anchors to bars?), 
+        -- let's keep textHolder independent but flipped.
+        -- Top Mode: yOffset - 13.5 (Below)
+        -- Bottom Mode: yOffset + 13.5 (Above)
+        -- Note: yOffset in Bottom mode is likely positive (going up) or negative (if user wants to push down).
+        -- We assume yOffset defines the "Base" of the bar stack.
+        
+        -- If we want text ABOVE the bars, we need to know the total height of bars.
+        -- But UpdateTextAnchors doesn't easily know the bar layout state (UpdateLayout does).
+        -- Let's use a simpler heuristic: Center of textHolder is offset from yOffset.
+        -- If bars are ~11px tall total, and text is ~12px.
+        
+        -- Let's try mirroring the offset:
+        self.textHolder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, profile.yOffset + profile.textGap)
+    else
+        -- Top Anchor: Text BELOW bars (Default)
+        self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - profile.textGap)
+    end
 
     local w1 = self.XP.text:GetStringWidth() + 5
     local w2 = self.Rep.text:GetStringWidth() + 5
@@ -169,7 +196,12 @@ function AB:RenderReputation()
         if profile.paragonOnTop then
             self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, profile.paragonTextYOffset)
         else
-            self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+            if profile.barAnchor == "BOTTOM" then
+                -- Invert offset direction for bottom anchor to stack upwards
+                self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -profile.paragonTextYOffset)
+            else
+                self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+            end
         end
 
         name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, L["REWARD_PENDING_STATUS"]
@@ -301,7 +333,11 @@ function AB:RenderConfig()
     if profile.paragonOnTop then
         self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, profile.paragonTextYOffset)
     else
-        self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+        if profile.barAnchor == "BOTTOM" then
+             self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -profile.paragonTextYOffset)
+        else
+             self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+        end
     end
 
     self:UpdateTextAnchors("Config", false)
@@ -335,18 +371,41 @@ function AB:UpdateLayout(shouldHideXP)
     self.XP.bar:ClearAllPoints()
     self.Rep.bar:ClearAllPoints()
 
-    if effectiveMax then
-        self.XP.bar:Hide()
-        self.XP.txFrame:Hide()
-        self.Rep.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
-        self.Rep.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+    local isBottom = (profile.barAnchor == "BOTTOM")
+
+    if isBottom then
+        -- BOTTOM ANCHOR LAYOUT
+        -- Stack Upwards: XP (Bottom) -> Rep (Above XP)
+        if effectiveMax then
+            self.XP.bar:Hide()
+            self.XP.txFrame:Hide()
+            self.Rep.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, startY)
+            self.Rep.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, startY)
+        else
+            self.XP.bar:Show()
+            self.XP.txFrame:Show()
+            self.XP.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, startY)
+            self.XP.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, startY)
+            
+            self.Rep.bar:SetPoint("BOTTOMLEFT", self.XP.bar, "TOPLEFT", 0, profile.barGap)
+            self.Rep.bar:SetPoint("BOTTOMRIGHT", self.XP.bar, "TOPRIGHT", 0, profile.barGap)
+        end
     else
-        self.XP.bar:Show()
-        self.XP.txFrame:Show()
-        self.XP.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
-        self.XP.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
-        self.Rep.bar:SetPoint("TOPLEFT", self.XP.bar, "BOTTOMLEFT", 0, -profile.barGap)
-        self.Rep.bar:SetPoint("TOPRIGHT", self.XP.bar, "BOTTOMRIGHT", 0, -profile.barGap)
+        -- TOP ANCHOR LAYOUT (Default)
+        -- Stack Downwards: XP (Top) -> Rep (Below XP)
+        if effectiveMax then
+            self.XP.bar:Hide()
+            self.XP.txFrame:Hide()
+            self.Rep.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
+            self.Rep.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+        else
+            self.XP.bar:Show()
+            self.XP.txFrame:Show()
+            self.XP.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
+            self.XP.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+            self.Rep.bar:SetPoint("TOPLEFT", self.XP.bar, "BOTTOMLEFT", 0, -profile.barGap)
+            self.Rep.bar:SetPoint("TOPRIGHT", self.XP.bar, "BOTTOMRIGHT", 0, -profile.barGap)
+        end
     end
 end
 

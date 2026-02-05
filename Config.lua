@@ -37,17 +37,45 @@ function AB:GetOptionsTable()
                 order = 10,
                 args = {
                     headerPos = { type = "header", name = L["POSITION_SIZE"], order = 1 },
+                    barAnchor = {
+                        name = L["BAR_ANCHOR"],
+                        desc = L["ANCHOR_DESC"],
+                        type = "select",
+                        order = 1.5,
+                        values = {
+                            ["TOP"] = L["ANCHOR_TOP"],
+                            ["BOTTOM"] = L["ANCHOR_BOTTOM"],
+                        },
+                        get = function() return self.db.profile.barAnchor end,
+                        set = function(_, v)
+                            self.db.profile.barAnchor = v
+                            self:UpdateDisplay()
+                        end,
+                    },
                     yOffset = {
                         name = L["VERTICAL_POSITION"],
                         type = "range",
                         min = -1080,
-                        max = 0,
+                        max = 1080,
                         step = 1,
                         bigStep = 10,
                         order = 2,
                         get = function() return self.db.profile.yOffset end,
                         set = function(_, v)
                             self.db.profile.yOffset = v
+                            self:UpdateDisplay()
+                        end,
+                    },
+                    textGap = {
+                        name = L["TEXT_GAP"],
+                        type = "range",
+                        min = -50,
+                        max = 100,
+                        step = 0.5,
+                        order = 2.5,
+                        get = function() return self.db.profile.textGap end,
+                        set = function(_, v)
+                            self.db.profile.textGap = v
                             self:UpdateDisplay()
                         end,
                     },
