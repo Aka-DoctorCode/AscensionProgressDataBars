@@ -13,6 +13,16 @@
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
+function AB:GetPlayerMaxLevel()
+    if GetMaxLevelForPlayerExpansion then
+        local maxLevel = GetMaxLevelForPlayerExpansion()
+        if maxLevel then
+            return maxLevel
+        end
+    end
+    return 80 -- Fallback
+end
+
 function AB:GetClassColor()
     -- Safety check: Ensure state exists
     if not self.state then

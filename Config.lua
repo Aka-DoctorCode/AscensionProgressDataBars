@@ -132,6 +132,16 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
+                    hideAtMaxLevel = {
+                        name = L["HIDE_AT_MAX_LEVEL"],
+                        type = "toggle",
+                        order = 3,
+                        get = function() return self.db.profile.hideAtMaxLevel end,
+                        set = function(_, v)
+                            self.db.profile.hideAtMaxLevel = v
+                            self:UpdateDisplay()
+                        end,
+                    },
                 }
             },
             colors = {

@@ -14,10 +14,10 @@ local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local lastUpdate = 0
 
-function AB:UpdateTextAnchors(factionName, isMaxLevel)
+function AB:UpdateTextAnchors(factionName, shouldHideXP)
     local CONSTANTS = AB.constants
     local profile = self.db.profile
-    local effectiveMax = isMaxLevel and not self.state.isConfigMode
+    local effectiveMax = shouldHideXP and not self.state.isConfigMode
     local gap = CONSTANTS.DEFAULT_GAP
 
     self.XP.txFrame:ClearAllPoints()
@@ -72,9 +72,11 @@ function AB:UpdateDisplay(force)
     lastUpdate = now
 
     local profile = self.db.profile
-    local isMax = UnitLevel("player") >= GetMaxPlayerLevel()
+    local maxLevel = self:GetPlayerMaxLevel()
+    local isMaxLevel = UnitLevel("player") >= maxLevel
+    local shouldHideXP = isMaxLevel and profile.hideAtMaxLevel
 
-    self:UpdateLayout(isMax)
+    self:UpdateLayout(shouldHideXP)
     self:UpdateVisibility()
 
     if self.state.isConfigMode then
@@ -82,7 +84,7 @@ function AB:UpdateDisplay(force)
         return
     end
 
-    if not isMax then
+    if not shouldHideXP then
         local cur, mx = UnitXP("player"), UnitXPMax("player")
         local color = profile.useClassColorXP and self:GetClassColor() or profile.xpBarColor
         self.XP.bar:SetStatusBarColor(color.r, color.g, color.b, 1.0)
@@ -120,7 +122,7 @@ function AB:UpdateDisplay(force)
     end
 
     local name = self:RenderReputation()
-    self:UpdateTextAnchors(name, isMax)
+    self:UpdateTextAnchors(name, shouldHideXP)
 end
 
 function AB:RenderReputation()
@@ -305,9 +307,9 @@ function AB:RenderConfig()
     self:UpdateTextAnchors("Config", false)
 end
 
-function AB:UpdateLayout(isMax)
+function AB:UpdateLayout(shouldHideXP)
     local profile = self.db.profile
-    local effectiveMax = isMax and not self.state.isConfigMode
+    local effectiveMax = shouldHideXP and not self.state.isConfigMode
 
     self.XP.bar:SetHeight(profile.barHeightXP)
     self.Rep.bar:SetHeight(profile.barHeightRep)
