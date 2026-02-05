@@ -11,6 +11,7 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 function AB:GetOptionsTable()
     local CONSTANTS = AB.constants
@@ -20,8 +21,8 @@ function AB:GetOptionsTable()
         childGroups = "tab",
         args = {
             configMode = {
-                name = "Config Mode",
-                desc = "Show dummy bars to visualize changes in real-time.",
+                name = L["CONFIG_MODE"],
+                desc = L["CONFIG_MODE_DESC"],
                 type = "toggle",
                 order = 0,
                 get = function() return self.state.isConfigMode end,
@@ -31,13 +32,13 @@ function AB:GetOptionsTable()
                 end,
             },
             general = {
-                name = "Appearance",
+                name = L["APPEARANCE"],
                 type = "group",
                 order = 10,
                 args = {
-                    headerPos = { type = "header", name = "Position & Size", order = 1 },
+                    headerPos = { type = "header", name = L["POSITION_SIZE"], order = 1 },
                     yOffset = {
-                        name = "Vertical Position (Y)",
+                        name = L["VERTICAL_POSITION"],
                         type = "range",
                         min = -1080,
                         max = 0,
@@ -51,7 +52,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     barHeightXP = {
-                        name = "XP Bar Height",
+                        name = L["XP_BAR_HEIGHT"],
                         type = "range",
                         min = CONSTANTS.MIN_BAR_HEIGHT,
                         max = CONSTANTS.MAX_BAR_HEIGHT,
@@ -64,7 +65,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     barHeightRep = {
-                        name = "Reputation Bar Height",
+                        name = L["REP_BAR_HEIGHT"],
                         type = "range",
                         min = CONSTANTS.MIN_BAR_HEIGHT,
                         max = CONSTANTS.MAX_BAR_HEIGHT,
@@ -77,7 +78,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     textSize = {
-                        name = "Font Size",
+                        name = L["FONT_SIZE"],
                         type = "range",
                         min = CONSTANTS.MIN_TEXT_SIZE,
                         max = CONSTANTS.MAX_TEXT_SIZE,
@@ -90,7 +91,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     globalColor = {
-                        name = "Text Color",
+                        name = L["TEXT_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 6,
@@ -107,12 +108,12 @@ function AB:GetOptionsTable()
                 }
             },
             behavior = {
-                name = "Visibility",
+                name = L["VISIBILITY"],
                 type = "group",
                 order = 20,
                 args = {
                     showOnMouseover = {
-                        name = "Show on Mouseover",
+                        name = L["SHOW_ON_MOUSEOVER"],
                         type = "toggle",
                         order = 1,
                         get = function() return self.db.profile.showOnMouseover end,
@@ -122,7 +123,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     hideInCombat = {
-                        name = "Hide in Combat",
+                        name = L["HIDE_IN_COMBAT"],
                         type = "toggle",
                         order = 2,
                         get = function() return self.db.profile.hideInCombat end,
@@ -134,13 +135,13 @@ function AB:GetOptionsTable()
                 }
             },
             colors = {
-                name = "Colors",
+                name = L["COLORS"],
                 type = "group",
                 order = 30,
                 args = {
-                    headerXP = { type = "header", name = "Experience", order = 1 },
+                    headerXP = { type = "header", name = L["EXPERIENCE"], order = 1 },
                     useClassColorXP = {
-                        name = "Use Class Color",
+                        name = L["USE_CLASS_COLOR"],
                         type = "toggle",
                         order = 2,
                         width = "full",
@@ -151,7 +152,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     xpBarColor = {
-                        name = "Custom XP Color",
+                        name = L["CUSTOM_XP_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 3,
@@ -167,7 +168,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     showRestedBar = {
-                        name = "Show Rested Bar",
+                        name = L["SHOW_RESTED_BAR"],
                         type = "toggle",
                         order = 4,
                         get = function() return self.db.profile.showRestedBar end,
@@ -177,7 +178,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     restedBarColor = {
-                        name = "Rested Color",
+                        name = L["RESTED_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 5,
@@ -192,9 +193,9 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    headerRep = { type = "header", name = "Reputation", order = 10 },
+                    headerRep = { type = "header", name = L["REPUTATION"], order = 10 },
                     useReactionColorRep = {
-                        name = "Use Reaction Colors",
+                        name = L["USE_REACTION_COLORS"],
                         type = "toggle",
                         order = 11,
                         width = "full",
@@ -205,7 +206,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     repBarColor = {
-                        name = "Custom Rep Color",
+                        name = L["CUSTOM_REP_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 12,
@@ -223,12 +224,12 @@ function AB:GetOptionsTable()
                 }
             },
             paragonSettings = {
-                name = "Paragon Alerts",
+                name = L["PARAGON_ALERTS"],
                 type = "group",
                 order = 40,
                 args = {
                     paragonOnTop = {
-                        name = "Show on Top",
+                        name = L["SHOW_ON_TOP"],
                         type = "toggle",
                         order = 1,
                         get = function() return self.db.profile.paragonOnTop end,
@@ -238,7 +239,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     split = {
-                        name = "Split Lines",
+                        name = L["SPLIT_LINES"],
                         type = "toggle",
                         order = 2,
                         get = function() return self.db.profile.splitParagonText end,
@@ -248,7 +249,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     paragonTextSize = {
-                        name = "Text Size",
+                        name = L["TEXT_SIZE"],
                         type = "range",
                         min = 10,
                         max = 40,
@@ -261,7 +262,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     paragonTextYOffset = {
-                        name = "Vertical Offset (Y)",
+                        name = L["VERTICAL_OFFSET_Y"],
                         type = "range",
                         min = -1000,
                         max = 500,
@@ -274,7 +275,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     pColor = {
-                        name = "Alert Color",
+                        name = L["ALERT_COLOR"],
                         type = "color",
                         order = 5,
                         get = function()
@@ -290,18 +291,18 @@ function AB:GetOptionsTable()
                 }
             },
             standingColors = {
-                name = "Faction Colors",
+                name = L["FACTION_COLORS"],
                 type = "group",
                 order = 50,
                 args = {}
             },
             advanced = {
-                name = "Advanced",
+                name = L["ADVANCED"],
                 type = "group",
                 order = 60,
                 args = {
                     showPercentage = {
-                        name = "Show Percentage",
+                        name = L["SHOW_PERCENTAGE"],
                         type = "toggle",
                         order = 1,
                         get = function() return self.db.profile.showPercentage end,
@@ -311,7 +312,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     showAbsoluteValues = {
-                        name = "Show Absolute Values",
+                        name = L["SHOW_ABSOLUTE_VALUES"],
                         type = "toggle",
                         order = 2,
                         get = function() return self.db.profile.showAbsoluteValues end,
@@ -321,7 +322,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     sparkEnabled = {
-                        name = "Show Spark",
+                        name = L["SHOW_SPARK"],
                         type = "toggle",
                         order = 3,
                         get = function() return self.db.profile.sparkEnabled end,
@@ -336,8 +337,8 @@ function AB:GetOptionsTable()
     }
 
     local labels = {
-        "1. Hated", "2. Hostile", "3. Unfriendly", "4. Neutral", "5. Friendly",
-        "6. Honored", "7. Revered", "8. Exalted", "9. Paragon", "10. Maxed", "11. Renown"
+        L["HATED"], L["HOSTILE"], L["UNFRIENDLY"], L["NEUTRAL"], L["FRIENDLY"],
+        L["HONORED"], L["REVERED"], L["EXALTED"], L["PARAGON"], L["MAXED"], L["RENOWN"]
     }
 
     for i = 1, 11 do

@@ -11,6 +11,7 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local lastUpdate = 0
 
 function AB:UpdateTextAnchors(factionName, isMaxLevel)
@@ -139,7 +140,7 @@ function AB:RenderReputation()
         if profile.splitParagonText then
             local lines = {}
             for _, info in ipairs(p) do
-                table.insert(lines, hex .. string.upper(info.name) .. " REWARD PENDING!|r")
+                table.insert(lines, hex .. string.upper(info.name) .. L["REWARD_PENDING_SINGLE"] .. "|r")
             end
             text = table.concat(lines, "\n")
         else
@@ -151,12 +152,12 @@ function AB:RenderReputation()
             if #names == 1 then
                 factionStr = names[1]
             elseif #names == 2 then
-                factionStr = names[1] .. " AND " .. names[2]
+                factionStr = names[1] .. L["AND"] .. names[2]
             else
                 local last = table.remove(names)
-                factionStr = table.concat(names, ", ") .. " AND " .. last
+                factionStr = table.concat(names, ", ") .. L["AND"] .. last
             end
-            text = hex .. factionStr .. " REWARD" .. (#p > 1 and "S" or "") .. " PENDING!|r"
+            text = hex .. factionStr .. (#p > 1 and L["REWARD_PENDING_PLURAL"] or L["REWARD_PENDING_SINGLE"]) .. "|r"
         end
 
         self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
@@ -169,7 +170,7 @@ function AB:RenderReputation()
             self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
         end
 
-        name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, "Reward Pending"
+        name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, L["REWARD_PENDING_STATUS"]
     else
         self.paragonText:Hide()
         local data = C_Reputation.GetWatchedFactionData()
@@ -178,13 +179,13 @@ function AB:RenderReputation()
             min, max, value = data.currentReactionThreshold, data.nextReactionThreshold, data.currentStanding
             if C_Reputation.IsFactionParagon(factionID) then
                 local cv, th = C_Reputation.GetFactionParagonInfo(factionID)
-                min, max, value, standingLabel, reaction = 0, th, cv % th, "Paragon", 9
+                min, max, value, standingLabel, reaction = 0, th, cv % th, L["PARAGON"], 9
             elseif C_Reputation.IsMajorFaction(factionID) then
                 local md = C_MajorFactions.GetMajorFactionData(factionID)
                 min, max, value, standingLabel, reaction = 0, md.renownLevelThreshold,
-                    md.renownReputationEarned, "Renown " .. md.renownLevel, 11
+                    md.renownReputationEarned, string.format(L["RENOWN_LEVEL"], md.renownLevel), 11
             else
-                standingLabel = _G["FACTION_STANDING_LABEL" .. reaction] or "???"
+                standingLabel = _G["FACTION_STANDING_LABEL" .. reaction] or L["UNKNOWN_STANDING"]
             end
         end
     end
@@ -244,7 +245,7 @@ function AB:RenderConfig()
     self.XP.bar:SetMinMaxValues(0, 100)
     self.XP.bar:SetValue(75)
 
-    self.XP.text:SetText("Experience Bar Data | 0/0 (0.0%)")
+    self.XP.text:SetText(L["XP_BAR_DATA"])
     self.XP.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     if profile.showRestedBar then
@@ -275,7 +276,7 @@ function AB:RenderConfig()
     self.Rep.bar:SetMinMaxValues(0, 100)
     self.Rep.bar:SetValue(50)
 
-    self.Rep.text:SetText("Reputation Bar Data | 0/0 (0.0%)")
+    self.Rep.text:SetText(L["REP_BAR_DATA"])
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     -- PARAGON TEXT
@@ -288,9 +289,9 @@ function AB:RenderConfig()
     self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
 
     if profile.splitParagonText then
-        self.paragonText:SetText(hex .. "[CONFIG] FACTION A REWARD|r\n" .. hex .. "[CONFIG] FACTION B REWARD|r")
+        self.paragonText:SetText(hex .. L["CONFIG_FACTION_A_REWARD"] .. "|r\n" .. hex .. L["CONFIG_FACTION_B_REWARD"] .. "|r")
     else
-        self.paragonText:SetText(hex .. "[CONFIG] MULTIPLE REWARDS PENDING!|r")
+        self.paragonText:SetText(hex .. L["CONFIG_MULTIPLE_REWARDS"] .. "|r")
     end
 
     self.paragonText:Show()
