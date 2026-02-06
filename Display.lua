@@ -11,18 +11,46 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local lastUpdate = 0
 
-function AB:UpdateTextAnchors(factionName, isMaxLevel)
+function AB:UpdateTextAnchors(factionName, shouldHideXP)
     local CONSTANTS = AB.constants
     local profile = self.db.profile
-    local effectiveMax = isMaxLevel and not self.state.isConfigMode
+    local effectiveMax = shouldHideXP and not self.state.isConfigMode
     local gap = CONSTANTS.DEFAULT_GAP
 
     self.XP.txFrame:ClearAllPoints()
     self.Rep.txFrame:ClearAllPoints()
     self.textHolder:ClearAllPoints()
-    self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - 13.5)
+
+    local isBottom = (profile.barAnchor == "BOTTOM")
+    
+    if isBottom then
+        -- Bottom Anchor: Text ABOVE bars
+        -- We anchor textHolder slightly above the calculated Y position
+        -- However, exact positioning depends on bar heights which might vary.
+        -- Simpler approach: Anchor to UIParent BOTTOM, offset by yOffset + fixed amount + estimated bar height?
+        -- Better: Anchor relative to the TOP-most bar.
+        
+        -- To avoid circular dependencies (bars anchor to parent, text anchors to bars?), 
+        -- let's keep textHolder independent but flipped.
+        -- Top Mode: yOffset - 13.5 (Below)
+        -- Bottom Mode: yOffset + 13.5 (Above)
+        -- Note: yOffset in Bottom mode is likely positive (going up) or negative (if user wants to push down).
+        -- We assume yOffset defines the "Base" of the bar stack.
+        
+        -- If we want text ABOVE the bars, we need to know the total height of bars.
+        -- But UpdateTextAnchors doesn't easily know the bar layout state (UpdateLayout does).
+        -- Let's use a simpler heuristic: Center of textHolder is offset from yOffset.
+        -- If bars are ~11px tall total, and text is ~12px.
+        
+        -- Let's try mirroring the offset:
+        self.textHolder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, profile.yOffset + profile.textGap)
+    else
+        -- Top Anchor: Text BELOW bars (Default)
+        self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - profile.textGap)
+    end
 
     local w1 = self.XP.text:GetStringWidth() + 5
     local w2 = self.Rep.text:GetStringWidth() + 5
@@ -71,9 +99,11 @@ function AB:UpdateDisplay(force)
     lastUpdate = now
 
     local profile = self.db.profile
-    local isMax = UnitLevel("player") >= GetMaxPlayerLevel()
+    local maxLevel = self:GetPlayerMaxLevel()
+    local isMaxLevel = UnitLevel("player") >= maxLevel
+    local shouldHideXP = isMaxLevel and profile.hideAtMaxLevel
 
-    self:UpdateLayout(isMax)
+    self:UpdateLayout(shouldHideXP)
     self:UpdateVisibility()
 
     if self.state.isConfigMode then
@@ -81,7 +111,7 @@ function AB:UpdateDisplay(force)
         return
     end
 
-    if not isMax then
+    if not shouldHideXP then
         local cur, mx = UnitXP("player"), UnitXPMax("player")
         local color = profile.useClassColorXP and self:GetClassColor() or profile.xpBarColor
         self.XP.bar:SetStatusBarColor(color.r, color.g, color.b, 1.0)
@@ -119,7 +149,7 @@ function AB:UpdateDisplay(force)
     end
 
     local name = self:RenderReputation()
-    self:UpdateTextAnchors(name, isMax)
+    self:UpdateTextAnchors(name, shouldHideXP)
 end
 
 function AB:RenderReputation()
@@ -139,7 +169,7 @@ function AB:RenderReputation()
         if profile.splitParagonText then
             local lines = {}
             for _, info in ipairs(p) do
-                table.insert(lines, hex .. string.upper(info.name) .. " REWARD PENDING!|r")
+                table.insert(lines, hex .. string.upper(info.name) .. L["REWARD_PENDING_SINGLE"] .. "|r")
             end
             text = table.concat(lines, "\n")
         else
@@ -151,12 +181,12 @@ function AB:RenderReputation()
             if #names == 1 then
                 factionStr = names[1]
             elseif #names == 2 then
-                factionStr = names[1] .. " AND " .. names[2]
+                factionStr = names[1] .. L["AND"] .. names[2]
             else
                 local last = table.remove(names)
-                factionStr = table.concat(names, ", ") .. " AND " .. last
+                factionStr = table.concat(names, ", ") .. L["AND"] .. last
             end
-            text = hex .. factionStr .. " REWARD" .. (#p > 1 and "S" or "") .. " PENDING!|r"
+            text = hex .. factionStr .. (#p > 1 and L["REWARD_PENDING_PLURAL"] or L["REWARD_PENDING_SINGLE"]) .. "|r"
         end
 
         self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
@@ -166,10 +196,15 @@ function AB:RenderReputation()
         if profile.paragonOnTop then
             self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, profile.paragonTextYOffset)
         else
-            self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+            if profile.barAnchor == "BOTTOM" then
+                -- Invert offset direction for bottom anchor to stack upwards
+                self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -profile.paragonTextYOffset)
+            else
+                self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+            end
         end
 
-        name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, "Reward Pending"
+        name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, L["REWARD_PENDING_STATUS"]
     else
         self.paragonText:Hide()
         local data = C_Reputation.GetWatchedFactionData()
@@ -178,13 +213,13 @@ function AB:RenderReputation()
             min, max, value = data.currentReactionThreshold, data.nextReactionThreshold, data.currentStanding
             if C_Reputation.IsFactionParagon(factionID) then
                 local cv, th = C_Reputation.GetFactionParagonInfo(factionID)
-                min, max, value, standingLabel, reaction = 0, th, cv % th, "Paragon", 9
+                min, max, value, standingLabel, reaction = 0, th, cv % th, L["PARAGON"], 9
             elseif C_Reputation.IsMajorFaction(factionID) then
                 local md = C_MajorFactions.GetMajorFactionData(factionID)
                 min, max, value, standingLabel, reaction = 0, md.renownLevelThreshold,
-                    md.renownReputationEarned, "Renown " .. md.renownLevel, 11
+                    md.renownReputationEarned, string.format(L["RENOWN_LEVEL"], md.renownLevel), 11
             else
-                standingLabel = _G["FACTION_STANDING_LABEL" .. reaction] or "???"
+                standingLabel = _G["FACTION_STANDING_LABEL" .. reaction] or L["UNKNOWN_STANDING"]
             end
         end
     end
@@ -244,7 +279,7 @@ function AB:RenderConfig()
     self.XP.bar:SetMinMaxValues(0, 100)
     self.XP.bar:SetValue(75)
 
-    self.XP.text:SetText("Experience Bar Data | 0/0 (0.0%)")
+    self.XP.text:SetText(L["XP_BAR_DATA"])
     self.XP.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     if profile.showRestedBar then
@@ -275,7 +310,7 @@ function AB:RenderConfig()
     self.Rep.bar:SetMinMaxValues(0, 100)
     self.Rep.bar:SetValue(50)
 
-    self.Rep.text:SetText("Reputation Bar Data | 0/0 (0.0%)")
+    self.Rep.text:SetText(L["REP_BAR_DATA"])
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
 
     -- PARAGON TEXT
@@ -288,9 +323,9 @@ function AB:RenderConfig()
     self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
 
     if profile.splitParagonText then
-        self.paragonText:SetText(hex .. "[CONFIG] FACTION A REWARD|r\n" .. hex .. "[CONFIG] FACTION B REWARD|r")
+        self.paragonText:SetText(hex .. L["CONFIG_FACTION_A_REWARD"] .. "|r\n" .. hex .. L["CONFIG_FACTION_B_REWARD"] .. "|r")
     else
-        self.paragonText:SetText(hex .. "[CONFIG] MULTIPLE REWARDS PENDING!|r")
+        self.paragonText:SetText(hex .. L["CONFIG_MULTIPLE_REWARDS"] .. "|r")
     end
 
     self.paragonText:Show()
@@ -298,15 +333,19 @@ function AB:RenderConfig()
     if profile.paragonOnTop then
         self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, profile.paragonTextYOffset)
     else
-        self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+        if profile.barAnchor == "BOTTOM" then
+             self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -profile.paragonTextYOffset)
+        else
+             self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
+        end
     end
 
     self:UpdateTextAnchors("Config", false)
 end
 
-function AB:UpdateLayout(isMax)
+function AB:UpdateLayout(shouldHideXP)
     local profile = self.db.profile
-    local effectiveMax = isMax and not self.state.isConfigMode
+    local effectiveMax = shouldHideXP and not self.state.isConfigMode
 
     self.XP.bar:SetHeight(profile.barHeightXP)
     self.Rep.bar:SetHeight(profile.barHeightRep)
@@ -332,18 +371,41 @@ function AB:UpdateLayout(isMax)
     self.XP.bar:ClearAllPoints()
     self.Rep.bar:ClearAllPoints()
 
-    if effectiveMax then
-        self.XP.bar:Hide()
-        self.XP.txFrame:Hide()
-        self.Rep.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
-        self.Rep.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+    local isBottom = (profile.barAnchor == "BOTTOM")
+
+    if isBottom then
+        -- BOTTOM ANCHOR LAYOUT
+        -- Stack Upwards: XP (Bottom) -> Rep (Above XP)
+        if effectiveMax then
+            self.XP.bar:Hide()
+            self.XP.txFrame:Hide()
+            self.Rep.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, startY)
+            self.Rep.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, startY)
+        else
+            self.XP.bar:Show()
+            self.XP.txFrame:Show()
+            self.XP.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, startY)
+            self.XP.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, startY)
+            
+            self.Rep.bar:SetPoint("BOTTOMLEFT", self.XP.bar, "TOPLEFT", 0, profile.barGap)
+            self.Rep.bar:SetPoint("BOTTOMRIGHT", self.XP.bar, "TOPRIGHT", 0, profile.barGap)
+        end
     else
-        self.XP.bar:Show()
-        self.XP.txFrame:Show()
-        self.XP.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
-        self.XP.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
-        self.Rep.bar:SetPoint("TOPLEFT", self.XP.bar, "BOTTOMLEFT", 0, -profile.barGap)
-        self.Rep.bar:SetPoint("TOPRIGHT", self.XP.bar, "BOTTOMRIGHT", 0, -profile.barGap)
+        -- TOP ANCHOR LAYOUT (Default)
+        -- Stack Downwards: XP (Top) -> Rep (Below XP)
+        if effectiveMax then
+            self.XP.bar:Hide()
+            self.XP.txFrame:Hide()
+            self.Rep.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
+            self.Rep.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+        else
+            self.XP.bar:Show()
+            self.XP.txFrame:Show()
+            self.XP.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
+            self.XP.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
+            self.Rep.bar:SetPoint("TOPLEFT", self.XP.bar, "BOTTOMLEFT", 0, -profile.barGap)
+            self.Rep.bar:SetPoint("TOPRIGHT", self.XP.bar, "BOTTOMRIGHT", 0, -profile.barGap)
+        end
     end
 end
 

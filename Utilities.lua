@@ -11,6 +11,17 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+
+function AB:GetPlayerMaxLevel()
+    if GetMaxLevelForPlayerExpansion then
+        local maxLevel = GetMaxLevelForPlayerExpansion()
+        if maxLevel then
+            return maxLevel
+        end
+    end
+    return 80 -- Fallback
+end
 
 function AB:GetClassColor()
     -- Safety check: Ensure state exists
@@ -45,7 +56,7 @@ function AB:ScanParagonRewards()
                 if d and d.factionID and C_Reputation.IsFactionParagon(d.factionID) then
                     local currentValue, threshold, _, hasRewardPending = C_Reputation.GetFactionParagonInfo(d.factionID)
                     if hasRewardPending then
-                        table.insert(pending, { name = d.name or "Unknown Faction" })
+                        table.insert(pending, { name = d.name or L["UNKNOWN_FACTION"] })
                     end
                 end
             end
@@ -84,22 +95,27 @@ function AB:FormatXP()
 
     local txt = ""
     if profile.showAbsoluteValues then
-        txt = string.format("Level %d | %s/%s",
-            UnitLevel("player"),
-            BreakUpLargeNumbers(c),
-            BreakUpLargeNumbers(m))
         if profile.showPercentage then
-            txt = txt .. string.format(" (%.1f%%)", pct)
+            txt = string.format(L["LEVEL_TEXT_ABS_PCT"],
+                UnitLevel("player"),
+                BreakUpLargeNumbers(c),
+                BreakUpLargeNumbers(m),
+                pct)
+        else
+            txt = string.format(L["LEVEL_TEXT_ABS"],
+                UnitLevel("player"),
+                BreakUpLargeNumbers(c),
+                BreakUpLargeNumbers(m))
         end
     elseif profile.showPercentage then
-        txt = string.format("Level %d | %.1f%%", UnitLevel("player"), pct)
+        txt = string.format(L["LEVEL_TEXT_PCT"], UnitLevel("player"), pct)
     else
-        txt = string.format("Level %d", UnitLevel("player"))
+        txt = string.format(L["LEVEL_TEXT"], UnitLevel("player"))
     end
 
     local r = GetXPExhaustion()
     if r and r > 0 then
-        txt = txt .. string.format(" | Rested %.1f%%", (m > 0 and r / m * 100) or 0)
+        txt = txt .. string.format(L["RESTED_TEXT"], (m > 0 and r / m * 100) or 0)
     end
     return txt
 end
