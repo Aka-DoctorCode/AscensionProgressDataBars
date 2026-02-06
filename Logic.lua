@@ -1,8 +1,8 @@
 -------------------------------------------------------------------------------
--- Project: AscensionCastBar
+-- Project: AscensionBars
 -- Author: Aka-DoctorCode 
 -- File: Logic.lua
--- Version: 12.0.0
+-- Version: 20
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --

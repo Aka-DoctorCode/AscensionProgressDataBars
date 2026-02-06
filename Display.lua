@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode 
 -- File: Display.lua
--- Version: 12.0.0
+-- Version: 20
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -28,24 +28,6 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
     
     if isBottom then
         -- Bottom Anchor: Text ABOVE bars
-        -- We anchor textHolder slightly above the calculated Y position
-        -- However, exact positioning depends on bar heights which might vary.
-        -- Simpler approach: Anchor to UIParent BOTTOM, offset by yOffset + fixed amount + estimated bar height?
-        -- Better: Anchor relative to the TOP-most bar.
-        
-        -- To avoid circular dependencies (bars anchor to parent, text anchors to bars?), 
-        -- let's keep textHolder independent but flipped.
-        -- Top Mode: yOffset - 13.5 (Below)
-        -- Bottom Mode: yOffset + 13.5 (Above)
-        -- Note: yOffset in Bottom mode is likely positive (going up) or negative (if user wants to push down).
-        -- We assume yOffset defines the "Base" of the bar stack.
-        
-        -- If we want text ABOVE the bars, we need to know the total height of bars.
-        -- But UpdateTextAnchors doesn't easily know the bar layout state (UpdateLayout does).
-        -- Let's use a simpler heuristic: Center of textHolder is offset from yOffset.
-        -- If bars are ~11px tall total, and text is ~12px.
-        
-        -- Let's try mirroring the offset:
         self.textHolder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, profile.yOffset + profile.textGap)
     else
         -- Top Anchor: Text BELOW bars (Default)

@@ -11,3 +11,9 @@ Plans
     - honor
     - housing bar
     - renow reps need to show the current renow level
+
+
+Changelog
+- Added: Localization implemented PT and EN
+- Added: Hide at max level option
+- Added: Position the bar at bottom option

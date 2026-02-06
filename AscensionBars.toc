@@ -2,7 +2,7 @@
 ## Title: Ascension Bars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
-## Version: 21
+## Version: 20
 ## SavedVariables: AscensionBarsDB
 ## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
 
@@ -21,6 +21,7 @@ Libs\AceLocale-3.0\AceLocale-3.0.xml
 
 # Locales
 Locales\enUS.lua
+Locales\esES.lua
 Locales\ptBR.lua
 
 # Core
