@@ -1,8 +1,8 @@
-## Interface: 120000
+## Interface: 120001
 ## Title: Ascension Bars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
-## Version: 20
+## Version: 21
 ## SavedVariables: AscensionBarsDB
 ## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
 
