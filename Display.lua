@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode 
 -- File: Display.lua
--- Version: 20
+-- Version: 22
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -95,8 +95,10 @@ function AB:UpdateDisplay(force)
 
     if not shouldHideXP then
         local cur, mx = UnitXP("player"), UnitXPMax("player")
-        local color = profile.useClassColorXP and self:GetClassColor() or profile.xpBarColor
-        self.XP.bar:SetStatusBarColor(color.r, color.g, color.b, 1.0)
+        local color = profile.useClassColorXP and self:GetClassColor() or (profile.xpBarColor or {r=0, g=0.4, b=1})
+        if color then
+            self.XP.bar:SetStatusBarColor(color.r or 0, color.g or 0.4, color.b or 1, 1.0)
+        end
         self.XP.bar:SetMinMaxValues(0, mx)
         self.XP.bar:SetValue(cur)
 

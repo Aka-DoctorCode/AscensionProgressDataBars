@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode 
 -- File: Logic.lua
--- Version: 20
+-- Version: 22
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -27,7 +27,7 @@ local function GetSafeCastInfo(unit, channel)
 
     if type(name) == "table" then
         local data = name
-        if not data.name then return nil end 
+        if not data or not data.name then return nil end
 
         return {
             name = data.name,

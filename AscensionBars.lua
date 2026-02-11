@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode 
 -- File: AscensionBars.lua
--- Version: 20
+-- Version: 22
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -37,13 +37,15 @@ function AB:OnInitialize()
 
     -- Register Options and Dialogs
     LibStub("AceConfig-3.0"):RegisterOptionsTable(ADDON_NAME, self:GetOptionsTable())
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
+    local _, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
+    self.optionsCategory = category
 
     self:RegisterChatCommand("ab", function()
         if Settings and Settings.OpenToCategory then
-            Settings.OpenToCategory(self.optionsFrame.name)
-        else
-            InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
+            -- 12.0.0 safe way to open the specific category
+            if self.optionsCategory then
+                Settings.OpenToCategory(self.optionsCategory:GetID())
+            end
         end
     end)
 
