@@ -1,10 +1,4 @@
-<h1>V25</h1>
+<h1>V27</h1>
 <ul>
-    <li>Remove a file from Ascension Cast Bar that did not belong here</li>
-    <li>Add several missing custom classes</li>
-    <li>Add several missing custom fields</li>
-    <li>Several nil check added</li>
-    <li>Several type mismatch fixed</li>
-    <li>Added house xp bar</li>
-    <li>Initial publication on Wago</li>
+    <li>Added deDE locale</li>
 </ul>

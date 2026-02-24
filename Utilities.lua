@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Utilities.lua
--- Version: 25
+-- Version: 27
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --

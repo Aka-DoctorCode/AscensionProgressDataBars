@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: ptBR.lua
--- Version: 23
+-- Version: 27
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
