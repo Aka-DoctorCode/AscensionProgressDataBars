@@ -1,3 +1,15 @@
+-------------------------------------------------------------------------------
+-- Project: AscensionBars
+-- Author: Aka-DoctorCode
+-- File: enUS.lua
+-- Version: 23
+-------------------------------------------------------------------------------
+-- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+--
+-- This software and its source code are the exclusive property of the author.
+-- No part of this file may be copied, modified, redistributed, or used in
+-- derivative works without express written permission.
+-------------------------------------------------------------------------------
 local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true)
 
 if not L then return end
@@ -69,3 +81,19 @@ L["CONFIG_MULTIPLE_REWARDS"] = "[CONFIG] MULTIPLE REWARDS PENDING!"
 L["REWARD_PENDING_STATUS"] = "Reward Pending"
 L["UNKNOWN_STANDING"] = "???"
 L["RESTED_TEXT"] = " | Rested %.1f%%"
+L["OPTIONAL_BARS"] = "Optional Bars"
+L["ENABLE_HONOR_BAR"] = "Enable Honor Bar"
+L["HONOR"] = "Honor"
+L["HONOR_COLOR"] = "Honor Color"
+L["HONOR_BAR_DATA"] = "Honor: 30%"
+L["ENABLE_HOUSE_XP_BAR"] = "Enable House Favor Bar"
+L["HOUSE_XP"] = "House Favor"
+L["HOUSE_XP_COLOR"] = "House Favor Color"
+L["HOUSE_XP_BAR_DATA"] = "House Level 0 | 0/0 (0.0%)"
+L["ENABLE_ARTIFACT_BAR"] = "Enable Artifact Bar"
+L["ARTIFACT"] = "Artifact/Azerite"
+L["ARTIFACT_COLOR"] = "Artifact Color"
+L["ARTIFACT_BAR_DATA"] = "Artifact Power: 80%"
+L["HOUSE_BAR_HEIGHT"] = "House Bar Height"
+L["HOUSE_REWARD_COLOR"] = "Reward Text Color"
+L["HOUSE_REWARD_Y_OFFSET"] = "Reward Text Y-Offset"

@@ -1,41 +1,50 @@
 -------------------------------------------------------------------------------
 -- Project: AscensionBars
--- Author: Aka-DoctorCode 
+-- Author: Aka-DoctorCode
 -- File: Utilities.lua
--- Version: 22
+-- Version: 23
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
--- No part of this file may be copied, modified, redistributed, or used in 
+-- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
+-------------------------------------------------------------------------------
+-- Player Information
+-------------------------------------------------------------------------------
 function AB:GetPlayerMaxLevel()
-    if GetMaxLevelForPlayerExpansion then
-        local maxLevel = GetMaxLevelForPlayerExpansion()
+    if GetMaxLevelForLatestExpansion then
+        local maxLevel = GetMaxLevelForLatestExpansion()
         if maxLevel then
             return maxLevel
         end
     end
-    return 80 -- Fallback
+    return 80
 end
 
+-------------------------------------------------------------------------------
+-- Class Color Retrieval
+-------------------------------------------------------------------------------
 function AB:GetClassColor()
-    -- Safety check: Ensure state exists
     if not self.state then
-        return { r = 1, g = 1, b = 1, a = 1 }
+        return { r = 1, g = 1, b = 1, a = 1 } -- #FFFFFF
     end
 
     if not self.state.cachedClassColor then
         local _, classFilename = UnitClass("player")
-        if classFilename and RAID_CLASS_COLORS[classFilename] then
-            self.state.cachedClassColor = RAID_CLASS_COLORS[classFilename]
-        else
-            self.state.cachedClassColor = { r = 1, g = 1, b = 1, a = 1 }
+        if classFilename then
+            local classColor = C_ClassColor.GetClassColor(classFilename)
+            if classColor then
+                self.state.cachedClassColor = classColor
+                return self.state.cachedClassColor
+            end
         end
+        self.state.cachedClassColor = { r = 1, g = 1, b = 1, a = 1 } -- #FFFFFF
     end
     return self.state.cachedClassColor
 end
@@ -66,19 +75,16 @@ function AB:ScanParagonRewards()
     self:UpdateDisplay()
 end
 
+-------------------------------------------------------------------------------
+-- Frame Management
+-------------------------------------------------------------------------------
 function AB:HideBlizzardFrames()
-    local frames = {
-        MainMenuExpBar,
-        MainMenuBarMaxLevelBar,
-        ReputationWatchBar,
+    local framesToHide = {
         StatusTrackingBarManager,
-        ExpBar,
-        ReputationBar,
-        HonorBar,
-        ArtifactWatchBar,
-        AzeriteBar
+        UIWidgetPowerBarContainerFrame
     }
-    for _, frame in pairs(frames) do
+
+    for _, frame in pairs(framesToHide) do
         if frame then
             frame:UnregisterAllEvents()
             frame:Hide()

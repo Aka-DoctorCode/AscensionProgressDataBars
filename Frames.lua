@@ -1,22 +1,22 @@
 -------------------------------------------------------------------------------
 -- Project: AscensionBars
--- Author: Aka-DoctorCode 
+-- Author: Aka-DoctorCode
 -- File: Frames.lua
--- Version: 22
+-- Version: 23
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
--- No part of this file may be copied, modified, redistributed, or used in 
+-- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 
 -- Texture pool for performance
 local texturePool = {}
 
 function AB:CreateFrames()
-    local CONSTANTS = AB.constants
     self.textHolder = CreateFrame("Frame", "AscensionBars_TextHolder", UIParent)
     self.textHolder:SetFrameStrata("HIGH")
     self.textHolder:SetClipsChildren(false)
@@ -36,6 +36,12 @@ function AB:CreateFrames()
 
     self.XP = self:CreateBar("AscensionXPBar_XP")
     self.Rep = self:CreateBar("AscensionXPBar_Rep")
+    self.Honor = self:CreateBar("AscensionXPBar_Honor")
+    self.HouseXp = self:CreateBar("AscensionXPBar_HouseXp")
+    self.Artifact = self:CreateBar("AscensionXPBar_Artifact")
+    if self.Honor and self.Honor.bar then self.Honor.bar:Hide() end
+    if self.HouseXp and self.HouseXp.bar then self.HouseXp.bar:Hide() end
+    if self.Artifact and self.Artifact.bar then self.Artifact.bar:Hide() end
     self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 end
 
@@ -46,9 +52,8 @@ function AB:CreateBar(name)
     bar:SetStatusBarTexture(CONSTANTS.TEXTURE_BAR)
     bar:SetClipsChildren(true)
 
-    -- Use texture pool for background
     local bg = self:AcquireTexture(bar)
-    bg:SetAllPoints(true)
+    bg:SetAllPoints()
     bg:SetTexture(CONSTANTS.TEXTURE_BAR)
     bg:SetVertexColor(0, 0, 0, self.db.profile.backgroundAlpha or 0.5)
     bg:SetDrawLayer("BACKGROUND", -1)
@@ -62,7 +67,7 @@ function AB:CreateBar(name)
 
     local txFrame = CreateFrame("Frame", nil, self.textHolder)
     local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    text:SetAllPoints(true)
+    text:SetAllPoints()
 
     return {
         bar = bar,
