@@ -1,4 +1,6 @@
-<h1>V27</h1>
+<h1>V28</h1>
 <ul>
-    <li>Added deDE locale</li>
+    <li>Code cleanup</li>
+    <li>Removed unused code</li>
+    <li>Added deDE locale to .toc file</li>
 </ul>

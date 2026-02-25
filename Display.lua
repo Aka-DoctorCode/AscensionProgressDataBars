@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Display.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,6 +10,7 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 ---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
@@ -23,27 +24,21 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
     local profile = self.db.profile
     local effectiveMax = shouldHideXP and not self.state.isConfigMode
     local gap = CONSTANTS.DEFAULT_GAP
-
     if self.XP and self.XP.txFrame then self.XP.txFrame:ClearAllPoints() end
     if self.Rep and self.Rep.txFrame then self.Rep.txFrame:ClearAllPoints() end
     if self.Honor and self.Honor.txFrame then self.Honor.txFrame:ClearAllPoints() end
     if self.HouseXp and self.HouseXp.txFrame then self.HouseXp.txFrame:ClearAllPoints() end
     if self.Artifact and self.Artifact.txFrame then self.Artifact.txFrame:ClearAllPoints() end
     self.textHolder:ClearAllPoints()
-
     local isBottom = (profile.barAnchor == "BOTTOM")
-
     if isBottom then
         self.textHolder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, profile.yOffset + profile.textGap)
     else
         self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - profile.textGap)
     end
-
     local activeFrames = {}
     local totalWidth = 0
-
     local function checkAndAddFrame(barObj)
-        -- Need nill check: Ensure the object and its frame exist and are visible
         if barObj and barObj.txFrame and barObj.txFrame:IsShown() then
             local frameWidth = barObj.text:GetStringWidth() + 5
             if frameWidth < CONSTANTS.MIN_TEXT_WIDTH then
@@ -53,27 +48,21 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
             totalWidth = totalWidth + frameWidth
         end
     end
-
-    -- Determine which text frames should be added to the layout dynamically
     if not effectiveMax then checkAndAddFrame(self.XP) end
     checkAndAddFrame(self.Rep)
     if profile.honorBarEnabled then checkAndAddFrame(self.Honor) end
     if profile.houseXpBarEnabled then checkAndAddFrame(self.HouseXp) end
     if profile.artifactBarEnabled then checkAndAddFrame(self.Artifact) end
-
     if #activeFrames == 0 then
         self.textHolder:SetWidth(1)
         return
     end
-
     totalWidth = totalWidth + (gap * (#activeFrames - 1))
     self.textHolder:SetWidth(totalWidth)
-
     for i, data in ipairs(activeFrames) do
         data.obj.txFrame:SetWidth(data.width)
         data.obj.txFrame:SetPoint("TOP", self.textHolder, "TOP")
         data.obj.txFrame:SetPoint("BOTTOM", self.textHolder, "BOTTOM")
-
         if i == 1 then
             data.obj.txFrame:SetPoint("LEFT", self.textHolder, "LEFT")
             if #activeFrames == 1 then
@@ -93,7 +82,6 @@ function AB:UpdateDisplay(force)
     local CONSTANTS = AB.constants
     local now = GetTime()
     local isForce = (force == true) or self.state.isConfigMode
-
     if not isForce and (now - lastUpdate < CONSTANTS.UPDATE_THROTTLE) then
         if not self.state.updatePending then
             self.state.updatePending = true
@@ -105,20 +93,16 @@ function AB:UpdateDisplay(force)
         return
     end
     lastUpdate = now
-
     local profile = self.db.profile
     local maxLevel = self:GetPlayerMaxLevel()
     local isMaxLevel = UnitLevel("player") >= maxLevel
     local shouldHideXP = isMaxLevel and profile.hideAtMaxLevel
-
     self:UpdateLayout(shouldHideXP)
     self:UpdateVisibility()
-
     if self.state.isConfigMode then
         self:RenderConfig()
         return
     end
-
     if not shouldHideXP then
         local cur, mx = UnitXP("player"), UnitXPMax("player")
         local color = profile.useClassColorXP and self:GetClassColor() or
@@ -128,7 +112,6 @@ function AB:UpdateDisplay(force)
         end
         self.XP.bar:SetMinMaxValues(0, mx)
         self.XP.bar:SetValue(cur)
-
         if profile.sparkEnabled then
             local pct = (mx > 0) and (cur / mx) or 0
             self.XP.spark:SetPoint("CENTER", self.XP.bar, "LEFT", self.XP.bar:GetWidth() * pct, 0)
@@ -136,7 +119,6 @@ function AB:UpdateDisplay(force)
         else
             self.XP.spark:Hide()
         end
-
         if profile.showRestedBar then
             local rested = GetXPExhaustion()
             if rested and rested > 0 then
@@ -158,7 +140,6 @@ function AB:UpdateDisplay(force)
         end
         self.XP.text:SetText(self:FormatXP())
     end
-
     local name = self:RenderReputation()
     self:RenderOptionalBars()
     self:UpdateTextAnchors(name, shouldHideXP)
@@ -168,7 +149,6 @@ function AB:RenderReputation()
     local profile = self.db.profile
     local name, reaction, min, max, value, factionID, standingLabel
     local p = self.state.cachedPendingParagons
-
     if p and #p > 0 then
         local pc = profile.paragonPendingColor
         local hex = string.format("|cff%02x%02x%02x",
@@ -176,7 +156,6 @@ function AB:RenderReputation()
             math.floor((pc.g or 1) * 255),
             math.floor((pc.b or 0) * 255)
         )
-
         local text = ""
         if profile.splitParagonText then
             local lines = {}
@@ -200,8 +179,7 @@ function AB:RenderReputation()
             end
             text = hex .. factionStr .. (#p > 1 and L["REWARD_PENDING_PLURAL"] or L["REWARD_PENDING_SINGLE"]) .. "|r"
         end
-
-        self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
+        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize, "OUTLINE, THICK")
         self.paragonText:SetText(text)
         self.paragonText:Show()
         self.paragonText:ClearAllPoints()
@@ -209,13 +187,11 @@ function AB:RenderReputation()
             self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, profile.paragonTextYOffset)
         else
             if profile.barAnchor == "BOTTOM" then
-                -- Invert offset direction for bottom anchor to stack upwards
                 self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -profile.paragonTextYOffset)
             else
                 self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
             end
         end
-
         name, reaction, min, max, value, standingLabel = p[1].name, 9, 0, 1, 1, L["REWARD_PENDING_STATUS"]
     else
         self.paragonText:Hide()
@@ -240,7 +216,6 @@ function AB:RenderReputation()
             end
         end
     end
-
     if name then
         self.Rep.bar:Show()
         self.Rep.txFrame:Show()
@@ -249,7 +224,6 @@ function AB:RenderReputation()
         self.Rep.bar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1.0)
         self.Rep.bar:SetMinMaxValues(min, max)
         self.Rep.bar:SetValue(value)
-
         if profile.sparkEnabled then
             local pct = (max - min > 0) and (value - min) / (max - min) or 0
             self.Rep.spark:SetPoint("CENTER", self.Rep.bar, "LEFT", self.Rep.bar:GetWidth() * pct, 0)
@@ -257,11 +231,9 @@ function AB:RenderReputation()
         else
             self.Rep.spark:Hide()
         end
-
         local pct = (max - min > 0) and ((value - min) / (max - min) * 100) or 0
         local valueStr = BreakUpLargeNumbers(value - min)
         local maxStr = BreakUpLargeNumbers(max - min)
-
         if profile.showAbsoluteValues and profile.showPercentage then
             self.Rep.text:SetText(string.format("%s (%s) %s/%s (%.1f%%)",
                 name, standingLabel, valueStr, maxStr, pct))
@@ -281,46 +253,32 @@ function AB:RenderReputation()
     return name
 end
 
--------------------------------------------------------------------------------
--- Optional Bars Data Rendering
--------------------------------------------------------------------------------
 function AB:RenderOptionalBars()
     local profile = self.db.profile
     local tc = profile.textColor
-
-    -- Honor Bar
     if self.Honor and profile.honorBarEnabled then
         self.Honor.bar:Show()
         self.Honor.txFrame:Show()
-
         local currentHonor = UnitHonor("player") or 0
         local maxHonor = UnitHonorMax("player") or 100
         if maxHonor == 0 then maxHonor = 1 end
-
         local honorColor = profile.honorColor
         if not honorColor then honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 } end -- #CC3333
-
         self.Honor.bar:SetStatusBarColor(honorColor.r, honorColor.g, honorColor.b, honorColor.a)
         self.Honor.bar:SetMinMaxValues(0, maxHonor)
         self.Honor.bar:SetValue(currentHonor)
-
         local percentage = (currentHonor / maxHonor) * 100
         self.Honor.text:SetText(string.format("Honor %d/%d (%.1f%%)", currentHonor, maxHonor, percentage))
-
         if tc then self.Honor.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
     elseif self.Honor then
         self.Honor.bar:Hide()
         self.Honor.txFrame:Hide()
     end
-
-    -- House XP Bar
     if self.HouseXp and profile.houseXpBarEnabled then
         self.HouseXp.bar:Show()
         self.HouseXp.txFrame:Show()
-
         local houseXpColor = profile.houseXpColor
         if not houseXpColor then houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 } end -- #E68000
-
         local currentFavor = 0
         local minFavorBar = 0
         local maxFavorBar = 1
@@ -328,44 +286,29 @@ function AB:RenderOptionalBars()
         local houseName = "House Favor"
         local isMonitoringHouse = false
         local currentHouseAddress = ""
-
-        -- Need nill check: Real 12.0.0 Housing API Implementation using Native API
         local trackedGuid = nil
         if C_Housing and C_Housing.GetTrackedHouseGuid then
             trackedGuid = C_Housing.GetTrackedHouseGuid()
         end
-
-        -- Verify tracking is active and we have cached data that strictly matches the current GUID
         if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" and self.state and self.state.houseLevelFavor then
             local data = self.state.houseLevelFavor
-
             if data.houseGUID == trackedGuid then
                 isMonitoringHouse = true
                 currentFavor = data.houseFavor or 0
                 currentLevel = data.houseLevel or 1
-
                 local houseAddress = "House Favor"
                 local guidStr = tostring(trackedGuid)
-
-                -- Initialize session cache if needed
                 self.state.houseNamesCache = self.state.houseNamesCache or {}
-
-                -- 1. Need nill check: Check if the name is explicitly included in the server's payload
                 if data.houseName or data.neighborhoodName then
                     houseAddress = data.houseName or data.neighborhoodName
                     self.state.houseNamesCache[guidStr] = houseAddress
                 end
-
-                -- 2. Need nill check: Retrieve from our custom memory cache if previously discovered
                 if houseAddress == "House Favor" and self.state.houseNamesCache[guidStr] then
                     houseAddress = self.state.houseNamesCache[guidStr]
                 end
-
-                -- 3. Need nill check: Scan CurrentHouseInfo (Only provides data if physically in the house)
                 if houseAddress == "House Favor" and C_Housing and C_Housing.GetCurrentHouseInfo then
                     local currentInfo = C_Housing.GetCurrentHouseInfo()
                     if type(currentInfo) == "table" then
-                        -- Need nill check: Process directly if it is a single dictionary to avoid linter strict type errors
                         if currentInfo.houseGUID or currentInfo.neighborhoodGUID then
                             local cGuid = currentInfo.houseGUID or currentInfo.neighborhoodGUID
                             if cGuid and tostring(cGuid) == guidStr then
@@ -373,7 +316,6 @@ function AB:RenderOptionalBars()
                                 self.state.houseNamesCache[guidStr] = houseAddress
                             end
                         else
-                            -- Process as an array of dictionaries
                             for _, info in pairs(currentInfo) do
                                 if type(info) == "table" then
                                     local cGuid = info.houseGUID or info.neighborhoodGUID
@@ -386,8 +328,6 @@ function AB:RenderOptionalBars()
                         end
                     end
                 end
-
-                -- 4. Need nill check: Scan secondary API lists just in case data becomes available
                 if houseAddress == "House Favor" and C_Housing then
                     local function scanHouseList(list)
                         if type(list) == "table" then
@@ -406,13 +346,10 @@ function AB:RenderOptionalBars()
                         end
                         return nil
                     end
-
                     if C_Housing.GetPlayerOwnedHouses then
                         houseAddress = scanHouseList(C_Housing.GetPlayerOwnedHouses()) or houseAddress
                     end
                 end
-
-                -- 5. Undefined global bypass: Silently read the Blizzard UI frame if it happens to be loaded
                 if houseAddress == "House Favor" then
                     local dashboard = _G["HousingDashboardFrame"]
                     if dashboard and dashboard.HouseInfoContent and dashboard.HouseInfoContent.ContentFrame and dashboard.HouseInfoContent.ContentFrame.HouseUpgradeFrame and dashboard.HouseInfoContent.ContentFrame.HouseUpgradeFrame.AddressText then
@@ -423,55 +360,36 @@ function AB:RenderOptionalBars()
                         end
                     end
                 end
-
                 currentHouseAddress = houseAddress
                 houseName = string.format("%s - Level %d", houseAddress, currentLevel)
-
-                -- Need nill check: Calculate thresholds using native API
                 if C_Housing and C_Housing.GetHouseLevelFavorForLevel then
                     minFavorBar = C_Housing.GetHouseLevelFavorForLevel(currentLevel) or 0
                     maxFavorBar = C_Housing.GetHouseLevelFavorForLevel(currentLevel + 1) or 1
                 end
             end
         end
-
         if maxFavorBar <= minFavorBar then maxFavorBar = minFavorBar + 1 end
-
         self.HouseXp.bar:SetStatusBarColor(houseXpColor.r, houseXpColor.g, houseXpColor.b, houseXpColor.a)
         self.HouseXp.bar:SetMinMaxValues(minFavorBar, maxFavorBar)
         self.HouseXp.bar:SetValue(currentFavor)
-
         if isMonitoringHouse then
             local currentProgress = currentFavor - minFavorBar
             local maxProgress = maxFavorBar - minFavorBar
             if maxProgress <= 0 then maxProgress = 1 end
-
             local percentage = (currentProgress / maxProgress) * 100
-
             if percentage >= 100 then
-                -- Hide percentage and required XP, only display the formatted house name
                 self.HouseXp.text:SetText(houseName)
-
-                -- Need nill check: Create reward text dynamically to prevent undefined objects
                 if not self.houseRewardText then
                     self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY")
                 end
-
-                self.houseRewardText:SetFont(self.FONT_TO_USE, profile.paragonTextSize or 14, "OUTLINE, THICK")
-
-                -- Need nill check: Use dedicated reward color or fallback to bar color
+                self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 14, "OUTLINE, THICK")
                 local rewardColor = profile.houseRewardTextColor or houseXpColor
                 local hex = string.format("|cff%02x%02x%02x",
-                    math.floor((rewardColor.r or 0.9) * 255),
-                    math.floor((rewardColor.g or 0.5) * 255),
-                    math.floor((rewardColor.b or 0.0) * 255)
-                ) -- #E68000
-
+                    math.floor((rewardColor.r or 0.9) * 255), math.floor((rewardColor.g or 0.5) * 255),
+                    math.floor((rewardColor.b or 0.0) * 255)) -- #E68000
                 self.houseRewardText:SetText(hex .. "House Upgrades available for house " .. currentHouseAddress .. "|r")
                 self.houseRewardText:Show()
                 self.houseRewardText:ClearAllPoints()
-
-                -- Anchor relative to the textHolder using the new dedicated housing offset
                 local offset = profile.houseRewardTextYOffset or profile.paragonTextYOffset or -40
                 if profile.paragonOnTop then
                     self.houseRewardText:SetPoint("TOP", UIParent, "TOP", 0, offset - 20)
@@ -485,8 +403,6 @@ function AB:RenderOptionalBars()
             else
                 local valueStr = BreakUpLargeNumbers(currentProgress)
                 local maxStr = BreakUpLargeNumbers(maxProgress)
-
-                -- Apply user configuration for text format
                 if profile.showAbsoluteValues and profile.showPercentage then
                     self.HouseXp.text:SetText(string.format("%s %s/%s (%.1f%%)", houseName, valueStr, maxStr, percentage))
                 elseif profile.showAbsoluteValues then
@@ -496,7 +412,6 @@ function AB:RenderOptionalBars()
                 else
                     self.HouseXp.text:SetText(houseName)
                 end
-
                 if self.houseRewardText then self.houseRewardText:Hide() end
             end
         else
@@ -505,25 +420,19 @@ function AB:RenderOptionalBars()
             self.HouseXp.text:SetText("No House Watched")
             if self.houseRewardText then self.houseRewardText:Hide() end
         end
-
         if tc then self.HouseXp.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
     elseif self.HouseXp then
         self.HouseXp.bar:Hide()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-
-    -- Artifact Bar
     if self.Artifact and profile.artifactBarEnabled then
         self.Artifact.bar:Show()
         self.Artifact.txFrame:Show()
-
         local artifactColor = profile.artifactColor
         if not artifactColor then artifactColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end -- #E6CC80
-
         local currentArtifact = 0
         local maxArtifact = 100
-
         if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
             local activeAzeriteItemLocation = C_AzeriteItem.FindActiveAzeriteItem()
             if activeAzeriteItemLocation then
@@ -534,16 +443,12 @@ function AB:RenderOptionalBars()
                 end
             end
         end
-
         if maxArtifact == 0 then maxArtifact = 1 end
-
         self.Artifact.bar:SetStatusBarColor(artifactColor.r, artifactColor.g, artifactColor.b, artifactColor.a)
         self.Artifact.bar:SetMinMaxValues(0, maxArtifact)
         self.Artifact.bar:SetValue(currentArtifact)
-
         local percentage = (currentArtifact / maxArtifact) * 100
         self.Artifact.text:SetText(string.format("Artifact %d/%d (%.1f%%)", currentArtifact, maxArtifact, percentage))
-
         if tc then self.Artifact.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
     elseif self.Artifact then
         self.Artifact.bar:Hide()
@@ -555,28 +460,18 @@ function AB:RenderConfig()
     self.textHolder:Show()
     self.textHolder:SetAlpha(1)
     self.textHolder:SetFrameStrata("HIGH")
-
     local profile = self.db.profile
     local tc = profile.textColor
-
-    -- Need nill check: Fallback for text color
     if not tc then tc = { r = 1.0, g = 1.0, b = 1.0, a = 1.0 } end -- #FFFFFF
-
-    -- XP BAR
     self.XP.bar:Show()
     self.XP.txFrame:Show()
     local xc = profile.useClassColorXP and self:GetClassColor() or profile.xpBarColor
-
-    -- Need nill check: Fallback for xp color
     if not xc then xc = { r = 0.0, g = 0.4, b = 1.0, a = 1.0 } end -- #0066FF
-
     self.XP.bar:SetStatusBarColor(xc.r, xc.g, xc.b, 1)
     self.XP.bar:SetMinMaxValues(0, 100)
     self.XP.bar:SetValue(75)
-
     self.XP.text:SetText(L["XP_BAR_DATA"])
     self.XP.text:SetTextColor(tc.r, tc.g, tc.b, 1)
-
     if profile.showRestedBar then
         local w = self.XP.bar:GetWidth()
         if self.XP.restedOverlay then
@@ -596,22 +491,16 @@ function AB:RenderConfig()
             self.XP.restedOverlay:Hide()
         end
     end
-
-    -- REPUTATION BAR
     self.Rep.bar:Show()
     self.Rep.txFrame:Show()
     local rc = profile.useReactionColorRep and profile.repColors[9] or profile.repBarColor
-
     if rc then
         self.Rep.bar:SetStatusBarColor(rc.r, rc.g, rc.b, 1)
     end
     self.Rep.bar:SetMinMaxValues(0, 100)
     self.Rep.bar:SetValue(50)
-
     self.Rep.text:SetText(L["REP_BAR_DATA"] or "Reputation: 50%")
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
-
-    -- Honor Bar
     if self.Honor and profile.honorBarEnabled then
         self.Honor.bar:Show()
         self.Honor.txFrame:Show()
@@ -626,21 +515,14 @@ function AB:RenderConfig()
         self.Honor.bar:Hide()
         self.Honor.txFrame:Hide()
     end
-
-    -- House XP Bar
     if self.HouseXp and profile.houseXpBarEnabled then
         self.HouseXp.bar:Show()
         self.HouseXp.txFrame:Show()
         local houseXpColor = profile.houseXpColor
-
-        -- Need nill check: Fallback for House Favor color
         if not houseXpColor then houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 } end -- #E68000
-
         self.HouseXp.bar:SetStatusBarColor(houseXpColor.r, houseXpColor.g, houseXpColor.b, houseXpColor.a)
         self.HouseXp.bar:SetMinMaxValues(0, 1000)
         self.HouseXp.bar:SetValue(600)
-
-        -- Apply user configuration for text format in config mode
         local configText = L["HOUSE_XP_BAR_DATA"] or "Housing Bar Data"
         if profile.showAbsoluteValues and profile.showPercentage then
             self.HouseXp.text:SetText(configText .. " | 600/1,000 (60.0%)")
@@ -652,27 +534,17 @@ function AB:RenderConfig()
             self.HouseXp.text:SetText(configText)
         end
         self.HouseXp.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1)
-
-        -- Need nill check: Create reward text dynamically for config preview
         if not self.houseRewardText then
             self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY")
         end
-
-        self.houseRewardText:SetFont(self.FONT_TO_USE, profile.paragonTextSize or 14, "OUTLINE, THICK")
-
-        -- Need nill check: Use dedicated reward color or fallback to bar color
+        self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 14, "OUTLINE, THICK")
         local rewardColor = profile.houseRewardTextColor or houseXpColor
         local hex = string.format("|cff%02x%02x%02x",
-            math.floor((rewardColor.r or 0.9) * 255),
-            math.floor((rewardColor.g or 0.5) * 255),
-            math.floor((rewardColor.b or 0.0) * 255)
-        ) -- #E68000
-
+            math.floor((rewardColor.r or 0.9) * 255), math.floor((rewardColor.g or 0.5) * 255),
+            math.floor((rewardColor.b or 0.0) * 255)) -- #E68000
         self.houseRewardText:SetText(hex .. "[CONFIG] HOUSE UPGRADE FOR ADDRESS|r")
         self.houseRewardText:Show()
         self.houseRewardText:ClearAllPoints()
-
-        -- Anchor relative to the textHolder using the new dedicated housing offset
         local offset = profile.houseRewardTextYOffset or profile.paragonTextYOffset or -40
         if profile.paragonOnTop then
             self.houseRewardText:SetPoint("TOP", UIParent, "TOP", 0, offset - 20)
@@ -688,8 +560,6 @@ function AB:RenderConfig()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-
-    -- Artifact Bar
     if self.Artifact and profile.artifactBarEnabled then
         self.Artifact.bar:Show()
         self.Artifact.txFrame:Show()
@@ -704,8 +574,6 @@ function AB:RenderConfig()
         self.Artifact.bar:Hide()
         self.Artifact.txFrame:Hide()
     end
-
-    -- PARAGON TEXT
     local pc = profile.paragonPendingColor
     if pc then
         local hex = string.format("|cff%02x%02x%02x",
@@ -713,8 +581,7 @@ function AB:RenderConfig()
             math.floor((pc.g or 1) * 255),
             math.floor((pc.b or 0) * 255)
         )
-        self.paragonText:SetFont(self.FONT_TO_USE, profile.paragonTextSize, "OUTLINE, THICK")
-
+        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize, "OUTLINE, THICK")
         if profile.splitParagonText then
             self.paragonText:SetText(hex ..
                 (L["CONFIG_FACTION_A_REWARD"] or "Faction A") ..
@@ -723,7 +590,6 @@ function AB:RenderConfig()
             self.paragonText:SetText(hex .. (L["CONFIG_MULTIPLE_REWARDS"] or "Multiple Rewards Pending") .. "|r")
         end
     end
-
     self.paragonText:Show()
     self.paragonText:ClearAllPoints()
     if profile.paragonOnTop then
@@ -735,7 +601,6 @@ function AB:RenderConfig()
             self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, profile.paragonTextYOffset)
         end
     end
-
     self:UpdateTextAnchors("Config", false)
 end
 
@@ -743,10 +608,9 @@ function AB:UpdateLayout(shouldHideXP)
     local profile = self.db.profile
     local effectiveMax = shouldHideXP and not self.state.isConfigMode
     local font = self.XP.text:GetFont()
-    if not font then font = self.FONT_TO_USE end
+    if not font then font = self.fontToUse end
     local outline = profile.fontOutline or "OUTLINE"
     local tc = profile.textColor
-
     local function applyBarFormatting(barObj, height)
         if not barObj then return end
         barObj.bar:SetHeight(height or profile.barHeightXP)
@@ -761,30 +625,25 @@ function AB:UpdateLayout(shouldHideXP)
         end
         barObj.bar:ClearAllPoints()
     end
-
     applyBarFormatting(self.XP, profile.barHeightXP)
     applyBarFormatting(self.Rep, profile.barHeightRep)
     applyBarFormatting(self.Honor, profile.barHeightXP)
     applyBarFormatting(self.HouseXp, profile.barHeightHouse or profile.barHeightXP)
     applyBarFormatting(self.Artifact, profile.barHeightXP)
-
     local startY = profile.yOffset
     local isBottom = (profile.barAnchor == "BOTTOM")
     local gap = profile.barGap or 1
     local visibleBars = {}
-
     if not effectiveMax then
         table.insert(visibleBars, self.XP)
     else
         self.XP.bar:Hide()
         self.XP.txFrame:Hide()
     end
-
     table.insert(visibleBars, self.Rep)
     if profile.honorBarEnabled then table.insert(visibleBars, self.Honor) end
     if profile.houseXpBarEnabled then table.insert(visibleBars, self.HouseXp) end
     if profile.artifactBarEnabled then table.insert(visibleBars, self.Artifact) end
-
     for i, barObj in ipairs(visibleBars) do
         if i == 1 then
             if isBottom then
@@ -816,7 +675,6 @@ function AB:UpdateVisibility()
             alpha = 0
         end
     end
-
     if self.XP and self.XP.bar then self.XP.bar:SetAlpha(alpha) end
     if self.Rep and self.Rep.bar then self.Rep.bar:SetAlpha(alpha) end
     if self.Honor and self.Honor.bar then self.Honor.bar:SetAlpha(alpha) end

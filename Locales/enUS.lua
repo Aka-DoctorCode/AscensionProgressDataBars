@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: enUS.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,10 +10,10 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
-local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true)
 
+local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true) or
+    LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enGB")
 if not L then return end
-
 L["CONFIG_MODE"] = "Config Mode"
 L["CONFIG_MODE_DESC"] = "Show dummy bars to visualize changes in real-time."
 L["APPEARANCE"] = "Appearance"

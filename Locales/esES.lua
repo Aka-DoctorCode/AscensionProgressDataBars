@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: esES.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,11 +10,10 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "esES") or
     LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "esMX")
-
 if not L then return end
-
 L["CONFIG_MODE"] = "Modo de Configuración"
 L["CONFIG_MODE_DESC"] = "Muestra barras de prueba para visualizar cambios en tiempo real."
 L["APPEARANCE"] = "Apariencia"

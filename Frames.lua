@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Frames.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,10 +10,9 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 ---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
-
--- Texture pool for performance
 local texturePool = {}
 
 function AB:CreateFrames()
@@ -21,7 +20,6 @@ function AB:CreateFrames()
     self.textHolder:SetFrameStrata("HIGH")
     self.textHolder:SetClipsChildren(false)
     self.textHolder:SetHeight(20)
-
     self.HoverFrame = CreateFrame("Frame", "AscensionBars_HoverFrame", UIParent)
     self.HoverFrame:SetFrameStrata("BACKGROUND")
     self.HoverFrame:EnableMouse(true)
@@ -33,7 +31,6 @@ function AB:CreateFrames()
         self.state.isHovering = false
         self:UpdateVisibility()
     end)
-
     self.XP = self:CreateBar("AscensionXPBar_XP")
     self.Rep = self:CreateBar("AscensionXPBar_Rep")
     self.Honor = self:CreateBar("AscensionXPBar_Honor")
@@ -51,24 +48,19 @@ function AB:CreateBar(name)
     bar:SetFrameStrata("LOW")
     bar:SetStatusBarTexture(CONSTANTS.TEXTURE_BAR)
     bar:SetClipsChildren(true)
-
     local bg = self:AcquireTexture(bar)
     bg:SetAllPoints()
     bg:SetTexture(CONSTANTS.TEXTURE_BAR)
     bg:SetVertexColor(0, 0, 0, self.db.profile.backgroundAlpha or 0.5)
     bg:SetDrawLayer("BACKGROUND", -1)
-
     local spark = bar:CreateTexture(nil, "ARTWORK")
     spark:SetTexture(CONSTANTS.TEXTURE_SPARK)
     spark:SetSize(6, 6)
     spark:SetBlendMode("ADD")
-
     local rested = (name == "AscensionXPBar_XP") and bar:CreateTexture(nil, "ARTWORK") or nil
-
     local txFrame = CreateFrame("Frame", nil, self.textHolder)
     local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     text:SetAllPoints()
-
     return {
         bar = bar,
         spark = spark,
@@ -92,7 +84,6 @@ function AB:AcquireTexture(parent)
 end
 
 function AB:CleanupTextures()
-    -- Clean up textures from pool
     for i = 1, #texturePool do
         texturePool[i]:Hide()
     end

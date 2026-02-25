@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Utilities.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,6 +10,7 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 ---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
@@ -34,7 +35,6 @@ function AB:GetClassColor()
     if not self.state then
         return { r = 1, g = 1, b = 1, a = 1 } -- #FFFFFF
     end
-
     if not self.state.cachedClassColor then
         local _, classFilename = UnitClass("player")
         if classFilename then
@@ -50,11 +50,9 @@ function AB:GetClassColor()
 end
 
 function AB:ScanParagonRewards()
-    -- Safety check: Ensure state exists before assignment
     if not self.state then
         self.state = { cachedPendingParagons = {} }
     end
-
     local pending = {}
     if C_Reputation then
         local numFactions = C_Reputation.GetNumFactions()
@@ -83,7 +81,6 @@ function AB:HideBlizzardFrames()
         StatusTrackingBarManager,
         UIWidgetPowerBarContainerFrame
     }
-
     for _, frame in pairs(framesToHide) do
         if frame then
             frame:UnregisterAllEvents()
@@ -98,7 +95,6 @@ function AB:FormatXP()
     local c, m = UnitXP("player"), UnitXPMax("player")
     local pct = (m > 0 and c / m * 100) or 0
     local profile = self.db.profile
-
     local txt = ""
     if profile.showAbsoluteValues then
         if profile.showPercentage then
@@ -118,7 +114,6 @@ function AB:FormatXP()
     else
         txt = string.format(L["LEVEL_TEXT"], UnitLevel("player"))
     end
-
     local r = GetXPExhaustion()
     if r and r > 0 then
         txt = txt .. string.format(L["RESTED_TEXT"], (m > 0 and r / m * 100) or 0)
@@ -128,13 +123,11 @@ end
 
 function AB:AddTooltip(bar, text)
     if not bar or not text then return end
-
     bar:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
         GameTooltip:SetText(text)
         GameTooltip:Show()
     end)
-
     bar:SetScript("OnLeave", function()
         GameTooltip:Hide()
     end)
@@ -165,7 +158,6 @@ function AB:LoadPreset(presetName)
             textSize = 12,
         }
     }
-
     if presets[presetName] then
         for k, v in pairs(presets[presetName]) do
             self.db.profile[k] = v

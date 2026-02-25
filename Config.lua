@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Config.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,6 +10,7 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 ---@type AscensionBars
 local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
@@ -517,12 +518,10 @@ function AB:GetOptionsTable()
             },
         }
     }
-
     local labels = {
         L["HATED"], L["HOSTILE"], L["UNFRIENDLY"], L["NEUTRAL"], L["FRIENDLY"],
         L["HONORED"], L["REVERED"], L["EXALTED"], L["PARAGON"], L["MAXED"], L["RENOWN"]
     }
-
     for i = 1, 11 do
         options.args.standingColors.args["rank" .. i] = {
             name = labels[i],
@@ -540,6 +539,5 @@ function AB:GetOptionsTable()
             end,
         }
     end
-
     return options
 end

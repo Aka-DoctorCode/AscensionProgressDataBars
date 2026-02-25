@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: ptBR.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,10 +10,9 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
-local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "ptBR")
 
+local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "ptBR", true)
 if not L then return end
-
 L["CONFIG_MODE"] = "Modo de Configuração"
 L["CONFIG_MODE_DESC"] = "Mostra barras fictícias para visualizar alterações em tempo real."
 L["APPEARANCE"] = "Aparência"

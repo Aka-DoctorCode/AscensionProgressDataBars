@@ -2,6 +2,7 @@
 ## Title: Ascension Bars
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
+## Category: Quests & Leveling
 ## Version: @project-version@
 ## SavedVariables: AscensionBarsDB
 ## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
@@ -25,6 +26,7 @@ Libs\AceLocale-3.0\AceLocale-3.0.xml
 Locales\enUS.lua
 Locales\esES.lua
 Locales\ptBR.lua
+Locales\deDE.lua
 
 # Core
 AscensionBars.lua

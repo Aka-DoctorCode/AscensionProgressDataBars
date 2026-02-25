@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: AscensionBars.lua
--- Version: 27
+-- Version: 28
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,14 +10,14 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
-local ADDON_NAME = "AscensionBars"
+local addonName = "AscensionBars"
 
 ---@class AscensionBars : AceAddon-3.0
 ---@field constants table
 ---@field defaults table
 ---@field db table
 ---@field state table
----@field FONT_TO_USE string
+---@field fontToUse string
 ---@field textHolder table
 ---@field HoverFrame table
 ---@field XP table
@@ -62,13 +62,14 @@ local ADDON_NAME = "AscensionBars"
 ---@field RenderOptionalBars function
 ---@field HouseInfo.plotID table
 
-local AB = LibStub("AceAddon-3.0"):NewAddon(ADDON_NAME, "AceEvent-3.0", "AceConsole-3.0")
+local AB = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
+
 -------------------------------------------------------------------------------
 -- INITIALIZATION
 -------------------------------------------------------------------------------
+
 function AB:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("AscensionBarsDB", self.defaults, true)
-
     self.state = {
         lastParagonScanTime = 0,
         cachedPendingParagons = {},
@@ -79,21 +80,21 @@ function AB:OnInitialize()
         eventHandlers = {},
         updatePending = false
     }
-
-    self.FONT_TO_USE = GameFontNormal:GetFont() or "Fonts\\FRIZQT__.TTF"
-
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(ADDON_NAME, self:GetOptionsTable())
-    local _, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(ADDON_NAME, "Ascension Bars")
-    self.optionsCategory = category
-
+    self.fontToUse = (GameFontNormal and GameFontNormal.GetFont and GameFontNormal:GetFont()) or "Fonts\\FRIZQT__.TTF"
+    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable())
+    local optionsFrame, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, "Ascension Bars")
+    self.optionsCategory = category or optionsFrame
     self:RegisterChatCommand("ab", function()
         if Settings and Settings.OpenToCategory then
-            if self.optionsCategory then
+            if type(self.optionsCategory) == "table" and self.optionsCategory.GetID then
                 Settings.OpenToCategory(self.optionsCategory:GetID())
+            elseif type(self.optionsCategory) == "number" or type(self.optionsCategory) == "string" then
+                Settings.OpenToCategory(self.optionsCategory)
+            else
+                Settings.OpenToCategory(addonName)
             end
         end
     end)
-
     self:CreateFrames()
 end
 
@@ -104,9 +105,7 @@ function AB:OnEnable()
         inCombat = false,
         cachedClassColor = nil,
     }
-
     self:CreateFrames()
-
     self:RegisterEvent("PLAYER_XP_UPDATE", "UpdateDisplay")
     self:RegisterEvent("UPDATE_EXHAUSTION", "UpdateDisplay")
     self:RegisterEvent("PLAYER_LEVEL_UP", "UpdateDisplay")
@@ -115,22 +114,11 @@ function AB:OnEnable()
     self:RegisterEvent("PLAYER_REGEN_DISABLED", "OnCombatStart")
     self:RegisterEvent("PLAYER_REGEN_ENABLED", "OnCombatEnd")
     self:RegisterEvent("QUEST_TURNED_IN", "OnQuestTurnIn")
-
-    -------------------------------------------------------------------------------
-    -- Optional Bars Events
-    -------------------------------------------------------------------------------
-    -- Honor Events
     self:RegisterEvent("HONOR_XP_UPDATE", "UpdateDisplay")
     self:RegisterEvent("HONOR_LEVEL_UPDATE", "UpdateDisplay")
-
-    -- Artifact and Azerite Events
     self:RegisterEvent("AZERITE_ITEM_EXPERIENCE_CHANGED", "UpdateDisplay")
-
-    -- Housing Events (12.0.0 Native API)
     self:RegisterEvent("HOUSE_LEVEL_FAVOR_UPDATED", "OnHouseFavorUpdated")
     self:RegisterEvent("CVAR_UPDATE", "OnCVarUpdate")
-
-    -- Hooks for UI Toggles (Reputation)
     if C_Reputation and C_Reputation.SetWatchedFactionByID then
         hooksecurefunc(C_Reputation, "SetWatchedFactionByID", function()
             -- Need nill check: Ensure function exists before calling
@@ -139,17 +127,12 @@ function AB:OnEnable()
             end
         end)
     end
-
-    -- Hooks for UI Toggles (Housing) - Bypasses missing CVAR_UPDATE when Blizzard frames are hidden
     if C_Housing and C_Housing.SetTrackedHouseGuid then
         hooksecurefunc(C_Housing, "SetTrackedHouseGuid", function()
             if not self.state then self.state = {} end
-
-            -- Need nill check: Delay the fetch by 0.15s to allow Blizzard's internal API to sync the new GUID
             C_Timer.After(0.15, function()
                 if C_Housing and C_Housing.GetTrackedHouseGuid then
                     local trackedGuid = C_Housing.GetTrackedHouseGuid()
-
                     if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
                         if C_Housing.GetCurrentHouseLevelFavor then
                             C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
@@ -157,7 +140,6 @@ function AB:OnEnable()
                     else
                         self.state.houseLevelFavor = nil
                     end
-
                     if self.UpdateDisplay then
                         self:UpdateDisplay()
                     end
@@ -165,15 +147,12 @@ function AB:OnEnable()
             end)
         end)
     end
-
-    -- Request initial Housing data if a house is currently tracked
     if C_Housing and C_Housing.GetTrackedHouseGuid then
         local trackedGuid = C_Housing.GetTrackedHouseGuid()
         if trackedGuid and C_Housing.GetCurrentHouseLevelFavor then
             C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
         end
     end
-
     self:HideBlizzardFrames()
     self:ScanParagonRewards()
     self:UpdateDisplay(true)
@@ -182,6 +161,7 @@ end
 -------------------------------------------------------------------------------
 -- EVENT HANDLERS
 -------------------------------------------------------------------------------
+
 function AB:OnUpdateFaction()
     self:ScanParagonRewards()
     if self.UpdateDisplay then
@@ -191,8 +171,6 @@ end
 
 function AB:OnPlayerEnteringWorld()
     self:ScanParagonRewards()
-
-    -- Need nill check: Request initial Housing data using Native API directly
     if C_Housing and C_Housing.GetTrackedHouseGuid then
         local trackedGuid = C_Housing.GetTrackedHouseGuid()
         if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
@@ -201,7 +179,6 @@ function AB:OnPlayerEnteringWorld()
             end
         end
     end
-
     if self.UpdateDisplay then
         self:UpdateDisplay(true)
     end
@@ -226,15 +203,13 @@ end
 -------------------------------------------------------------------------------
 -- HOUSING EVENT HANDLERS
 -------------------------------------------------------------------------------
+
 function AB:OnHouseFavorUpdated(event, houseLevelFavor)
-    -- Need nill check: Verify incoming data explicitly matches the tracked GUID
     if C_Housing and C_Housing.GetTrackedHouseGuid and houseLevelFavor then
         local trackedGuid = C_Housing.GetTrackedHouseGuid()
-
         if houseLevelFavor.houseGUID == trackedGuid then
             if not self.state then self.state = {} end
             self.state.houseLevelFavor = houseLevelFavor
-
             if self.UpdateDisplay then
                 self:UpdateDisplay()
             end
@@ -243,15 +218,11 @@ function AB:OnHouseFavorUpdated(event, houseLevelFavor)
 end
 
 function AB:OnCVarUpdate(event, name, value)
-    -- Trigger an update when the "trackedHouseFavor" toggle changes in the UI
     if name == "trackedHouseFavor" then
         if not self.state then self.state = {} end
-
-        -- Delay the fetch by 0.15s to allow Blizzard's internal API to sync the new GUID
         C_Timer.After(0.15, function()
             if C_Housing and C_Housing.GetTrackedHouseGuid then
                 local trackedGuid = C_Housing.GetTrackedHouseGuid()
-
                 if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
                     if C_Housing.GetCurrentHouseLevelFavor then
                         C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
@@ -259,7 +230,6 @@ function AB:OnCVarUpdate(event, name, value)
                 else
                     self.state.houseLevelFavor = nil
                 end
-
                 if self.UpdateDisplay then
                     self:UpdateDisplay()
                 end
