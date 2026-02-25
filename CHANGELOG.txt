@@ -1,6 +1,8 @@
-<h1>V28</h1>
+<h1>V29</h1>
 <ul>
-    <li>Code cleanup</li>
-    <li>Removed unused code</li>
-    <li>Added deDE locale to .toc file</li>
+    <li>Deeper code cleanup</li>
+    <li>Fixed some bugs</li>
+    <li>Finish implementing honor bar</li>
+    <li>Finish implementing artifact bar</li>
+    <li>Added stand alone config menu</li>
 </ul>

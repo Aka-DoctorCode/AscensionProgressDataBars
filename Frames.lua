@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Frames.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -35,10 +35,10 @@ function AB:CreateFrames()
     self.Rep = self:CreateBar("AscensionXPBar_Rep")
     self.Honor = self:CreateBar("AscensionXPBar_Honor")
     self.HouseXp = self:CreateBar("AscensionXPBar_HouseXp")
-    self.Artifact = self:CreateBar("AscensionXPBar_Artifact")
+    self.Azerite = self:CreateBar("AscensionXPBar_Azerite")
     if self.Honor and self.Honor.bar then self.Honor.bar:Hide() end
     if self.HouseXp and self.HouseXp.bar then self.HouseXp.bar:Hide() end
-    if self.Artifact and self.Artifact.bar then self.Artifact.bar:Hide() end
+    if self.Azerite and self.Azerite.bar then self.Azerite.bar:Hide() end
     self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 end
 

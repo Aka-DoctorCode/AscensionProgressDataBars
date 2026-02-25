@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: AscensionBars.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -24,7 +24,7 @@ local addonName = "AscensionBars"
 ---@field Rep table
 ---@field Honor table|nil
 ---@field HouseXp table|nil
----@field Artifact table|nil
+---@field Azerite table|nil
 ---@field houseRewardText table|nil
 ---@field GetOptionsTable function
 ---@field GetPlayerMaxLevel function
@@ -71,13 +71,11 @@ local AB = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConso
 function AB:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("AscensionBarsDB", self.defaults, true)
     self.state = {
-        lastParagonScanTime = 0,
         cachedPendingParagons = {},
         cachedClassColor = nil,
         isConfigMode = false,
         inCombat = false,
         isHovering = false,
-        eventHandlers = {},
         updatePending = false
     }
     self.fontToUse = (GameFontNormal and GameFontNormal.GetFont and GameFontNormal:GetFont()) or "Fonts\\FRIZQT__.TTF"
@@ -85,26 +83,28 @@ function AB:OnInitialize()
     local optionsFrame, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, "Ascension Bars")
     self.optionsCategory = category or optionsFrame
     self:RegisterChatCommand("ab", function()
-        if Settings and Settings.OpenToCategory then
-            if type(self.optionsCategory) == "table" and self.optionsCategory.GetID then
-                Settings.OpenToCategory(self.optionsCategory:GetID())
-            elseif type(self.optionsCategory) == "number" or type(self.optionsCategory) == "string" then
-                Settings.OpenToCategory(self.optionsCategory)
-            else
-                Settings.OpenToCategory(addonName)
-            end
-        end
+        LibStub("AceConfigDialog-3.0"):Open(addonName)
     end)
     self:CreateFrames()
 end
 
+function AB:RefreshHousingFavor()
+    if not (C_Housing and C_Housing.GetTrackedHouseGuid) then return end
+    local trackedGuid = C_Housing.GetTrackedHouseGuid()
+    if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
+        if C_Housing.GetCurrentHouseLevelFavor then
+            C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
+        end
+    else
+        self.state.houseLevelFavor = nil
+    end
+end
+
 function AB:OnEnable()
-    self.state = {
-        isConfigMode = false,
-        isHovering = false,
-        inCombat = false,
-        cachedClassColor = nil,
-    }
+    self.state.isConfigMode = false
+    self.state.isHovering = false
+    self.state.inCombat = false
+    self.state.cachedClassColor = nil
     self:CreateFrames()
     self:RegisterEvent("PLAYER_XP_UPDATE", "UpdateDisplay")
     self:RegisterEvent("UPDATE_EXHAUSTION", "UpdateDisplay")
@@ -121,7 +121,6 @@ function AB:OnEnable()
     self:RegisterEvent("CVAR_UPDATE", "OnCVarUpdate")
     if C_Reputation and C_Reputation.SetWatchedFactionByID then
         hooksecurefunc(C_Reputation, "SetWatchedFactionByID", function()
-            -- Need nill check: Ensure function exists before calling
             if self.UpdateDisplay then
                 self:UpdateDisplay()
             end
@@ -129,30 +128,13 @@ function AB:OnEnable()
     end
     if C_Housing and C_Housing.SetTrackedHouseGuid then
         hooksecurefunc(C_Housing, "SetTrackedHouseGuid", function()
-            if not self.state then self.state = {} end
             C_Timer.After(0.15, function()
-                if C_Housing and C_Housing.GetTrackedHouseGuid then
-                    local trackedGuid = C_Housing.GetTrackedHouseGuid()
-                    if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
-                        if C_Housing.GetCurrentHouseLevelFavor then
-                            C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
-                        end
-                    else
-                        self.state.houseLevelFavor = nil
-                    end
-                    if self.UpdateDisplay then
-                        self:UpdateDisplay()
-                    end
-                end
+                self:RefreshHousingFavor()
+                if self.UpdateDisplay then self:UpdateDisplay() end
             end)
         end)
     end
-    if C_Housing and C_Housing.GetTrackedHouseGuid then
-        local trackedGuid = C_Housing.GetTrackedHouseGuid()
-        if trackedGuid and C_Housing.GetCurrentHouseLevelFavor then
-            C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
-        end
-    end
+    self:RefreshHousingFavor()
     self:HideBlizzardFrames()
     self:ScanParagonRewards()
     self:UpdateDisplay(true)
@@ -171,14 +153,7 @@ end
 
 function AB:OnPlayerEnteringWorld()
     self:ScanParagonRewards()
-    if C_Housing and C_Housing.GetTrackedHouseGuid then
-        local trackedGuid = C_Housing.GetTrackedHouseGuid()
-        if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
-            if C_Housing.GetCurrentHouseLevelFavor then
-                C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
-            end
-        end
-    end
+    self:RefreshHousingFavor()
     if self.UpdateDisplay then
         self:UpdateDisplay(true)
     end
@@ -208,7 +183,6 @@ function AB:OnHouseFavorUpdated(event, houseLevelFavor)
     if C_Housing and C_Housing.GetTrackedHouseGuid and houseLevelFavor then
         local trackedGuid = C_Housing.GetTrackedHouseGuid()
         if houseLevelFavor.houseGUID == trackedGuid then
-            if not self.state then self.state = {} end
             self.state.houseLevelFavor = houseLevelFavor
             if self.UpdateDisplay then
                 self:UpdateDisplay()
@@ -217,23 +191,11 @@ function AB:OnHouseFavorUpdated(event, houseLevelFavor)
     end
 end
 
-function AB:OnCVarUpdate(event, name, value)
+function AB:OnCVarUpdate(_, name, _)
     if name == "trackedHouseFavor" then
-        if not self.state then self.state = {} end
         C_Timer.After(0.15, function()
-            if C_Housing and C_Housing.GetTrackedHouseGuid then
-                local trackedGuid = C_Housing.GetTrackedHouseGuid()
-                if trackedGuid and trackedGuid ~= 0 and trackedGuid ~= "0" and trackedGuid ~= "" then
-                    if C_Housing.GetCurrentHouseLevelFavor then
-                        C_Housing.GetCurrentHouseLevelFavor(trackedGuid)
-                    end
-                else
-                    self.state.houseLevelFavor = nil
-                end
-                if self.UpdateDisplay then
-                    self:UpdateDisplay()
-                end
-            end
+            self:RefreshHousingFavor()
+            if self.UpdateDisplay then self:UpdateDisplay() end
         end)
     end
 end
@@ -248,6 +210,6 @@ function AB:OnDisable()
     if self.Rep and self.Rep.bar then self.Rep.bar:Hide() end
     if self.Honor and self.Honor.bar then self.Honor.bar:Hide() end
     if self.HouseXp and self.HouseXp.bar then self.HouseXp.bar:Hide() end
-    if self.Artifact and self.Artifact.bar then self.Artifact.bar:Hide() end
+    if self.Azerite and self.Azerite.bar then self.Azerite.bar:Hide() end
     if self.textHolder then self.textHolder:Hide() end
 end

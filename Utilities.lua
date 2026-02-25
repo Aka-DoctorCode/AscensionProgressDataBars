@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Utilities.lua
--- Version: 28
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -59,7 +59,6 @@ function AB:ScanParagonRewards()
         if numFactions and numFactions > 0 then
             for i = 1, numFactions do
                 local d = C_Reputation.GetFactionDataByIndex(i)
-                -- Need nil check for 'd' and 'd.factionID'
                 if d and d.factionID and C_Reputation.IsFactionParagon(d.factionID) then
                     local currentValue, threshold, _, hasRewardPending = C_Reputation.GetFactionParagonInfo(d.factionID)
                     if hasRewardPending then
@@ -119,49 +118,4 @@ function AB:FormatXP()
         txt = txt .. string.format(L["RESTED_TEXT"], (m > 0 and r / m * 100) or 0)
     end
     return txt
-end
-
-function AB:AddTooltip(bar, text)
-    if not bar or not text then return end
-    bar:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_CURSOR")
-        GameTooltip:SetText(text)
-        GameTooltip:Show()
-    end)
-    bar:SetScript("OnLeave", function()
-        GameTooltip:Hide()
-    end)
-end
-
-function AB:LoadPreset(presetName)
-    local presets = {
-        minimal = {
-            barHeightXP = 3,
-            barHeightRep = 3,
-            textSize = 10,
-            showOnMouseover = true,
-            showRestedBar = false,
-        },
-        detailed = {
-            barHeightXP = 8,
-            barHeightRep = 8,
-            textSize = 14,
-            showRestedBar = true,
-            showAbsoluteValues = true,
-            showPercentage = true,
-        },
-        classic = {
-            useClassColorXP = true,
-            useReactionColorRep = true,
-            barHeightXP = 5,
-            barHeightRep = 5,
-            textSize = 12,
-        }
-    }
-    if presets[presetName] then
-        for k, v in pairs(presets[presetName]) do
-            self.db.profile[k] = v
-        end
-        self:UpdateDisplay()
-    end
 end

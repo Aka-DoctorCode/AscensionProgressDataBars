@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Config.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -51,6 +51,20 @@ function AB:GetOptionsTable()
                         get = function() return self.db.profile.barAnchor end,
                         set = function(_, v)
                             self.db.profile.barAnchor = v
+                            self:UpdateDisplay()
+                        end,
+                    },
+                    barGap = {
+                        name = L["BAR_GAP"],
+                        desc = L["BAR_GAP_DESC"],
+                        type = "range",
+                        min = 0,
+                        max = 50,
+                        step = 1,
+                        order = 1.6,
+                        get = function() return self.db.profile.barGap end,
+                        set = function(_, v)
+                            self.db.profile.barGap = v
                             self:UpdateDisplay()
                         end,
                     },
@@ -108,7 +122,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     barHeightHouse = {
-                        name = L["HOUSE_BAR_HEIGHT"] or "House Bar Height",
+                        name = L["HOUSE_BAR_HEIGHT"],
                         type = "range",
                         min = CONSTANTS.MIN_BAR_HEIGHT,
                         max = CONSTANTS.MAX_BAR_HEIGHT,
@@ -117,6 +131,32 @@ function AB:GetOptionsTable()
                         get = function() return self.db.profile.barHeightHouse or self.db.profile.barHeightXP end,
                         set = function(_, v)
                             self.db.profile.barHeightHouse = v
+                            self:UpdateDisplay()
+                        end,
+                    },
+                    barHeightHonor = {
+                        name = L["HONOR_BAR_HEIGHT"],
+                        type = "range",
+                        min = CONSTANTS.MIN_BAR_HEIGHT,
+                        max = CONSTANTS.MAX_BAR_HEIGHT,
+                        step = 1,
+                        order = 4.6,
+                        get = function() return self.db.profile.barHeightHonor or self.db.profile.barHeightXP end,
+                        set = function(_, v)
+                            self.db.profile.barHeightHonor = v
+                            self:UpdateDisplay()
+                        end,
+                    },
+                    barHeightAzerite = {
+                        name = L["AZERITE_BAR_HEIGHT"],
+                        type = "range",
+                        min = CONSTANTS.MIN_BAR_HEIGHT,
+                        max = CONSTANTS.MAX_BAR_HEIGHT,
+                        step = 1,
+                        order = 4.7,
+                        get = function() return self.db.profile.barHeightAzerite or self.db.profile.barHeightXP end,
+                        set = function(_, v)
+                            self.db.profile.barHeightAzerite = v
                             self:UpdateDisplay()
                         end,
                     },
@@ -185,19 +225,19 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    -- headerOptionalBars = { type = "header", name = L["OPTIONAL_BARS"] or "Optional Bars", order = 4 },
-                    -- honorBarEnabled = {
-                    --     name = L["ENABLE_HONOR_BAR"] or "Enable Honor Bar",
-                    --     type = "toggle",
-                    --     order = 5,
-                    --     get = function() return self.db.profile.honorBarEnabled end,
-                    --     set = function(_, v)
-                    --         self.db.profile.honorBarEnabled = v
-                    --         self:UpdateDisplay()
-                    --     end,
-                    -- },
+                    headerOptionalBars = { type = "header", name = L["OPTIONAL_BARS"], order = 4 },
+                    honorBarEnabled = {
+                        name = L["ENABLE_HONOR_BAR"],
+                        type = "toggle",
+                        order = 5,
+                        get = function() return self.db.profile.honorBarEnabled end,
+                        set = function(_, v)
+                            self.db.profile.honorBarEnabled = v
+                            self:UpdateDisplay()
+                        end,
+                    },
                     houseXpBarEnabled = {
-                        name = L["ENABLE_HOUSE_XP_BAR"] or "Enable House Favor Bar",
+                        name = L["ENABLE_HOUSE_XP_BAR"],
                         type = "toggle",
                         order = 6,
                         get = function() return self.db.profile.houseXpBarEnabled end,
@@ -206,16 +246,16 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    -- artifactBarEnabled = {
-                    --     name = L["ENABLE_ARTIFACT_BAR"] or "Enable Artifact Bar",
-                    --     type = "toggle",
-                    --     order = 7,
-                    --     get = function() return self.db.profile.artifactBarEnabled end,
-                    --     set = function(_, v)
-                    --         self.db.profile.artifactBarEnabled = v
-                    --         self:UpdateDisplay()
-                    --     end,
-                    -- },
+                    azeriteBarEnabled = {
+                        name = L["ENABLE_AZERITE_BAR"],
+                        type = "toggle",
+                        order = 7,
+                        get = function() return self.db.profile.azeriteBarEnabled end,
+                        set = function(_, v)
+                            self.db.profile.azeriteBarEnabled = v
+                            self:UpdateDisplay()
+                        end,
+                    },
                 }
             },
             colors = {
@@ -305,29 +345,29 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    -- headerHonor = { type = "header", name = L["HONOR"] or "Honor", order = 13 },
-                    -- honorColor = {
-                    --     name = L["HONOR_COLOR"] or "Honor Color",
-                    --     type = "color",
-                    --     hasAlpha = true,
-                    --     order = 14,
-                    --     get = function()
-                    --         local c = self.db.profile.honorColor
-                    --         if not c then return 0.8, 0.2, 0.2, 1.0 end -- #CC3333
-                    --         return c.r, c.g, c.b, c.a
-                    --     end,
-                    --     set = function(_, r, g, b, a)
-                    --         if not self.db.profile.honorColor then
-                    --             self.db.profile.honorColor = {}
-                    --         end
-                    --         local c = self.db.profile.honorColor
-                    --         c.r, c.g, c.b, c.a = r, g, b, a
-                    --         self:UpdateDisplay()
-                    --     end,
-                    -- },
-                    headerHouseFavor = { type = "header", name = L["HOUSE_XP"] or "House Favor", order = 15 },
+                    headerHonor = { type = "header", name = L["HONOR"], order = 13 },
+                    honorColor = {
+                        name = L["HONOR_COLOR"],
+                        type = "color",
+                        hasAlpha = true,
+                        order = 14,
+                        get = function()
+                            local c = self.db.profile.honorColor
+                            if not c then return 0.8, 0.2, 0.2, 1.0 end -- #CC3333
+                            return c.r, c.g, c.b, c.a
+                        end,
+                        set = function(_, r, g, b, a)
+                            if not self.db.profile.honorColor then
+                                self.db.profile.honorColor = {}
+                            end
+                            local c = self.db.profile.honorColor
+                            c.r, c.g, c.b, c.a = r, g, b, a
+                            self:UpdateDisplay()
+                        end,
+                    },
+                    headerHouseFavor = { type = "header", name = L["HOUSE_XP"], order = 15 },
                     houseXpColor = {
-                        name = L["HOUSE_XP_COLOR"] or "House Favor Color",
+                        name = L["HOUSE_XP_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 16,
@@ -346,7 +386,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     houseRewardTextColor = {
-                        name = L["HOUSE_REWARD_COLOR"] or "Reward Text Color",
+                        name = L["HOUSE_REWARD_COLOR"],
                         type = "color",
                         hasAlpha = true,
                         order = 16.1,
@@ -369,7 +409,7 @@ function AB:GetOptionsTable()
                         end,
                     },
                     houseRewardTextYOffset = {
-                        name = L["HOUSE_REWARD_Y_OFFSET"] or "Reward Text Y-Offset",
+                        name = L["HOUSE_REWARD_Y_OFFSET"],
                         type = "range",
                         min = -1000,
                         max = 500,
@@ -384,26 +424,26 @@ function AB:GetOptionsTable()
                             self:UpdateDisplay()
                         end,
                     },
-                    -- headerArtifact = { type = "header", name = L["ARTIFACT"] or "Artifact/Azerite", order = 17 },
-                    -- artifactColor = {
-                    --     name = L["ARTIFACT_COLOR"] or "Artifact Color",
-                    --     type = "color",
-                    --     hasAlpha = true,
-                    --     order = 18,
-                    --     get = function()
-                    --         local c = self.db.profile.artifactColor
-                    --         if not c then return 0.9, 0.8, 0.5, 1.0 end -- #E6CC80
-                    --         return c.r, c.g, c.b, c.a
-                    --     end,
-                    --     set = function(_, r, g, b, a)
-                    --         if not self.db.profile.artifactColor then
-                    --             self.db.profile.artifactColor = {}
-                    --         end
-                    --         local c = self.db.profile.artifactColor
-                    --         c.r, c.g, c.b, c.a = r, g, b, a
-                    --         self:UpdateDisplay()
-                    --     end,
-                    -- },
+                    headerAzerite = { type = "header", name = L["AZERITE"], order = 17 },
+                    azeriteColor = {
+                        name = L["AZERITE_COLOR"],
+                        type = "color",
+                        hasAlpha = true,
+                        order = 18,
+                        get = function()
+                            local c = self.db.profile.azeriteColor
+                            if not c then return 0.9, 0.8, 0.5, 1.0 end -- #E6CC80
+                            return c.r, c.g, c.b, c.a
+                        end,
+                        set = function(_, r, g, b, a)
+                            if not self.db.profile.azeriteColor then
+                                self.db.profile.azeriteColor = {}
+                            end
+                            local c = self.db.profile.azeriteColor
+                            c.r, c.g, c.b, c.a = r, g, b, a
+                            self:UpdateDisplay()
+                        end,
+                    },
                 }
             },
             paragonSettings = {

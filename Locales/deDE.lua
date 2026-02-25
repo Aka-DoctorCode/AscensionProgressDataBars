@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: deDE.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -10,12 +10,15 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
+
 local L = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "deDE", true)
 if not L then return end
 L["CONFIG_MODE"] = "Einstellungen"
 L["CONFIG_MODE_DESC"] = "Zeigt eine Testbar, um die Veränderungen in Echtzeit zu sehen."
 L["APPEARANCE"] = "Erscheinungsbild"
-L["BAR_ANCHOR"] = "Bar Position"
+L["BAR_ANCHOR"] = "Balkenposition"
+L["BAR_GAP"] = "Balkenabstand"
+L["BAR_GAP_DESC"] = "Abstand zwischen Balken."
 L["ANCHOR_TOP"] = "Oben (Standard)"
 L["ANCHOR_BOTTOM"] = "Unten"
 L["ANCHOR_DESC"] =
@@ -30,7 +33,7 @@ L["TEXT_COLOR"] = "Text Farbe"
 L["VISIBILITY"] = "Sichtbarkeit"
 L["SHOW_ON_MOUSEOVER"] = "Zeigt nur bei Mouseover"
 L["HIDE_IN_COMBAT"] = "Verstecke im Kampf"
-L["HIDE_AT_MAX_LEVEL"] = "Verstecke bei Max Level"
+L["HIDE_AT_MAX_LEVEL"] = "XP-Leiste bei maximalem Level ausblenden"
 L["COLORS"] = "Farben"
 L["EXPERIENCE"] = "Erfahrung"
 L["USE_CLASS_COLOR"] = "Benutze Klassen Farben"
@@ -84,15 +87,17 @@ L["OPTIONAL_BARS"] = "Optionale Bars"
 L["ENABLE_HONOR_BAR"] = "Aktiviere Ehre Bar"
 L["HONOR"] = "Ehre"
 L["HONOR_COLOR"] = "Ehre Farbe"
-L["HONOR_BAR_DATA"] = "Ehre: 30%"
+L["HONOR_BAR_DATA"] = "Ehre: 0%"
+L["HONOR_BAR_HEIGHT"] = "Ehre Bar Höhe"
 L["ENABLE_HOUSE_XP_BAR"] = "Aktiviere Ehre Favoriten Bar"
 L["HOUSE_XP"] = "Haus Ehrfahrung"
 L["HOUSE_XP_COLOR"] = "Haus Ehrfahrungs Farbe"
 L["HOUSE_XP_BAR_DATA"] = "Haus Level 0 | 0/0 (0.0%)"
-L["ENABLE_ARTIFACT_BAR"] = "Aktiviere Artifakt Bar"
-L["ARTIFACT"] = "Artifakt/Azerite"
-L["ARTIFACT_COLOR"] = "Artifakt Farbe"
-L["ARTIFACT_BAR_DATA"] = "Artifakt Stärke: 80%"
+L["ENABLE_AZERITE_BAR"] = "Aktiviere Azerite Bar"
+L["AZERITE"] = "Azerite"
+L["AZERITE_COLOR"] = "Azerite Farbe"
+L["AZERITE_BAR_DATA"] = "Azerite Stärke: 0%"
+L["AZERITE_BAR_HEIGHT"] = "Azerite Bar Höhe"
 L["HOUSE_BAR_HEIGHT"] = "Haus Bar Höhe"
 L["HOUSE_REWARD_COLOR"] = "Belohnungs Text Farbe"
 L["HOUSE_REWARD_Y_OFFSET"] = "Belohnungs Text Y-Offset"

@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: ptBR.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -17,6 +17,8 @@ L["CONFIG_MODE"] = "Modo de Configuração"
 L["CONFIG_MODE_DESC"] = "Mostra barras fictícias para visualizar alterações em tempo real."
 L["APPEARANCE"] = "Aparência"
 L["BAR_ANCHOR"] = "Posição da Barra"
+L["BAR_GAP"] = "Espaço entre barras"
+L["BAR_GAP_DESC"] = "Espaço entre barras."
 L["ANCHOR_TOP"] = "Superior (Padrão)"
 L["ANCHOR_BOTTOM"] = "Inferior"
 L["ANCHOR_DESC"] =
@@ -31,7 +33,7 @@ L["TEXT_COLOR"] = "Cor do Texto"
 L["VISIBILITY"] = "Visibilidade"
 L["SHOW_ON_MOUSEOVER"] = "Mostrar ao passar o mouse"
 L["HIDE_IN_COMBAT"] = "Ocultar em combate"
-L["HIDE_AT_MAX_LEVEL"] = "Ocultar no Nível Máximo"
+L["HIDE_AT_MAX_LEVEL"] = "Ocultar barra de XP no nível máximo"
 L["COLORS"] = "Cores"
 L["EXPERIENCE"] = "Experiência"
 L["USE_CLASS_COLOR"] = "Usar cor da classe"
@@ -85,15 +87,17 @@ L["OPTIONAL_BARS"] = "Barras Opcionais"
 L["ENABLE_HONOR_BAR"] = "Habilitar Barra de Honra"
 L["HONOR"] = "Honra"
 L["HONOR_COLOR"] = "Cor de Honra"
-L["HONOR_BAR_DATA"] = "Honra: 30%"
+L["HONOR_BAR_DATA"] = "Honra: 0%"
+L["HONOR_BAR_HEIGHT"] = "Altura da barra de honra"
 L["ENABLE_HOUSE_XP_BAR"] = "Habilitar Barra de Favor da Casa"
 L["HOUSE_XP"] = "Favor da Casa"
 L["HOUSE_XP_COLOR"] = "Cor de Favor da Casa"
 L["HOUSE_XP_BAR_DATA"] = "Casa Nível 0 | 0/0 (0.0%)"
-L["ENABLE_ARTIFACT_BAR"] = "Habilitar Barra de Artefato"
-L["ARTIFACT"] = "Artefato/Azerita"
-L["ARTIFACT_COLOR"] = "Cor de Artefato"
-L["ARTIFACT_BAR_DATA"] = "Poder de Artefato: 80%"
+L["ENABLE_AZERITE_BAR"] = "Habilitar Barra de Artefato"
+L["AZERITE"] = "Artefato/Azerita"
+L["AZERITE_COLOR"] = "Cor de Artefato"
+L["AZERITE_BAR_DATA"] = "Poder de Artefato: 0%"
+L["AZERITE_BAR_HEIGHT"] = "Altura da barra de artefato"
 L["HOUSE_BAR_HEIGHT"] = "Altura da barra da casa"
 L["HOUSE_REWARD_COLOR"] = "Cor do texto da recompensa da casa"
 L["HOUSE_REWARD_Y_OFFSET"] = "Offset Y do texto da recompensa da casa"

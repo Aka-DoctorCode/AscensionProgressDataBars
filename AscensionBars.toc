@@ -3,7 +3,7 @@
 ## Notes: Minimalist Experience and Reputation bars with advanced customization.
 ## Author: AkaDoctorCode
 ## Category: Quests & Leveling
-## Version: @project-version@
+## Version: V28
 ## SavedVariables: AscensionBarsDB
 ## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
 ## X-Curse-Project-ID: 1401337

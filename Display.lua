@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Display.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -19,7 +19,7 @@ local lastUpdate = 0
 -------------------------------------------------------------------------------
 -- Text Anchors Layout
 -------------------------------------------------------------------------------
-function AB:UpdateTextAnchors(factionName, shouldHideXP)
+function AB:UpdateTextAnchors(shouldHideXP)
     local CONSTANTS = AB.constants
     local profile = self.db.profile
     local effectiveMax = shouldHideXP and not self.state.isConfigMode
@@ -28,7 +28,7 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
     if self.Rep and self.Rep.txFrame then self.Rep.txFrame:ClearAllPoints() end
     if self.Honor and self.Honor.txFrame then self.Honor.txFrame:ClearAllPoints() end
     if self.HouseXp and self.HouseXp.txFrame then self.HouseXp.txFrame:ClearAllPoints() end
-    if self.Artifact and self.Artifact.txFrame then self.Artifact.txFrame:ClearAllPoints() end
+    if self.Azerite and self.Azerite.txFrame then self.Azerite.txFrame:ClearAllPoints() end
     self.textHolder:ClearAllPoints()
     local isBottom = (profile.barAnchor == "BOTTOM")
     if isBottom then
@@ -52,7 +52,7 @@ function AB:UpdateTextAnchors(factionName, shouldHideXP)
     checkAndAddFrame(self.Rep)
     if profile.honorBarEnabled then checkAndAddFrame(self.Honor) end
     if profile.houseXpBarEnabled then checkAndAddFrame(self.HouseXp) end
-    if profile.artifactBarEnabled then checkAndAddFrame(self.Artifact) end
+    if profile.azeriteBarEnabled then checkAndAddFrame(self.Azerite) end
     if #activeFrames == 0 then
         self.textHolder:SetWidth(1)
         return
@@ -426,33 +426,33 @@ function AB:RenderOptionalBars()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-    if self.Artifact and profile.artifactBarEnabled then
-        self.Artifact.bar:Show()
-        self.Artifact.txFrame:Show()
-        local artifactColor = profile.artifactColor
-        if not artifactColor then artifactColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end -- #E6CC80
-        local currentArtifact = 0
-        local maxArtifact = 100
+    if self.Azerite and profile.azeriteBarEnabled then
+        self.Azerite.bar:Show()
+        self.Azerite.txFrame:Show()
+        local azeriteColor = profile.azeriteColor
+        if not azeriteColor then azeriteColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end -- #E6CC80
+        local currentazerite = 0
+        local maxazerite = 100
         if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
             local activeAzeriteItemLocation = C_AzeriteItem.FindActiveAzeriteItem()
             if activeAzeriteItemLocation then
                 local xp, totalLevelXP = C_AzeriteItem.GetAzeriteItemXPInfo(activeAzeriteItemLocation)
                 if xp and totalLevelXP then
-                    currentArtifact = xp
-                    maxArtifact = totalLevelXP
+                    currentazerite = xp
+                    maxazerite = totalLevelXP
                 end
             end
         end
-        if maxArtifact == 0 then maxArtifact = 1 end
-        self.Artifact.bar:SetStatusBarColor(artifactColor.r, artifactColor.g, artifactColor.b, artifactColor.a)
-        self.Artifact.bar:SetMinMaxValues(0, maxArtifact)
-        self.Artifact.bar:SetValue(currentArtifact)
-        local percentage = (currentArtifact / maxArtifact) * 100
-        self.Artifact.text:SetText(string.format("Artifact %d/%d (%.1f%%)", currentArtifact, maxArtifact, percentage))
-        if tc then self.Artifact.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
-    elseif self.Artifact then
-        self.Artifact.bar:Hide()
-        self.Artifact.txFrame:Hide()
+        if maxazerite == 0 then maxazerite = 1 end
+        self.Azerite.bar:SetStatusBarColor(azeriteColor.r, azeriteColor.g, azeriteColor.b, azeriteColor.a)
+        self.Azerite.bar:SetMinMaxValues(0, maxazerite)
+        self.Azerite.bar:SetValue(currentazerite)
+        local percentage = (currentazerite / maxazerite) * 100
+        self.Azerite.text:SetText(string.format("Azerite Power %d/%d (%.1f%%)", currentazerite, maxazerite, percentage))
+        if tc then self.Azerite.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
+    elseif self.Azerite then
+        self.Azerite.bar:Hide()
+        self.Azerite.txFrame:Hide()
     end
 end
 
@@ -499,7 +499,7 @@ function AB:RenderConfig()
     end
     self.Rep.bar:SetMinMaxValues(0, 100)
     self.Rep.bar:SetValue(50)
-    self.Rep.text:SetText(L["REP_BAR_DATA"] or "Reputation: 50%")
+    self.Rep.text:SetText(L["REP_BAR_DATA"])
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
     if self.Honor and profile.honorBarEnabled then
         self.Honor.bar:Show()
@@ -509,7 +509,7 @@ function AB:RenderConfig()
         self.Honor.bar:SetStatusBarColor(honorColor.r, honorColor.g, honorColor.b, honorColor.a)
         self.Honor.bar:SetMinMaxValues(0, 100)
         self.Honor.bar:SetValue(30)
-        self.Honor.text:SetText(L["HONOR_BAR_DATA"] or "Honor: 30%")
+        self.Honor.text:SetText(L["HONOR_BAR_DATA"])
         self.Honor.text:SetTextColor(tc.r, tc.g, tc.b, 1)
     elseif self.Honor then
         self.Honor.bar:Hide()
@@ -523,7 +523,7 @@ function AB:RenderConfig()
         self.HouseXp.bar:SetStatusBarColor(houseXpColor.r, houseXpColor.g, houseXpColor.b, houseXpColor.a)
         self.HouseXp.bar:SetMinMaxValues(0, 1000)
         self.HouseXp.bar:SetValue(600)
-        local configText = L["HOUSE_XP_BAR_DATA"] or "Housing Bar Data"
+        local configText = L["HOUSE_XP_BAR_DATA"]
         if profile.showAbsoluteValues and profile.showPercentage then
             self.HouseXp.text:SetText(configText .. " | 600/1,000 (60.0%)")
         elseif profile.showAbsoluteValues then
@@ -560,19 +560,19 @@ function AB:RenderConfig()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-    if self.Artifact and profile.artifactBarEnabled then
-        self.Artifact.bar:Show()
-        self.Artifact.txFrame:Show()
-        local artifactColor = profile.artifactColor
-        if not artifactColor then artifactColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end -- #E6CC80
-        self.Artifact.bar:SetStatusBarColor(artifactColor.r, artifactColor.g, artifactColor.b, artifactColor.a)
-        self.Artifact.bar:SetMinMaxValues(0, 100)
-        self.Artifact.bar:SetValue(80)
-        self.Artifact.text:SetText(L["ARTIFACT_BAR_DATA"] or "Artifact Power: 80%")
-        self.Artifact.text:SetTextColor(tc.r, tc.g, tc.b, 1)
-    elseif self.Artifact then
-        self.Artifact.bar:Hide()
-        self.Artifact.txFrame:Hide()
+    if self.Azerite and profile.azeriteBarEnabled then
+        self.Azerite.bar:Show()
+        self.Azerite.txFrame:Show()
+        local azeriteColor = profile.azeriteColor
+        if not azeriteColor then azeriteColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end -- #E6CC80
+        self.Azerite.bar:SetStatusBarColor(azeriteColor.r, azeriteColor.g, azeriteColor.b, azeriteColor.a)
+        self.Azerite.bar:SetMinMaxValues(0, 100)
+        self.Azerite.bar:SetValue(80)
+        self.Azerite.text:SetText(L["AZERITE_BAR_DATA"])
+        self.Azerite.text:SetTextColor(tc.r, tc.g, tc.b, 1)
+    elseif self.Azerite then
+        self.Azerite.bar:Hide()
+        self.Azerite.txFrame:Hide()
     end
     local pc = profile.paragonPendingColor
     if pc then
@@ -629,7 +629,7 @@ function AB:UpdateLayout(shouldHideXP)
     applyBarFormatting(self.Rep, profile.barHeightRep)
     applyBarFormatting(self.Honor, profile.barHeightXP)
     applyBarFormatting(self.HouseXp, profile.barHeightHouse or profile.barHeightXP)
-    applyBarFormatting(self.Artifact, profile.barHeightXP)
+    applyBarFormatting(self.Azerite, profile.barHeightXP)
     local startY = profile.yOffset
     local isBottom = (profile.barAnchor == "BOTTOM")
     local gap = profile.barGap or 1
@@ -643,7 +643,7 @@ function AB:UpdateLayout(shouldHideXP)
     table.insert(visibleBars, self.Rep)
     if profile.honorBarEnabled then table.insert(visibleBars, self.Honor) end
     if profile.houseXpBarEnabled then table.insert(visibleBars, self.HouseXp) end
-    if profile.artifactBarEnabled then table.insert(visibleBars, self.Artifact) end
+    if profile.azeriteBarEnabled then table.insert(visibleBars, self.Azerite) end
     for i, barObj in ipairs(visibleBars) do
         if i == 1 then
             if isBottom then
@@ -679,6 +679,6 @@ function AB:UpdateVisibility()
     if self.Rep and self.Rep.bar then self.Rep.bar:SetAlpha(alpha) end
     if self.Honor and self.Honor.bar then self.Honor.bar:SetAlpha(alpha) end
     if self.HouseXp and self.HouseXp.bar then self.HouseXp.bar:SetAlpha(alpha) end
-    if self.Artifact and self.Artifact.bar then self.Artifact.bar:SetAlpha(alpha) end
+    if self.Azerite and self.Azerite.bar then self.Azerite.bar:SetAlpha(alpha) end
     if self.textHolder then self.textHolder:SetAlpha(alpha) end
 end

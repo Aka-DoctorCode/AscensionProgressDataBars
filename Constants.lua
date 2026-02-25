@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Constants.lua
--- Version: 28
+-- Version: 29
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -16,12 +16,10 @@ local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 AB.defaults = {
     profile = {
         -- GENERAL
-        textHeight = 15,
         textSize = 12,
         yOffset = -2,
-        animationSpeed = 1.0,
-        backgroundAlpha = 0.5,
-        barGap = 2,
+        backgroundAlpha = 0.75,
+        barGap = 4,
         textGap = 13.5,
         fontOutline = "OUTLINE",
         hideInCombat = false,
@@ -61,7 +59,6 @@ AB.defaults = {
         -- PARAGON
         paragonTextSize = 14,
         paragonTextYOffset = -100,
-        paragonTextGap = 5,
         splitParagonText = false,
         paragonOnTop = false,
         paragonPendingColor = { r = 0, g = 1, b = 0, a = 1.0 }, -- #00FF00
@@ -69,18 +66,17 @@ AB.defaults = {
         -- HOUSING
         barHeightHouse = 6,
         houseRewardTextYOffset = -60,
-        monitoredHouseId = 0,
         houseXpBarEnabled = false,
         houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 },         -- #E68000
         houseRewardTextColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 }, -- #E68000
 
         -- ARTIFACT
-        -- barHeightAP = 6,
-        APBarEnabled = false,
-        APColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 }, -- #E6CC80
+        barHeightAzerite = 6,
+        azeriteBarEnabled = false,
+        azeriteBarColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 }, -- #E6CC80
 
         -- HONOR
-        -- barHeightHonor = 6,
+        barHeightHonor = 6,
         honorBarEnabled = false,
         honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 }, -- #CC3333
     }
@@ -96,11 +92,4 @@ AB.constants = {
     MIN_TEXT_WIDTH = 100,
     MIN_TEXT_SIZE = 8,
     MAX_TEXT_SIZE = 24,
-    ANCHOR_POINTS = {
-        TOP = "TOP",
-        BOTTOM = "BOTTOM",
-        LEFT = "LEFT",
-        RIGHT = "RIGHT",
-        CENTER = "CENTER"
-    },
 }
