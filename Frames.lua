@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Frames.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -16,21 +16,23 @@ local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 local texturePool = {}
 
 function AB:CreateFrames()
-    self.textHolder = CreateFrame("Frame", "AscensionBars_TextHolder", UIParent)
-    self.textHolder:SetFrameStrata("HIGH")
-    self.textHolder:SetClipsChildren(false)
-    self.textHolder:SetHeight(20)
-    self.HoverFrame = CreateFrame("Frame", "AscensionBars_HoverFrame", UIParent)
-    self.HoverFrame:SetFrameStrata("BACKGROUND")
-    self.HoverFrame:EnableMouse(true)
-    self.HoverFrame:SetScript("OnEnter", function()
-        self.state.isHovering = true
-        self:UpdateVisibility()
-    end)
-    self.HoverFrame:SetScript("OnLeave", function()
-        self.state.isHovering = false
-        self:UpdateVisibility()
-    end)
+    self.textHolders = {}
+    for i = 1, 3 do
+        local key = "T" .. i
+        local holder = CreateFrame("Frame", "AscensionBars_TextHolder" .. key, UIParent)
+        holder:SetFrameStrata("HIGH")
+        holder:SetClipsChildren(false)
+        holder:SetHeight(20)
+        holder:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        self.textHolders[key] = holder
+    end
+    self.textHolder = self.textHolders.T1 -- Backward compatibility
+    if not self.HoverFrame then
+        self.HoverFrame = CreateFrame("Frame", "AscensionBars_HoverFrame", UIParent)
+        self.HoverFrame:SetAllPoints(UIParent)
+        self.HoverFrame:SetFrameStrata("BACKGROUND")
+        self.HoverFrame:EnableMouse(false) -- Disable mouse to prevent blocking clicks
+    end
     self.XP = self:CreateBar("AscensionXPBar_XP")
     self.Rep = self:CreateBar("AscensionXPBar_Rep")
     self.Honor = self:CreateBar("AscensionXPBar_Honor")
@@ -39,13 +41,22 @@ function AB:CreateFrames()
     if self.Honor and self.Honor.bar then self.Honor.bar:Hide() end
     if self.HouseXp and self.HouseXp.bar then self.HouseXp.bar:Hide() end
     if self.Azerite and self.Azerite.bar then self.Azerite.bar:Hide() end
-    self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 end
 
 function AB:CreateBar(name)
     local CONSTANTS = AB.constants
     local bar = CreateFrame("StatusBar", name, UIParent)
     bar:SetFrameStrata("LOW")
+    bar:EnableMouse(true)
+    bar:SetScript("OnEnter", function()
+        self.state.isHovering = true
+        self:UpdateVisibility()
+    end)
+    bar:SetScript("OnLeave", function()
+        self.state.isHovering = false
+        self:UpdateVisibility()
+    end)
     bar:SetStatusBarTexture(CONSTANTS.TEXTURE_BAR)
     bar:SetClipsChildren(true)
     local bg = self:AcquireTexture(bar)
@@ -59,7 +70,8 @@ function AB:CreateBar(name)
     spark:SetBlendMode("ADD")
     local rested = (name == "AscensionXPBar_XP") and bar:CreateTexture(nil, "ARTWORK") or nil
     local txFrame = CreateFrame("Frame", nil, self.textHolder)
-    local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    txFrame:SetSize(AB.constants.MIN_TEXT_WIDTH, 20)
+    local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     text:SetAllPoints()
     return {
         bar = bar,

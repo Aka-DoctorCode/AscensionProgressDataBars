@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: deDE.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -50,7 +50,7 @@ L["TEXT_SIZE"] = "Text Größe"
 L["VERTICAL_OFFSET_Y"] = "Vertikaler Versatz (Y)"
 L["ALERT_COLOR"] = "Alarm Farbe"
 L["FACTION_COLORS"] = "Fraktions Farbe"
-L["ADVANCED"] = "Vortgeschritten"
+L["ADVANCED"] = "Fortgeschritten"
 L["SHOW_PERCENTAGE"] = "Zeige Prozente"
 L["SHOW_ABSOLUTE_VALUES"] = "Zeige absolute Werte"
 L["SHOW_SPARK"] = "Zeige Funken"
@@ -101,3 +101,11 @@ L["AZERITE_BAR_HEIGHT"] = "Azerite Bar Höhe"
 L["HOUSE_BAR_HEIGHT"] = "Haus Bar Höhe"
 L["HOUSE_REWARD_COLOR"] = "Belohnungs Text Farbe"
 L["HOUSE_REWARD_Y_OFFSET"] = "Belohnungs Text Y-Offset"
+L["ENABLE_BAR"] =
+"Aktiviere Barra"
+L["LAYOUT_BLOCK"] = "Layout Block"
+L["BAR_ORDER"] = "Position"
+L["BAR_WIDTH"] = "Breite"
+L["BAR_HEIGHT"] = "Höhe"
+L["LAYOUT"] = "Layout"
+L["FACTION_STANDINGS_RESET"] = "Standardwerte"

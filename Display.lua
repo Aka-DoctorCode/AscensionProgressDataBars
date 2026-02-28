@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Display.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -17,63 +17,103 @@ local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local lastUpdate = 0
 
 -------------------------------------------------------------------------------
--- Text Anchors Layout
+-- Text Styles & Positioning
 -------------------------------------------------------------------------------
-function AB:UpdateTextAnchors(shouldHideXP)
-    local CONSTANTS = AB.constants
+function AB:ApplyTextStyles()
     local profile = self.db.profile
-    local effectiveMax = shouldHideXP and not self.state.isConfigMode
-    local gap = CONSTANTS.DEFAULT_GAP
-    if self.XP and self.XP.txFrame then self.XP.txFrame:ClearAllPoints() end
-    if self.Rep and self.Rep.txFrame then self.Rep.txFrame:ClearAllPoints() end
-    if self.Honor and self.Honor.txFrame then self.Honor.txFrame:ClearAllPoints() end
-    if self.HouseXp and self.HouseXp.txFrame then self.HouseXp.txFrame:ClearAllPoints() end
-    if self.Azerite and self.Azerite.txFrame then self.Azerite.txFrame:ClearAllPoints() end
-    self.textHolder:ClearAllPoints()
-    local isBottom = (profile.barAnchor == "BOTTOM")
-    if isBottom then
-        self.textHolder:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, profile.yOffset + profile.textGap)
-    else
-        self.textHolder:SetPoint("TOP", UIParent, "TOP", 0, profile.yOffset - profile.textGap)
-    end
-    local activeFrames = {}
-    local totalWidth = 0
-    local function checkAndAddFrame(barObj)
-        if barObj and barObj.txFrame and barObj.txFrame:IsShown() then
-            local frameWidth = barObj.text:GetStringWidth() + 5
-            if frameWidth < CONSTANTS.MIN_TEXT_WIDTH then
-                frameWidth = CONSTANTS.MIN_TEXT_WIDTH
+    local font = profile.fontPath or [[Fonts\FRIZQT__.TTF]]
+    local size = profile.textSize or 14
+    local barList = { self.XP, self.Rep, self.Honor, self.HouseXp, self.Azerite }
+    for _, obj in ipairs(barList) do
+        if obj and obj.text then
+            obj.text:SetFont(font, size, "OUTLINE")
+            local tc = profile.textColor
+            if tc then
+                obj.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1)
             end
-            table.insert(activeFrames, { obj = barObj, width = frameWidth })
-            totalWidth = totalWidth + frameWidth
         end
     end
-    if not effectiveMax then checkAndAddFrame(self.XP) end
-    checkAndAddFrame(self.Rep)
-    if profile.honorBarEnabled then checkAndAddFrame(self.Honor) end
-    if profile.houseXpBarEnabled then checkAndAddFrame(self.HouseXp) end
-    if profile.azeriteBarEnabled then checkAndAddFrame(self.Azerite) end
-    if #activeFrames == 0 then
-        self.textHolder:SetWidth(1)
-        return
+end
+
+function AB:UpdateTextAnchors(_, _)
+    local profile = self.db.profile
+    local barList = {
+        { obj = self.XP,      key = "XP" },
+        { obj = self.Rep,     key = "Rep" },
+        { obj = self.Honor,   key = "Honor" },
+        { obj = self.HouseXp, key = "HouseXp" },
+        { obj = self.Azerite, key = "Azerite" }
+    }
+
+    local groups = { T1 = {}, T2 = {}, T3 = {} }
+    for _, entry in ipairs(barList) do
+        local config = profile.bars[entry.key]
+        if config and config.enabled then
+            local blockKey = config.textBlock or "T1"
+            table.insert(groups[blockKey], entry)
+        end
     end
-    totalWidth = totalWidth + (gap * (#activeFrames - 1))
-    self.textHolder:SetWidth(totalWidth)
-    for i, data in ipairs(activeFrames) do
-        data.obj.txFrame:SetWidth(data.width)
-        data.obj.txFrame:SetPoint("TOP", self.textHolder, "TOP")
-        data.obj.txFrame:SetPoint("BOTTOM", self.textHolder, "BOTTOM")
-        if i == 1 then
-            data.obj.txFrame:SetPoint("LEFT", self.textHolder, "LEFT")
-            if #activeFrames == 1 then
-                data.obj.text:SetJustifyH("CENTER")
-            else
-                data.obj.text:SetJustifyH("LEFT")
+
+    self.textHolder:Show() -- Backward compatibility or main holder
+
+    for gKey, activeFrames in pairs(groups) do
+        table.sort(activeFrames, function(a, b)
+            return (profile.bars[a.key].textOrder or 0) < (profile.bars[b.key].textOrder or 0)
+        end)
+
+        if #activeFrames > 0 then
+            local gap = AB.constants.DEFAULT_GAP
+            local totalWidth = 0
+            for _, data in ipairs(activeFrames) do
+                local w = math.max(data.obj.text:GetStringWidth() + 5, AB.constants.MIN_TEXT_WIDTH)
+                data.width = w
+                totalWidth = totalWidth + w
+            end
+            totalWidth = totalWidth + (gap * (#activeFrames - 1))
+
+            local container = self.textHolders[gKey]
+            if container then
+                container:Show()
+                container:SetWidth(totalWidth)
+                local gSet = profile.textGroups[gKey] or { detached = true, x = 0, y = 0 }
+
+                if gSet.detached then
+                    container:ClearAllPoints()
+                    container:SetPoint("TOP", UIParent, "TOP", gSet.x, gSet.y)
+                elseif gKey == "T1" and profile.textFollowBar then
+                    local lowestBar
+                    local lowestY = 9999
+                    for _, b in ipairs({ self.XP, self.Rep, self.Honor, self.HouseXp, self.Azerite }) do
+                        if b and b.bar and b.bar:IsShown() then
+                            local _, _, _, _, yValue = b.bar:GetPoint()
+                            if yValue and yValue < lowestY then
+                                lowestY = yValue; lowestBar = b.bar
+                            end
+                        end
+                    end
+                    if lowestBar then
+                        container:ClearAllPoints()
+                        container:SetPoint("TOP", lowestBar, "BOTTOM", 0, -5)
+                    end
+                else
+                    -- For T2/T3 if not detached, default to follow T1 or just stay at center
+                    container:ClearAllPoints()
+                    container:SetPoint("TOP", UIParent, "TOP", gSet.x, gSet.y)
+                end
+
+                for i, data in ipairs(activeFrames) do
+                    data.obj.txFrame:ClearAllPoints()
+                    data.obj.txFrame:SetWidth(data.width)
+                    data.obj.txFrame:Show()
+                    if i == 1 then
+                        data.obj.txFrame:SetPoint("LEFT", container, "LEFT")
+                    else
+                        data.obj.txFrame:SetPoint("LEFT", activeFrames[i - 1].obj.txFrame, "RIGHT", gap, 0)
+                    end
+                end
             end
         else
-            local previousFrame = activeFrames[i - 1].obj.txFrame
-            data.obj.txFrame:SetPoint("LEFT", previousFrame, "RIGHT", gap, 0)
-            data.obj.text:SetJustifyH("LEFT")
+            if self.textHolders[gKey] then self.textHolders[gKey]:Hide() end
         end
     end
 end
@@ -94,6 +134,7 @@ function AB:UpdateDisplay(force)
     end
     lastUpdate = now
     local profile = self.db.profile
+    self:ApplyTextStyles()
     local maxLevel = self:GetPlayerMaxLevel()
     local isMaxLevel = UnitLevel("player") >= maxLevel
     local shouldHideXP = isMaxLevel and profile.hideAtMaxLevel
@@ -103,12 +144,12 @@ function AB:UpdateDisplay(force)
         self:RenderConfig()
         return
     end
-    if not shouldHideXP then
+    if profile.bars["XP"].enabled and not shouldHideXP then
         local cur, mx = UnitXP("player"), UnitXPMax("player")
-        local color = profile.useClassColorXP and self:GetClassColor() or
-            (profile.xpBarColor or { r = 0, g = 0.4, b = 1 })
-        if color then
-            self.XP.bar:SetStatusBarColor(color.r or 0, color.g or 0.4, color.b or 1, 1.0) -- #0066FF
+        local xc = profile.useClassColorXP and self:GetClassColor() or profile.xpBarColor
+        if not xc then xc = profile.xpBarColor or { r = 0, g = 0.4, b = 1 } end
+        if xc then
+            self.XP.bar:SetStatusBarColor(xc.r or 0, xc.g or 0.4, xc.b or 1, 1.0)
         end
         self.XP.bar:SetMinMaxValues(0, mx)
         self.XP.bar:SetValue(cur)
@@ -123,7 +164,7 @@ function AB:UpdateDisplay(force)
             local rested = GetXPExhaustion()
             if rested and rested > 0 then
                 local rw = self.XP.bar:GetWidth() * (math.min(cur + rested, mx) / mx)
-                self.XP.restedOverlay:SetSize(rw, profile.barHeightXP)
+                self.XP.restedOverlay:SetSize(rw, profile.bars["XP"].freeHeight or 6)
                 self.XP.restedOverlay:SetPoint("LEFT", self.XP.bar, "LEFT")
                 self.XP.restedOverlay:SetColorTexture(
                     profile.restedBarColor.r,
@@ -133,12 +174,13 @@ function AB:UpdateDisplay(force)
                 )
                 self.XP.restedOverlay:Show()
             else
-                if self.XP.restedOverlay then
-                    self.XP.restedOverlay:Hide()
-                end
+                if self.XP.restedOverlay then self.XP.restedOverlay:Hide() end
             end
+        else
+            if self.XP.restedOverlay then self.XP.restedOverlay:Hide() end
         end
         self.XP.text:SetText(self:FormatXP())
+        self.XP.txFrame:Show()
     end
     local name = self:RenderReputation()
     self:RenderOptionalBars()
@@ -147,6 +189,11 @@ end
 
 function AB:RenderReputation()
     local profile = self.db.profile
+    if not profile.bars["Rep"].enabled then
+        self.Rep.bar:Hide()
+        self.Rep.txFrame:Hide()
+        return nil
+    end
     local name, reaction, min, max, value, factionID, standingLabel
     local p = self.state.cachedPendingParagons
     if p and #p > 0 then
@@ -179,7 +226,7 @@ function AB:RenderReputation()
             end
             text = hex .. factionStr .. (#p > 1 and L["REWARD_PENDING_PLURAL"] or L["REWARD_PENDING_SINGLE"]) .. "|r"
         end
-        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize, "OUTLINE, THICK")
+        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE, THICK")
         self.paragonText:SetText(text)
         self.paragonText:Show()
         self.paragonText:ClearAllPoints()
@@ -256,7 +303,7 @@ end
 function AB:RenderOptionalBars()
     local profile = self.db.profile
     local tc = profile.textColor
-    if self.Honor and profile.honorBarEnabled then
+    if self.Honor and profile.bars["Honor"].enabled then
         self.Honor.bar:Show()
         self.Honor.txFrame:Show()
         local currentHonor = UnitHonor("player") or 0
@@ -267,6 +314,13 @@ function AB:RenderOptionalBars()
         self.Honor.bar:SetStatusBarColor(honorColor.r, honorColor.g, honorColor.b, honorColor.a)
         self.Honor.bar:SetMinMaxValues(0, maxHonor)
         self.Honor.bar:SetValue(currentHonor)
+        if profile.sparkEnabled then
+            local pct = (maxHonor > 0) and (currentHonor / maxHonor) or 0
+            self.Honor.spark:SetPoint("CENTER", self.Honor.bar, "LEFT", self.Honor.bar:GetWidth() * pct, 0)
+            self.Honor.spark:Show()
+        else
+            self.Honor.spark:Hide()
+        end
         local percentage = (currentHonor / maxHonor) * 100
         self.Honor.text:SetText(string.format("Honor %d/%d (%.1f%%)", currentHonor, maxHonor, percentage))
         if tc then self.Honor.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
@@ -274,7 +328,7 @@ function AB:RenderOptionalBars()
         self.Honor.bar:Hide()
         self.Honor.txFrame:Hide()
     end
-    if self.HouseXp and profile.houseXpBarEnabled then
+    if self.HouseXp and profile.bars["HouseXp"].enabled then
         self.HouseXp.bar:Show()
         self.HouseXp.txFrame:Show()
         local houseXpColor = profile.houseXpColor
@@ -372,6 +426,14 @@ function AB:RenderOptionalBars()
         self.HouseXp.bar:SetStatusBarColor(houseXpColor.r, houseXpColor.g, houseXpColor.b, houseXpColor.a)
         self.HouseXp.bar:SetMinMaxValues(minFavorBar, maxFavorBar)
         self.HouseXp.bar:SetValue(currentFavor)
+        if profile.sparkEnabled then
+            local range = maxFavorBar - minFavorBar
+            local pct = (range > 0) and ((currentFavor - minFavorBar) / range) or 0
+            self.HouseXp.spark:SetPoint("CENTER", self.HouseXp.bar, "LEFT", self.HouseXp.bar:GetWidth() * pct, 0)
+            self.HouseXp.spark:Show()
+        else
+            self.HouseXp.spark:Hide()
+        end
         if isMonitoringHouse then
             local currentProgress = currentFavor - minFavorBar
             local maxProgress = maxFavorBar - minFavorBar
@@ -382,7 +444,7 @@ function AB:RenderOptionalBars()
                 if not self.houseRewardText then
                     self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY")
                 end
-                self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 14, "OUTLINE, THICK")
+                self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE, THICK")
                 local rewardColor = profile.houseRewardTextColor or houseXpColor
                 local hex = string.format("|cff%02x%02x%02x",
                     math.floor((rewardColor.r or 0.9) * 255), math.floor((rewardColor.g or 0.5) * 255),
@@ -426,7 +488,7 @@ function AB:RenderOptionalBars()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-    if self.Azerite and profile.azeriteBarEnabled then
+    if self.Azerite and profile.bars["Azerite"].enabled then
         self.Azerite.bar:Show()
         self.Azerite.txFrame:Show()
         local azeriteColor = profile.azeriteColor
@@ -447,6 +509,13 @@ function AB:RenderOptionalBars()
         self.Azerite.bar:SetStatusBarColor(azeriteColor.r, azeriteColor.g, azeriteColor.b, azeriteColor.a)
         self.Azerite.bar:SetMinMaxValues(0, maxazerite)
         self.Azerite.bar:SetValue(currentazerite)
+        if profile.sparkEnabled then
+            local pct = (maxazerite > 0) and (currentazerite / maxazerite) or 0
+            self.Azerite.spark:SetPoint("CENTER", self.Azerite.bar, "LEFT", self.Azerite.bar:GetWidth() * pct, 0)
+            self.Azerite.spark:Show()
+        else
+            self.Azerite.spark:Hide()
+        end
         local percentage = (currentazerite / maxazerite) * 100
         self.Azerite.text:SetText(string.format("Azerite Power %d/%d (%.1f%%)", currentazerite, maxazerite, percentage))
         if tc then self.Azerite.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1) end
@@ -475,7 +544,7 @@ function AB:RenderConfig()
     if profile.showRestedBar then
         local w = self.XP.bar:GetWidth()
         if self.XP.restedOverlay then
-            self.XP.restedOverlay:SetSize(w * 0.25, profile.barHeightXP)
+            self.XP.restedOverlay:SetSize(w * 0.25, profile.bars["XP"].freeHeight or 6)
             self.XP.restedOverlay:ClearAllPoints()
             self.XP.restedOverlay:SetPoint("LEFT", self.XP.bar, "LEFT", w * 0.75, 0)
             self.XP.restedOverlay:SetColorTexture(
@@ -487,9 +556,7 @@ function AB:RenderConfig()
             self.XP.restedOverlay:Show()
         end
     else
-        if self.XP.restedOverlay then
-            self.XP.restedOverlay:Hide()
-        end
+        if self.XP.restedOverlay then self.XP.restedOverlay:Hide() end
     end
     self.Rep.bar:Show()
     self.Rep.txFrame:Show()
@@ -501,7 +568,7 @@ function AB:RenderConfig()
     self.Rep.bar:SetValue(50)
     self.Rep.text:SetText(L["REP_BAR_DATA"])
     self.Rep.text:SetTextColor(tc.r, tc.g, tc.b, 1)
-    if self.Honor and profile.honorBarEnabled then
+    if self.Honor and profile.bars["Honor"].enabled then
         self.Honor.bar:Show()
         self.Honor.txFrame:Show()
         local honorColor = profile.honorColor
@@ -515,7 +582,7 @@ function AB:RenderConfig()
         self.Honor.bar:Hide()
         self.Honor.txFrame:Hide()
     end
-    if self.HouseXp and profile.houseXpBarEnabled then
+    if self.HouseXp and profile.bars["HouseXp"].enabled then
         self.HouseXp.bar:Show()
         self.HouseXp.txFrame:Show()
         local houseXpColor = profile.houseXpColor
@@ -535,9 +602,9 @@ function AB:RenderConfig()
         end
         self.HouseXp.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1)
         if not self.houseRewardText then
-            self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY")
+            self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         end
-        self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 14, "OUTLINE, THICK")
+        self.houseRewardText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE, THICK")
         local rewardColor = profile.houseRewardTextColor or houseXpColor
         local hex = string.format("|cff%02x%02x%02x",
             math.floor((rewardColor.r or 0.9) * 255), math.floor((rewardColor.g or 0.5) * 255),
@@ -560,7 +627,7 @@ function AB:RenderConfig()
         self.HouseXp.txFrame:Hide()
         if self.houseRewardText then self.houseRewardText:Hide() end
     end
-    if self.Azerite and profile.azeriteBarEnabled then
+    if self.Azerite and profile.bars["Azerite"].enabled then
         self.Azerite.bar:Show()
         self.Azerite.txFrame:Show()
         local azeriteColor = profile.azeriteColor
@@ -581,7 +648,7 @@ function AB:RenderConfig()
             math.floor((pc.g or 1) * 255),
             math.floor((pc.b or 0) * 255)
         )
-        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize, "OUTLINE, THICK")
+        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE, THICK")
         if profile.splitParagonText then
             self.paragonText:SetText(hex ..
                 (L["CONFIG_FACTION_A_REWARD"] or "Faction A") ..
@@ -606,63 +673,60 @@ end
 
 function AB:UpdateLayout(shouldHideXP)
     local profile = self.db.profile
-    local effectiveMax = shouldHideXP and not self.state.isConfigMode
-    local font = self.XP.text:GetFont()
-    if not font then font = self.fontToUse end
-    local outline = profile.fontOutline or "OUTLINE"
-    local tc = profile.textColor
-    local function applyBarFormatting(barObj, height)
-        if not barObj then return end
-        barObj.bar:SetHeight(height or profile.barHeightXP)
-        if font then
-            barObj.text:SetFont(font, profile.textSize, outline)
-        end
-        if tc then
-            barObj.text:SetTextColor(tc.r, tc.g, tc.b, tc.a or 1)
-        end
-        if barObj.background then
-            barObj.background:SetVertexColor(0, 0, 0, profile.backgroundAlpha or 0.5)
-        end
-        barObj.bar:ClearAllPoints()
-    end
-    applyBarFormatting(self.XP, profile.barHeightXP)
-    applyBarFormatting(self.Rep, profile.barHeightRep)
-    applyBarFormatting(self.Honor, profile.barHeightXP)
-    applyBarFormatting(self.HouseXp, profile.barHeightHouse or profile.barHeightXP)
-    applyBarFormatting(self.Azerite, profile.barHeightXP)
-    local startY = profile.yOffset
-    local isBottom = (profile.barAnchor == "BOTTOM")
     local gap = profile.barGap or 1
-    local visibleBars = {}
-    if not effectiveMax then
-        table.insert(visibleBars, self.XP)
-    else
-        self.XP.bar:Hide()
-        self.XP.txFrame:Hide()
-    end
-    table.insert(visibleBars, self.Rep)
-    if profile.honorBarEnabled then table.insert(visibleBars, self.Honor) end
-    if profile.houseXpBarEnabled then table.insert(visibleBars, self.HouseXp) end
-    if profile.azeriteBarEnabled then table.insert(visibleBars, self.Azerite) end
-    for i, barObj in ipairs(visibleBars) do
-        if i == 1 then
-            if isBottom then
-                barObj.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, startY)
-                barObj.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, startY)
-            else
-                barObj.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, startY)
-                barObj.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, startY)
-            end
+    local blocks = { TOP = {}, BOTTOM = {}, FREE = {} }
+    local barList = {
+        { obj = self.XP,      key = "XP" },
+        { obj = self.Rep,     key = "Rep" },
+        { obj = self.Honor,   key = "Honor" },
+        { obj = self.HouseXp, key = "HouseXp" },
+        { obj = self.Azerite, key = "Azerite" }
+    }
+    for _, entry in ipairs(barList) do
+        local config = profile.bars[entry.key]
+        if config.enabled and not (entry.key == "XP" and shouldHideXP) then
+            table.insert(blocks[config.block], entry)
+            entry.obj.txFrame:Show()
         else
-            local prevBar = visibleBars[i - 1].bar
-            if isBottom then
-                barObj.bar:SetPoint("BOTTOMLEFT", prevBar, "TOPLEFT", 0, gap)
-                barObj.bar:SetPoint("BOTTOMRIGHT", prevBar, "TOPRIGHT", 0, gap)
-            else
-                barObj.bar:SetPoint("TOPLEFT", prevBar, "BOTTOMLEFT", 0, -gap)
-                barObj.bar:SetPoint("TOPRIGHT", prevBar, "BOTTOMRIGHT", 0, -gap)
-            end
+            entry.obj.bar:Hide()
+            entry.obj.txFrame:Hide()
         end
+    end
+    local sortFn = function(a, b) return profile.bars[a.key].order < profile.bars[b.key].order end
+    table.sort(blocks.TOP, sortFn)
+    table.sort(blocks.BOTTOM, sortFn)
+    for i, entry in ipairs(blocks.TOP) do
+        local config = profile.bars[entry.key]
+        entry.obj.bar:ClearAllPoints()
+        entry.obj.bar:SetHeight(config.freeHeight or 6)
+        if i == 1 then
+            entry.obj.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, profile.yOffset)
+            entry.obj.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, profile.yOffset)
+        else
+            entry.obj.bar:SetPoint("TOPLEFT", blocks.TOP[i - 1].obj.bar, "BOTTOMLEFT", 0, -gap)
+            entry.obj.bar:SetPoint("TOPRIGHT", blocks.TOP[i - 1].obj.bar, "BOTTOMRIGHT", 0, -gap)
+        end
+        entry.obj.bar:Show()
+    end
+    for i, entry in ipairs(blocks.BOTTOM) do
+        local config = profile.bars[entry.key]
+        entry.obj.bar:ClearAllPoints()
+        entry.obj.bar:SetHeight(config.freeHeight or 6)
+        if i == 1 then
+            entry.obj.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, math.abs(profile.yOffset))
+            entry.obj.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, math.abs(profile.yOffset))
+        else
+            entry.obj.bar:SetPoint("BOTTOMLEFT", blocks.BOTTOM[i - 1].obj.bar, "TOPLEFT", 0, gap)
+            entry.obj.bar:SetPoint("BOTTOMRIGHT", blocks.BOTTOM[i - 1].obj.bar, "TOPRIGHT", 0, gap)
+        end
+        entry.obj.bar:Show()
+    end
+    for _, entry in ipairs(blocks.FREE) do
+        local config = profile.bars[entry.key]
+        entry.obj.bar:ClearAllPoints()
+        entry.obj.bar:SetSize(config.freeWidth, config.freeHeight)
+        entry.obj.bar:SetPoint("CENTER", UIParent, "CENTER", config.freeX, config.freeY)
+        entry.obj.bar:Show()
     end
 end
 

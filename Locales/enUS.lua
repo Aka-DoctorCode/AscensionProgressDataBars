@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: enUS.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -101,3 +101,10 @@ L["AZERITE_BAR_HEIGHT"] = "Azerite Bar Height"
 L["HOUSE_BAR_HEIGHT"] = "House Bar Height"
 L["HOUSE_REWARD_COLOR"] = "Reward Text Color"
 L["HOUSE_REWARD_Y_OFFSET"] = "Reward Text Y-Offset"
+L["ENABLE_BAR"] = "Enable Bar"
+L["LAYOUT_BLOCK"] = "Layout Block"
+L["BAR_ORDER"] = "Position"
+L["BAR_WIDTH"] = "Width"
+L["BAR_HEIGHT"] = "Height"
+L["LAYOUT"] = "Layout"
+L["FACTION_STANDINGS_RESET"] = "Reset Defaults"

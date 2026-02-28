@@ -114,7 +114,7 @@ function AB:FormatXP()
         txt = string.format(L["LEVEL_TEXT"], UnitLevel("player"))
     end
     local r = GetXPExhaustion()
-    if r and r > 0 then
+    if r and r > 0 and profile.showRestedBar then
         txt = txt .. string.format(L["RESTED_TEXT"], (m > 0 and r / m * 100) or 0)
     end
     return txt

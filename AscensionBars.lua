@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: AscensionBars.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -19,6 +19,7 @@ local addonName = "AscensionBars"
 ---@field state table
 ---@field fontToUse string
 ---@field textHolder table
+---@field textHolders table
 ---@field HoverFrame table
 ---@field XP table
 ---@field Rep table
@@ -60,7 +61,9 @@ local addonName = "AscensionBars"
 ---@field RenderConfig function
 ---@field UpdateLayout function
 ---@field RenderOptionalBars function
+---@field ToggleConfig function
 ---@field HouseInfo.plotID table
+---@field ApplyTextStyles function
 
 local AB = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
 
@@ -79,11 +82,10 @@ function AB:OnInitialize()
         updatePending = false
     }
     self.fontToUse = (GameFontNormal and GameFontNormal.GetFont and GameFontNormal:GetFont()) or "Fonts\\FRIZQT__.TTF"
-    LibStub("AceConfig-3.0"):RegisterOptionsTable(addonName, self:GetOptionsTable())
-    local optionsFrame, category = LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addonName, "Ascension Bars")
-    self.optionsCategory = category or optionsFrame
     self:RegisterChatCommand("ab", function()
-        LibStub("AceConfigDialog-3.0"):Open(addonName)
+        if type(self.ToggleConfig) == "function" then
+            self:ToggleConfig()
+        end
     end)
     self:CreateFrames()
 end

@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Constants.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -16,10 +16,11 @@ local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
 AB.defaults = {
     profile = {
         -- GENERAL
-        textSize = 12,
+        textSize = 14,
         yOffset = -2,
-        backgroundAlpha = 0.75,
-        barGap = 4,
+        backgroundAlpha = 0.8,
+        barGap = 2,
+        globalBarHeight = 6,
         textGap = 13.5,
         fontOutline = "OUTLINE",
         hideInCombat = false,
@@ -31,15 +32,85 @@ AB.defaults = {
         sparkEnabled = true,
         barAnchor = "TOP",
         textColor = { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, -- #FFFFFF
-
+        textGroups = {
+            T1 = { detached = false, x = 0, y = -25 },
+            T2 = { detached = false, x = 0, y = -50 },
+            T3 = { detached = false, x = 0, y = -75 },
+        },
+        textLayoutMode = "SINGLE_LINE",
+        textFollowBar = true,
+        bars = {
+            ["XP"] = {
+                enabled = true,
+                block = "TOP",
+                order = 1,
+                freeX = 0,
+                freeY = 0,
+                freeWidth = 500,
+                freeHeight = 6,
+                textX = 0,
+                textY = 0,
+                textBlock = "T1",
+                textOrder = 1
+            },
+            ["Rep"] = {
+                enabled = true,
+                block = "TOP",
+                order = 2,
+                freeX = 0,
+                freeY = -20,
+                freeWidth = 500,
+                freeHeight = 6,
+                textX = 0,
+                textY = 0,
+                textBlock = "T1",
+                textOrder = 2
+            },
+            ["Honor"] = {
+                enabled = false,
+                block = "TOP",
+                order = 3,
+                freeX = 0,
+                freeY = -40,
+                freeWidth = 500,
+                freeHeight = 6,
+                textX = 0,
+                textY = 0,
+                textBlock = "T1",
+                textOrder = 3
+            },
+            ["HouseXp"] = {
+                enabled = false,
+                block = "TOP",
+                order = 4,
+                freeX = 0,
+                freeY = -60,
+                freeWidth = 500,
+                freeHeight = 6,
+                textX = 0,
+                textY = 0,
+                textBlock = "T1",
+                textOrder = 4
+            },
+            ["Azerite"] = {
+                enabled = false,
+                block = "TOP",
+                order = 5,
+                freeX = 0,
+                freeY = -80,
+                freeWidth = 500,
+                freeHeight = 6,
+                textX = 0,
+                textY = 0,
+                textBlock = "T1",
+                textOrder = 5
+            },
+        },
         -- EXPERIENCE
-        barHeightXP = 6,
         showRestedBar = true,
         xpBarColor = { r = 0.0, g = 0.4, b = 0.9, a = 1.0 },     -- #0066E6
         restedBarColor = { r = 0.6, g = 0.4, b = 0.8, a = 1.0 }, -- #9966CC
-
         -- REPUTATION
-        barHeightRep = 6,
         useReactionColorRep = true,
         repBarColor = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 },    -- #00FF00
         repColors = {
@@ -55,28 +126,21 @@ AB.defaults = {
             [10] = { r = 0.639, g = 0.208, b = 0.933, a = 1.0 }, -- #A335EE
             [11] = { r = 0.255, g = 0.412, b = 0.882, a = 1.0 }, -- #4169E1
         },
-
         -- PARAGON
-        paragonTextSize = 14,
+        paragonTextSize = 18,
         paragonTextYOffset = -100,
         splitParagonText = false,
         paragonOnTop = false,
         paragonPendingColor = { r = 0, g = 1, b = 0, a = 1.0 }, -- #00FF00
-
         -- HOUSING
-        barHeightHouse = 6,
         houseRewardTextYOffset = -60,
         houseXpBarEnabled = false,
         houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 },         -- #E68000
         houseRewardTextColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 }, -- #E68000
-
         -- ARTIFACT
-        barHeightAzerite = 6,
         azeriteBarEnabled = false,
         azeriteBarColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 }, -- #E6CC80
-
         -- HONOR
-        barHeightHonor = 6,
         honorBarEnabled = false,
         honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 }, -- #CC3333
     }

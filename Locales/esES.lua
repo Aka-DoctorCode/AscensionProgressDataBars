@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: esES.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -102,3 +102,10 @@ L["AZERITE_BAR_HEIGHT"] = "Altura de la barra de artefacto"
 L["HOUSE_BAR_HEIGHT"] = "Altura de la barra de la casa"
 L["HOUSE_REWARD_COLOR"] = "Color del texto de la recompensa de la casa"
 L["HOUSE_REWARD_Y_OFFSET"] = "Offset Y del texto de la recompensa de la casa"
+L["ENABLE_BAR"] = "Habilitar Barra"
+L["LAYOUT_BLOCK"] = "Bloque de Ubicación"
+L["BAR_ORDER"] = "Posición"
+L["BAR_WIDTH"] = "Ancho"
+L["BAR_HEIGHT"] = "Alto"
+L["LAYOUT"] = "Diseño"
+L["FACTION_STANDINGS_RESET"] = "Restablecer Valores"

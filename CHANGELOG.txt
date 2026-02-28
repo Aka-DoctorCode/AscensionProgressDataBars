@@ -1,8 +1,10 @@
-<h1>V29</h1>
+<h1>V30</h1>
 <ul>
-    <li>Deeper code cleanup</li>
-    <li>Fixed some bugs</li>
-    <li>Finish implementing honor bar</li>
-    <li>Finish implementing artifact bar</li>
-    <li>Added stand alone config menu</li>
+    <li>Revamp to the config menu</li>
+    <li>New default order for the bars</li>
+    <li>You can choose now per bar whether to display it or not</li>
+    <li>You can choose now per bar between 3 positions: top, bottom or free</li>
+    <li>You can now reorder the bars in each layout block (Top, Bottom)</li>
+    <li>The information for each bar can now be redistributed in 1 or more lines and in 3 different columns</li>
+    <li>Each column of text can be move freely</li>
 </ul>

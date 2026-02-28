@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: ptBR.lua
--- Version: 29
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -84,16 +84,16 @@ L["REWARD_PENDING_STATUS"] = "Recompensa Pendente"
 L["UNKNOWN_STANDING"] = "???"
 L["RESTED_TEXT"] = " | Descanso %.1f%%"
 L["OPTIONAL_BARS"] = "Barras Opcionais"
-L["ENABLE_HONOR_BAR"] = "Habilitar Barra de Honra"
+L["ENABLE_HONOR_BAR"] = "Ativar Barra de Honra"
 L["HONOR"] = "Honra"
 L["HONOR_COLOR"] = "Cor de Honra"
 L["HONOR_BAR_DATA"] = "Honra: 0%"
 L["HONOR_BAR_HEIGHT"] = "Altura da barra de honra"
-L["ENABLE_HOUSE_XP_BAR"] = "Habilitar Barra de Favor da Casa"
+L["ENABLE_HOUSE_XP_BAR"] = "Ativar Barra de Favor da Casa"
 L["HOUSE_XP"] = "Favor da Casa"
 L["HOUSE_XP_COLOR"] = "Cor de Favor da Casa"
 L["HOUSE_XP_BAR_DATA"] = "Casa Nível 0 | 0/0 (0.0%)"
-L["ENABLE_AZERITE_BAR"] = "Habilitar Barra de Artefato"
+L["ENABLE_AZERITE_BAR"] = "Ativar Barra de Artefato"
 L["AZERITE"] = "Artefato/Azerita"
 L["AZERITE_COLOR"] = "Cor de Artefato"
 L["AZERITE_BAR_DATA"] = "Poder de Artefato: 0%"
@@ -101,3 +101,10 @@ L["AZERITE_BAR_HEIGHT"] = "Altura da barra de artefato"
 L["HOUSE_BAR_HEIGHT"] = "Altura da barra da casa"
 L["HOUSE_REWARD_COLOR"] = "Cor do texto da recompensa da casa"
 L["HOUSE_REWARD_Y_OFFSET"] = "Offset Y do texto da recompensa da casa"
+L["ENABLE_BAR"] = "Ativar barra"
+L["LAYOUT_BLOCK"] = "Bloco de Layout"
+L["BAR_ORDER"] = "Posição"
+L["BAR_WIDTH"] = "Largura"
+L["BAR_HEIGHT"] = "Altura"
+L["LAYOUT"] = "Layout"
+L["FACTION_STANDINGS_RESET"] = "Redefinir Padrões"
