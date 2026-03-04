@@ -1,11 +1,11 @@
 ## Interface: 120001
 ## Title: Ascension Bars
 ## Notes: Minimalist information bars with advanced customization.
-## Author: Aka-DoctorCode
+## Author: AkaDoctorCode
 ## Category: Interface
 ## Version: @project-version@
 ## SavedVariables: AscensionBarsDB
-## RequiredDeps: AscensionQoL
+## RequiredDeps: AscensionSuit
 ## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
 ## X-Curse-Project-ID: 1401337
 ## X-Wago-ID: RNLk9EGo
@@ -18,9 +18,11 @@ Locales\deDE.lua
 
 # Core
 AscensionBars.lua
+Bars\Experience.lua
+Bars\Reputation.lua
+Bars\Honor.lua
+Bars\Housing.lua
+Bars\Azerite.lua
 Constants.lua
+Styles.lua
 Config.lua
-Utilities.lua
-Frames.lua
-Display.lua
-OldConfig.lua

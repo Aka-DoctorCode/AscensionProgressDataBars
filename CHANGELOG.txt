@@ -1,10 +1,14 @@
-<h1>V30</h1>
+<h1>V31 - Welcome to the menu</h1>
 <ul>
-    <li>Revamp to the config menu</li>
-    <li>New default order for the bars</li>
-    <li>You can choose now per bar whether to display it or not</li>
-    <li>You can choose now per bar between 3 positions: top, bottom or free</li>
-    <li>You can now reorder the bars in each layout block (Top, Bottom)</li>
-    <li>The information for each bar can now be redistributed in 1 or more lines and in 3 different columns</li>
-    <li>Each column of text can be move freely</li>
+    <li>Modularization of the project for easier maintenance and scalability</li>
+    <li>Review of the code to remove any unused code</li>
+    <li>Fixing some bugs and issues regarding bars not updating properly</li>
+    <li>New Menu 2.0, menu has been added to the wow menu, is recommended to use the /ab to open the true config frame</li>
+    <li>Added integration with AscensionSuit, this addon is just a central brain for the libraries used in some of my Ascension addons, previously these libraries were loaded by AscensionQoL.</li>
 </ul>
+<span>I still need to do some fine tuning to the menu UX/UI, but it is almost at its final form</span>
+
+<h2>I will be adding few more features soon for easier configuration of bars and bar texts placement, stay tuned!</h2>
+<h3>Positive feedback is always appreciated, it helps me to continue working on this project</h3>
+<h3>If you find any bugs or issues, please report them to me on github</h3>
+<h3>Thank you for using AscensionBars!</h3>

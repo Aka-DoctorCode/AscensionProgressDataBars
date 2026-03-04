@@ -2,10 +2,11 @@ package-as: AscensionBars
 license-output: LICENSE
 enable-nolib-creation: no
 required-dependencies:
-    - AscensionQoL
+    - AscensionSuit
 ignore:
     - __MACOSX
     - pkgmeta.yaml
+    - Dev.lua
 
 manual-changelog: 
     filename: CHANGELOG.txt

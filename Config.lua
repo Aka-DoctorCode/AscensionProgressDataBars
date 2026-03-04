@@ -5,209 +5,285 @@
 -- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+--
+-- This software and its source code are the exclusive property of the author.
+-- No part of this file may be copied, modified, redistributed, or used in
+-- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
----@type AscensionBars
-local AB = LibStub("AceAddon-3.0"):GetAddon("AscensionBars")
-local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
-
--------------------------------------------------------------------------------
--- CONSTANTS & COLORS (From AscensionNotes / AscensionTalentManager)
--------------------------------------------------------------------------------
-local COLORS = {
-    primary           = { 0.498, 0.075, 0.925, 1.0 },  -- #7f13ec
-    gold              = { 1.000, 0.800, 0.200, 1.0 },  -- #ffcc33
-    background_dark   = { 0.020, 0.020, 0.031, 0.95 }, -- #050508
-    surface_dark      = { 0.047, 0.039, 0.082, 1.0 },  -- #0c0a15
-    surface_highlight = { 0.165, 0.141, 0.239, 1.0 },  -- #2a243d
-    black_detail      = { 0.0, 0.0, 0.0, 1.0 },        -- #000000
-    white_detail      = { 1, 1, 1, 1 },                -- #ffffff
-    text_light        = { 0.886, 0.910, 0.941, 1.0 },  -- #e2e8f0
-    text_dim          = { 0.580, 0.640, 0.720, 1.0 },  -- #9ca3af
-
-    -- Sidebar
-    sidebar_bg        = { 0.10, 0.10, 0.10, 0.95 }, -- #191919
-    sidebar_hover     = { 0.20, 0.20, 0.20, 0.5 },  -- #333333
-    sidebar_accent    = { 0.00, 0.48, 1.00, 0.95 }, -- #007bff
-    sidebar_active    = { 0.00, 0.40, 1.00, 0.2 },  -- #0066ff
-    minimize          = "Interface\\Buttons\\ui-panel-hidebutton-disabled",
-    maximize          = "Interface\\Buttons\\ui-panel-hidebutton-up",
-}
-
--- "Interface\\ChatFrame\\ChatFrameBackground" --
--- "Interface\\Tooltips\\UI-Tooltip-Border"
--- "Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up"
--- "Interface\\Buttons\\UI-Panel-MinimizeButton-Up"
--- "Interface\\Buttons\\UI-Panel-MinimizeButton-Down"
--- "Interface\\Buttons\\UI-Panel-MinimizeButton-Highlight"
--- "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up"
--- "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight"
--- "Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down"
-
-local FILES = {
-
-    bgfile = "Interface\\ChatFrame\\ChatFrameBackground",
-    edgefile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    arrow = "Interface\\Buttons\\UI-ScrollBar-ScrollDownButton-Up",
-    close = "Interface\\Buttons\\UI-Panel-CloseButton",
-}
-
-local configFrame = nil
-local isMinimized = false
-local normalWidth, normalHeight = 600, 500
-local activeTab = nil
-local tabs = {}
-local panels = {}
+local addonName, addonTable = ...
+local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
+local Locales = LibStub("AceLocale-3.0"):GetLocale(addonName)
+---@class AscensionBars
+---@cast ascensionBars AscensionBars
+local colors = ascensionBars.colors
+local files = ascensionBars.files
+local menuStyle = ascensionBars.menuStyle
 
 -------------------------------------------------------------------------------
 -- UTILS
 -------------------------------------------------------------------------------
-local function cleanBlockOrders(profile, block)
+
+local function cleanOrders(profile, blockField, orderField, block)
     local temp = {}
     for k, bar in pairs(profile.bars) do
-        if bar.block == block then
-            table.insert(temp, { key = k, order = bar.order or 99 })
+        if bar[blockField] == block then
+            table.insert(temp, { key = k, order = bar[orderField] or 99 })
         end
     end
     table.sort(temp, function(a, b) return a.order < b.order end)
     for i, data in ipairs(temp) do
-        profile.bars[data.key].order = i
+        profile.bars[data.key][orderField] = i
     end
 end
 
-local function getBlockCount(profile, block)
+local function getCount(profile, blockField, block)
     local count = 0
     for _, bar in pairs(profile.bars) do
-        if bar.block == block then count = count + 1 end
-    end
-    return count
-end
-local function cleanTextBlockOrders(profile, block)
-    local temp = {}
-    for k, bar in pairs(profile.bars) do
-        if bar.textBlock == block then
-            table.insert(temp, { key = k, order = bar.textOrder or 99 })
+        if bar[blockField] == block then
+            count = count + 1
         end
     end
-    table.sort(temp, function(a, b) return a.order < b.order end)
-    for i, data in ipairs(temp) do
-        profile.bars[data.key].textOrder = i
-    end
-end
-
-local function getTextBlockCount(profile, block)
-    local count = 0
-    for _, bar in pairs(profile.bars) do
-        if bar.textBlock == block then count = count + 1 end
-    end
     return count
 end
+
 -------------------------------------------------------------------------------
--- GUI FACTORY
+-- STYLE HELPER
 -------------------------------------------------------------------------------
 
-local function CreateHeader(parent, text, yOffset)
+local function getStyle(elementID)
+    return ascensionBars.db.profile.elementStyles and ascensionBars.db.profile.elementStyles[elementID] or {}
+end
+
+-------------------------------------------------------------------------------
+-- UI FACTORY (refactored with options table)
+-------------------------------------------------------------------------------
+
+local function createHeader(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local yOffset = args.yOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Header"
+    local style = getStyle(elementID)
+    local headerSize = style.uiHeaderSize or menuStyle.uiHeaderSize or 18
+    local headerColor = style.uiHeaderColor or menuStyle.uiHeaderColor or colors.gold
+    local hSpacing = style.headerSpacing or menuStyle.headerSpacing
+    local dSpacing = style.dividerSpacing or menuStyle.dividerSpacing
+
     local header = parent:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    header:SetPoint("TOPLEFT", 15, yOffset)
+    header.elementID = elementID
+    header:SetPoint("TOPLEFT", style.contentPadding or menuStyle.contentPadding, yOffset)
     header:SetText(text)
-    header:SetTextColor(unpack(COLORS.gold))
+    header:SetTextColor(unpack(headerColor))
 
     local divider = parent:CreateTexture(nil, "ARTWORK")
     divider:SetHeight(1)
-    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -4)
+    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -dSpacing)
     divider:SetPoint("RIGHT", parent, "RIGHT", -5, 0)
-    divider:SetColorTexture(unpack(COLORS.surface_highlight))
+    divider:SetColorTexture(unpack(colors.surface_highlight))
 
-    return header, yOffset - 25
+    return header, yOffset - hSpacing
 end
 
-local function CreateLabel(parent, text, yOffset)
+local function createLabel(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local yOffset = args.yOffset
+    local xOffset = args.xOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Label"
+    local style = getStyle(elementID)
+    local textColor = style.text_light or colors.text_light
+    local lSpacing = style.labelSpacing or menuStyle.labelSpacing
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+
     local label = parent:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    label:SetPoint("TOPLEFT", 15, yOffset)
+    label.elementID = elementID
+    label:SetPoint("TOPLEFT", actualX, yOffset)
     label:SetText(text)
-    label:SetTextColor(unpack(COLORS.text_light))
-    return label, yOffset - 20
+    label:SetTextColor(unpack(textColor))
+    return label, yOffset - lSpacing
 end
 
-local function CreateCheckbox(parent, text, tooltip, getter, setter, yOffset, xOffset)
-    xOffset = xOffset or 15
-    local cb = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
-    cb.Text:SetFontObject("GameFontHighlightLarge")
-    cb:SetPoint("TOPLEFT", xOffset, yOffset)
-    cb:SetSize(24, 24)
-    cb.text = cb:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    cb.text:SetPoint("LEFT", cb, "RIGHT", 5, 0)
-    cb.text:SetText(text)
-    cb.text:SetTextColor(unpack(COLORS.text_light))
+local function createCheckbox(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local tooltip = args.tooltip
+    local getter = args.getter
+    local setter = args.setter
+    local yOffset = args.yOffset
+    local xOffset = args.xOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Checkbox"
+    local style = getStyle(elementID)
+    local actualParent = parent or menuStyle.contentPanel
+    local size = style.checkboxSize or menuStyle.checkboxSize
+    local spacing = style.checkboxSpacing or menuStyle.checkboxSpacing
+    local labelColor = style.textColor or { 0.88, 0.88, 0.88, 1 }
 
-    cb:SetChecked(getter())
-    cb:SetScript("OnClick", function(self)
-        setter(self:GetChecked())
+    local checkbox = CreateFrame("CheckButton", nil, actualParent, "UICheckButtonTemplate")
+    checkbox.elementID = elementID
+    checkbox:SetSize(size, size)
+    local actualX = style.contentPadding or xOffset or 10
+    checkbox:SetPoint("TOPLEFT", actualParent, "TOPLEFT", actualX, yOffset or -10)
+
+    local label = checkbox.Text
+    label:SetFontObject("GameFontHighlight")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 5, 0)
+    label:SetText(text or "")
+    label:SetTextColor(unpack(labelColor))
+
+    if getter then
+        checkbox:SetChecked(getter())
+    end
+
+    checkbox:SetScript("OnClick", function(self)
+        if setter then
+            setter(self:GetChecked())
+        end
     end)
 
     if tooltip then
-        cb:SetScript("OnEnter", function(self)
+        checkbox:SetScript("OnEnter", function(self)
             GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-            GameTooltip:SetText(text, 1, 1, 1)
-            GameTooltip:AddLine(tooltip, nil, nil, nil, true)
+            GameTooltip:SetText(text or "", 1, 1, 1)
+            GameTooltip:AddLine(tooltip, 1, 0.82, 0, true)
             GameTooltip:Show()
         end)
-        cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+        checkbox:SetScript("OnLeave", GameTooltip_Hide)
     end
 
-    return cb, yOffset - 30
+    return checkbox, yOffset - (size + spacing)
 end
 
-local function CreateSlider(parent, text, minVal, maxVal, step, getter, setter, yOffset, xOffset)
-    xOffset = xOffset or 15
+local function createSlider(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local minVal = args.minVal
+    local maxVal = args.maxVal
+    local step = args.step
+    local getter = args.getter
+    local setter = args.setter
+    local width = args.width
+    local yOffset = args.yOffset
+    local xOffset = args.xOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Slider"
+    local style = getStyle(elementID)
+    local sliderSpacing = style.sliderSpacing or menuStyle.sliderSpacing
+    local defaultWidth = style.sliderWidth or menuStyle.sliderWidth
+    local sliderWidth = width or defaultWidth
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+
     local sliderName = "AscensionBarsSlider_" .. tostring(math.random(1000000, 9999999))
     local slider = CreateFrame("Slider", sliderName, parent, "OptionsSliderTemplate")
-    slider:SetPoint("TOPLEFT", xOffset, yOffset - 15)
-    slider:SetWidth(180)
+    slider.elementID = elementID
+    slider:SetPoint("TOPLEFT", actualX, yOffset - 15)
+    slider:SetWidth(sliderWidth)
+
     slider:SetMinMaxValues(minVal, maxVal)
     slider:SetValueStep(step)
     slider:SetObeyStepOnDrag(true)
 
     local val = getter() or minVal
-
     slider.text = slider:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     slider.text:SetPoint("BOTTOM", slider, "TOP", 0, 3)
-    slider.text:SetText(text .. ": " .. (math.floor(val * 100) / 100))
+    slider.text:SetText(text)
 
-    _G[sliderName .. "Low"]:SetText(minVal)
-    _G[sliderName .. "High"]:SetText(maxVal)
+    local low = _G[sliderName .. "Low"]
+    local high = _G[sliderName .. "High"]
+    if low then low:SetText(minVal) end
+    if high then high:SetText(maxVal) end
 
-    slider:SetValue(val)
+    local editBox = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
+    editBox:SetSize(50, 20)
+    editBox:SetPoint("TOP", slider, "BOTTOM", 0, -4)
+    editBox:SetAutoFocus(false)
+    editBox:SetJustifyH("CENTER")
+    editBox:SetText(tostring(math.floor(val * 100) / 100))
 
-    slider:SetScript("OnValueChanged", function(self, value)
-        setter(value)
-        self.text:SetText(text .. ": " .. math.floor(value * 100) / 100)
+    local function updateValue(inputValue)
+        local numericValue = tonumber(inputValue)
+        if numericValue then
+            if numericValue < minVal then numericValue = minVal end
+            if numericValue > maxVal then numericValue = maxVal end
+            slider:SetValue(numericValue)
+            editBox:SetText(tostring(math.floor(numericValue * 100) / 100))
+            setter(numericValue)
+        end
+    end
+
+    editBox:SetScript("OnEnterPressed", function(self)
+        updateValue(self:GetText())
+        self:ClearFocus()
     end)
 
-    return slider, yOffset - 50
+    local buttonMinus = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    buttonMinus:SetSize(20, 20)
+    buttonMinus:SetText("-")
+    buttonMinus:SetPoint("RIGHT", editBox, "LEFT", -5, 0)
+    buttonMinus:SetScript("OnClick", function()
+        updateValue(slider:GetValue() - step)
+    end)
+
+    local buttonPlus = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    buttonPlus:SetSize(20, 20)
+    buttonPlus:SetText("+")
+    buttonPlus:SetPoint("LEFT", editBox, "RIGHT", 5, 0)
+    buttonPlus:SetScript("OnClick", function()
+        updateValue(slider:GetValue() + step)
+    end)
+
+    slider:SetValue(val)
+    slider:SetScript("OnValueChanged", function(_, value)
+        setter(value)
+        editBox:SetText(tostring(math.floor(value * 100) / 100))
+    end)
+
+    return slider, yOffset - sliderSpacing
 end
 
-local function CreateColorPicker(parent, text, getter, setter, yOffset, xOffset, hasAlpha)
-    xOffset = xOffset or 15
-    local btn = CreateFrame("Button", nil, parent)
-    btn:SetSize(20, 20)
-    btn:SetPoint("TOPLEFT", xOffset, yOffset)
+local function createColorPicker(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local getter = args.getter
+    local setter = args.setter
+    local yOffset = args.yOffset
+    local xOffset = args.xOffset
+    local hasAlpha = args.hasAlpha
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "ColorPicker"
+    local style = getStyle(elementID)
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local pickerSize = style.colorPickerSize or menuStyle.colorPickerSize or 20
+    local pickerSpacing = style.colorPickerSpacing or menuStyle.colorPickerSpacing
+    local button = CreateFrame("Button", nil, parent)
 
-    local tex = btn:CreateTexture(nil, "OVERLAY")
-    tex:SetAllPoints()
-    tex:SetColorTexture(getter())
-    btn.tex = tex
+    button.elementID = elementID
+    button:SetSize(pickerSize, pickerSize)
+    button:SetPoint("TOPLEFT", actualX, yOffset)
 
-    local bg = btn:CreateTexture(nil, "BACKGROUND")
-    bg:SetPoint("TOPLEFT", -1, 1)
-    bg:SetPoint("BOTTOMRIGHT", 1, -1)
-    bg:SetColorTexture(1, 1, 1, 1)
+    local texture = button:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints()
+    texture:SetColorTexture(getter())
+    button.tex = texture
 
-    local label = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    label:SetPoint("LEFT", btn, "RIGHT", 10, 0)
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetPoint("TOPLEFT", -1, 1)
+    background:SetPoint("BOTTOMRIGHT", 1, -1)
+    background:SetColorTexture(1, 1, 1, 1)
+
+    local label = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    label:SetPoint("LEFT", button, "RIGHT", 10, 0)
     label:SetText(text)
 
-    local function ColorCallback(restore)
+    local function colorCallback(restore)
         local r, g, b, a
         if restore then
             r, g, b, a = unpack(restore)
@@ -215,147 +291,175 @@ local function CreateColorPicker(parent, text, getter, setter, yOffset, xOffset,
             if ColorPickerFrame.GetColorRGB then
                 r, g, b = ColorPickerFrame:GetColorRGB()
             end
-            if ColorPickerFrame.GetColorAlpha then
-                a = ColorPickerFrame:GetColorAlpha()
-            elseif ColorPickerFrame.GetColorOpacity then
-                a = 1 - (ColorPickerFrame:GetColorOpacity() or 0)
-            end
+            a = (ColorPickerFrame.GetColorAlpha and ColorPickerFrame:GetColorAlpha()) or
+                (ColorPickerFrame.GetColorOpacity and 1 - ColorPickerFrame:GetColorOpacity()) or 1
         end
-        local finalA = a or 1
-        setter(r or 1, g or 1, b or 1, finalA)
-        btn.tex:SetColorTexture(r or 1, g or 1, b or 1, finalA)
+        local finalAlpha = a or 1
+        setter(r or 1, g or 1, b or 1, finalAlpha)
+        button.tex:SetColorTexture(r or 1, g or 1, b or 1, finalAlpha)
     end
 
-    btn:SetScript("OnClick", function()
+    button:SetScript("OnClick", function()
         local r, g, b, a = getter()
-        local finalA = a or 1
+        local currentAlpha = a or 1
         local info = {
-            swatchFunc = function() ColorCallback() end,
-            opacityFunc = function() ColorCallback() end,
-            cancelFunc = function() ColorCallback({ r or 1, g or 1, b or 1, finalA }) end,
+            swatchFunc = function() colorCallback() end,
+            opacityFunc = function() colorCallback() end,
+            cancelFunc = function() colorCallback({ r or 1, g or 1, b or 1, currentAlpha }) end,
             hasOpacity = hasAlpha,
-            opacity = finalA,
+            opacity = currentAlpha,
             r = r or 1,
             g = g or 1,
             b = b or 1
         }
+
         if ColorPickerFrame.SetupColorPickerAndShow then
             ColorPickerFrame:SetupColorPickerAndShow(info)
         else
-            -- Fallback for older legacy versions
             ColorPickerFrame.func = info.swatchFunc
             ColorPickerFrame.opacityFunc = info.opacityFunc
             ColorPickerFrame.cancelFunc = info.cancelFunc
             ColorPickerFrame.hasOpacity = info.hasOpacity
             ColorPickerFrame.opacity = info.opacity
-            if ColorPickerFrame.SetColorRGB then
-                ColorPickerFrame:SetColorRGB(info.r, info.g, info.b)
-            end
+            if ColorPickerFrame.SetColorRGB then ColorPickerFrame:SetColorRGB(info.r, info.g, info.b) end
             ColorPickerFrame:Show()
         end
     end)
-
-    return btn, yOffset - 30
+    return button, yOffset - pickerSpacing
 end
 
-local function CreateDropdown(parent, text, options, getter, setter, yOffset, xOffset)
-    xOffset = xOffset or 15
+local function createDropdown(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    local text = args.text
+    local options = args.options
+    local getter = args.getter
+    local setter = args.setter
+    local yOffset = args.yOffset
+    local xOffset = args.xOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Dropdown"
+    local style = getStyle(elementID)
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local dropWidth = style.dropdownWidth or menuStyle.dropdownWidth
+    local dropHeight = style.dropdownHeight or menuStyle.dropdownHeight
+
     local frame = CreateFrame("Frame", nil, parent)
-    frame:SetSize(150, 40)
-    frame:SetPoint("TOPLEFT", xOffset, yOffset)
+    frame.elementID = elementID
+    frame:SetSize(dropWidth, dropHeight)
+    frame:SetPoint("TOPLEFT", actualX, yOffset)
 
     local label = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     label:SetPoint("TOPLEFT", 0, 0)
     label:SetText(text)
 
-    local dd = CreateFrame("Button", nil, frame, "BackdropTemplate")
-    dd:SetSize(150, 24)
-    dd:SetPoint("BOTTOMLEFT", 0, 0)
-    dd:SetBackdrop({ bgFile = FILES.bgfile, edgeFile = FILES.edgefile, edgeSize = 10, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
-    dd:SetBackdropColor(unpack(COLORS.surface_highlight))
-    dd:SetBackdropBorderColor(unpack(COLORS.black_detail))
+    local dropdown = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    dropdown:SetSize(dropWidth, 24)
+    dropdown:SetPoint("BOTTOMLEFT", 0, 0)
+    dropdown:SetBackdrop({
+        bgFile = files.bgfile,
+        edgeFile = files.edgefile,
+        edgeSize = 10,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    dropdown:SetBackdropColor(unpack(colors.surface_highlight))
+    dropdown:SetBackdropBorderColor(unpack(colors.black_detail))
 
-    local ddText = dd:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    ddText:SetPoint("LEFT", 10, 0)
-    ddText:SetPoint("RIGHT", -20, 0)
-    ddText:SetJustifyH("LEFT")
+    local dropdownText = dropdown:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    dropdownText:SetPoint("LEFT", 10, 0)
+    dropdownText:SetPoint("RIGHT", -20, 0)
+    dropdownText:SetJustifyH("LEFT")
 
-    local function getOptionLabel(val)
+    local function getLabel(val)
         for _, opt in ipairs(options) do
             if opt.value == val then return opt.label end
         end
         return tostring(val)
     end
-    ddText:SetText(getOptionLabel(getter()))
+    dropdownText:SetText(getLabel(getter()))
 
-    local arrow = dd:CreateTexture(nil, "OVERLAY")
+    local arrow = dropdown:CreateTexture(nil, "OVERLAY")
     arrow:SetSize(20, 20)
     arrow:SetPoint("RIGHT", -5, 0)
-    arrow:SetTexture(FILES.arrow)
+    arrow:SetTexture(files.arrow)
     arrow:SetDesaturated(true)
 
-    local list = CreateFrame("Frame", nil, dd, "BackdropTemplate")
-    list:SetPoint("TOPLEFT", dd, "BOTTOMLEFT", 0, -2)
+    local list = CreateFrame("Frame", nil, dropdown, "BackdropTemplate")
+    list:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
     list:SetWidth(150)
     list:SetFrameStrata("DIALOG")
     list:Hide()
-    list:SetBackdrop({ bgFile = FILES.bgfile, edgeFile = FILES.edgefile, edgeSize = 12, insets = { left = 2, right = 2, top = 2, bottom = 2 } })
-    list:SetBackdropColor(unpack(COLORS.surface_dark))
-    list:SetBackdropBorderColor(unpack(COLORS.surface_highlight))
+    list:SetBackdrop({
+        bgFile = files.bgfile,
+        edgeFile = files.edgefile,
+        edgeSize = 12,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    list:SetBackdropColor(unpack(colors.surface_dark))
+    list:SetBackdropBorderColor(unpack(colors.surface_highlight))
 
-    dd:SetScript("OnClick", function()
-        if list:IsShown() then list:Hide() else list:Show() end
+    dropdown:SetScript("OnClick", function()
+        if list:IsShown() then
+            list:Hide()
+        else
+            list:Show()
+        end
     end)
 
     list:SetHeight(#options * 20 + 10)
+
     for i, opt in ipairs(options) do
-        local btn = CreateFrame("Button", nil, list, "BackdropTemplate")
-        btn:SetSize(140, 20)
-        btn:SetPoint("TOPLEFT", 5, -5 - ((i - 1) * 20))
-        btn:SetBackdrop({ bgFile = FILES.bgfile })
-        btn:SetBackdropColor(unpack(COLORS.surface_dark))
+        local button = CreateFrame("Button", nil, list, "BackdropTemplate")
+        button:SetSize(140, 20)
+        button:SetPoint("TOPLEFT", 5, -5 - ((i - 1) * 20))
+        button:SetBackdrop({ bgFile = files.bgfile })
+        button:SetBackdropColor(unpack(colors.surface_dark))
 
-        local btnText = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-        btnText:SetPoint("LEFT", 5, 0)
-        btnText:SetText(opt.label)
+        local buttonTextLocal = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        buttonTextLocal:SetPoint("LEFT", 5, 0)
+        buttonTextLocal:SetText(opt.label)
 
-        btn:SetScript("OnEnter", function(self) self:SetBackdropColor(unpack(COLORS.surface_highlight)) end)
-        btn:SetScript("OnLeave", function(self) self:SetBackdropColor(unpack(COLORS.surface_dark)) end)
-        btn:SetScript("OnClick", function()
+        button:SetScript("OnEnter", function(self)
+            self:SetBackdropColor(unpack(colors.surface_highlight))
+        end)
+        button:SetScript("OnLeave", function(self)
+            self:SetBackdropColor(unpack(colors.surface_dark))
+        end)
+        button:SetScript("OnClick", function()
             setter(opt.value)
-            ddText:SetText(opt.label)
+            dropdownText:SetText(opt.label)
             list:Hide()
         end)
     end
 
-    return frame, yOffset - 45
+    return frame, yOffset - 55
 end
 
--- Create a scroll child for a panel
-local function CreateScrollPanel(parent)
+local function createScrollPanel(args)
+    local elementID = args.elementID
+    local parent = args.parent
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "ScrollPanel"
     local scrollName = "AscensionBarsScrollPanel_" .. tostring(math.random(1000000, 9999999))
     local scrollFrame = CreateFrame("ScrollFrame", scrollName, parent, "UIPanelScrollFrameTemplate")
+    scrollFrame.elementID = elementID
     scrollFrame:SetPoint("TOPLEFT", 5, -5)
     scrollFrame:SetPoint("BOTTOMRIGHT", -25, 5)
 
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(scrollFrame:GetWidth(), 800) -- Will grow as needed
+    content:SetSize(scrollFrame:GetWidth(), 800)
     scrollFrame:SetScrollChild(content)
-
-    -- Fix mousewheel scrolling for the scrollframe
     scrollFrame:EnableMouseWheel(true)
     scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
+
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local scrollBar = self.ScrollBar
         if not scrollBar then return end
-        local scrollStep = 50
         local minVal, maxVal = scrollBar:GetMinMaxValues()
         local currentVal = scrollBar:GetValue()
-        local newVal = currentVal - (delta * scrollStep)
-
+        local newVal = currentVal - delta * 50
         if newVal < minVal then newVal = minVal end
         if newVal > maxVal then newVal = maxVal end
-
         scrollBar:SetValue(newVal)
     end)
 
@@ -363,849 +467,988 @@ local function CreateScrollPanel(parent)
 end
 
 -------------------------------------------------------------------------------
--- CONFIG FRAME TABS
+-- LAYOUT HELPER
 -------------------------------------------------------------------------------
 
-local function CleanupContent(p)
-    if not p then return end
-    local children = { p:GetChildren() }
-    for _, child in ipairs(children) do
+local layoutModel = {}
+function layoutModel:new(parent, startY)
+    local obj = { parent = parent, y = startY or -15 }
+    setmetatable(obj, { __index = layoutModel })
+    return obj
+end
+
+function layoutModel:header(elementID, text)
+    local h, newY = createHeader { elementID = elementID, parent = self.parent, text = text, yOffset = self.y }
+    self.y = newY
+    return h
+end
+
+function layoutModel:label(elementID, text, xOffset)
+    local l, newY = createLabel { elementID = elementID, parent = self.parent, text = text, yOffset = self.y, xOffset = xOffset }
+    self.y = newY
+    return l
+end
+
+function layoutModel:checkbox(elementID, text, tooltip, getter, setter, xOffset)
+    local cb, newY = createCheckbox {
+        elementID = elementID, parent = self.parent, text = text, tooltip = tooltip,
+        getter = getter, setter = setter, yOffset = self.y, xOffset = xOffset
+    }
+    self.y = newY
+    return cb
+end
+
+function layoutModel:slider(elementID, text, minVal, maxVal, step, getter, setter, width, xOffset)
+    local s, newY = createSlider {
+        elementID = elementID, parent = self.parent, text = text, minVal = minVal, maxVal = maxVal, step = step,
+        getter = getter, setter = setter, width = width, yOffset = self.y, xOffset = xOffset
+    }
+    self.y = newY
+    return s
+end
+
+function layoutModel:colorPicker(elementID, text, getter, setter, xOffset, hasAlpha)
+    local cp, newY = createColorPicker {
+        elementID = elementID, parent = self.parent, text = text, getter = getter, setter = setter,
+        yOffset = self.y, xOffset = xOffset, hasAlpha = hasAlpha
+    }
+    self.y = newY
+    return cp
+end
+
+function layoutModel:dropdown(elementID, text, options, getter, setter, xOffset)
+    local dd, newY = createDropdown {
+        elementID = elementID, parent = self.parent, text = text, options = options,
+        getter = getter, setter = setter, yOffset = self.y, xOffset = xOffset
+    }
+    self.y = newY
+    return dd
+end
+
+-------------------------------------------------------------------------------
+-- BAR & TEXT CONTROL BUILDERS
+-------------------------------------------------------------------------------
+
+local function createBarControls(layout, profile, barKey, displayName, anchorBlock, controlWidth, xOffset)
+    local bar = profile.bars[barKey]
+
+    layout:label("BarHeader_" .. barKey, displayName, xOffset + 5)
+    layout:checkbox("EnableBarCheckbox_" .. barKey, Locales["ENABLE"], nil,
+        function() return bar.enabled end,
+        function(v)
+            bar.enabled = v; ascensionBars:updateDisplay()
+        end,
+        xOffset + 10)
+
+    layout:dropdown("AnchorDropdown_" .. barKey, Locales["ANCHOR"],
+        {
+            { label = Locales["TOP"],    value = "TOP" },
+            { label = Locales["BOTTOM"], value = "BOTTOM" },
+            { label = Locales["FREE"],   value = "FREE" }
+        },
+        function() return bar.block end,
+        function(v)
+            local oldBlock = bar.block
+            bar.block = v
+            cleanOrders(profile, "block", "order", oldBlock)
+            bar.order = math.max(1, getCount(profile, "block", v))
+            ascensionBars:updateDisplay()
+        end,
+        xOffset + 10)
+
+    local orderOptions = {}
+    local count = getCount(profile, "block", bar.block)
+    for j = 1, count do
+        table.insert(orderOptions, { label = tostring(j), value = j })
+    end
+    layout:dropdown("OrderDropdown_" .. barKey, Locales["ORDER"], orderOptions,
+        function() return bar.order or 1 end,
+        function(v)
+            local oldOrder = bar.order or 1
+            if oldOrder == v then return end
+            for k, b in pairs(profile.bars) do
+                if k ~= barKey and b.block == bar.block then
+                    local barOrder = b.order or 1
+                    if oldOrder < v then
+                        if barOrder > oldOrder and barOrder <= v then
+                            b.order = barOrder - 1
+                        end
+                    else
+                        if barOrder >= v and barOrder < oldOrder then
+                            b.order = barOrder + 1
+                        end
+                    end
+                end
+            end
+            bar.order = v
+            ascensionBars:updateDisplay()
+        end,
+        xOffset + 10)
+
+    if profile.textLayoutMode == "INDIVIDUAL_LINES" then
+        layout:slider("TextXSlider_" .. barKey, Locales["TXT_X"], -500, 500, 1,
+            function() return bar.textX or 0 end,
+            function(v)
+                bar.textX = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+
+        layout:slider("TextYSlider_" .. barKey, Locales["TXT_Y"], -500, 500, 1,
+            function() return bar.textY or 0 end,
+            function(v)
+                bar.textY = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+    end
+
+    if bar.block == "FREE" then
+        layout:slider("WidthSlider_" .. barKey, Locales["WIDTH"], 50, 2000, 1,
+            function() return bar.freeWidth end,
+            function(v)
+                bar.freeWidth = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+
+        layout:slider("HeightSlider_" .. barKey, Locales["HEIGHT"], 2, 100, 1,
+            function() return bar.freeHeight or 15 end,
+            function(v)
+                bar.freeHeight = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+
+        layout:slider("PosXSlider_" .. barKey, Locales["POS_X"], -1000, 1000, 1,
+            function() return bar.freeX end,
+            function(v)
+                bar.freeX = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+
+        layout:slider("PosYSlider_" .. barKey, Locales["POS_Y"], -1000, 1000, 1,
+            function() return bar.freeY end,
+            function(v)
+                bar.freeY = v; ascensionBars:updateDisplay()
+            end,
+            controlWidth, xOffset + 15)
+    end
+
+    layout.y = layout.y - 15
+end
+
+local function createTextControls(layout, profile, barKey, anchorBlock, xOffset)
+    local bar = profile.bars[barKey]
+
+    layout:label("TextHeader_" .. barKey, barKey, xOffset + 5)
+    layout:dropdown("TextAnchorDropdown_" .. barKey, Locales["ANCHOR"],
+        {
+            { label = Locales["GROUP_1"], value = "T1" },
+            { label = Locales["GROUP_2"], value = "T2" },
+            { label = Locales["GROUP_3"], value = "T3" }
+        },
+        function() return bar.textBlock or "T1" end,
+        function(v)
+            local oldBlock = bar.textBlock or "T1"
+            bar.textBlock = v
+            cleanOrders(profile, "textBlock", "textOrder", oldBlock)
+            bar.textOrder = math.max(1, getCount(profile, "textBlock", v))
+            ascensionBars:updateDisplay()
+        end,
+        xOffset + 10)
+
+    local orderOptions = {}
+    local count = getCount(profile, "textBlock", bar.textBlock or "T1")
+    for j = 1, count do
+        table.insert(orderOptions, { label = tostring(j), value = j })
+    end
+    layout:dropdown("TextOrderDropdown_" .. barKey, Locales["ORDER"], orderOptions,
+        function() return bar.textOrder or 1 end,
+        function(v)
+            local oldOrder = bar.textOrder or 1
+            if oldOrder == v then return end
+            for k, b in pairs(profile.bars) do
+                if k ~= barKey and (b.textBlock or "T1") == (bar.textBlock or "T1") then
+                    local barOrder = b.textOrder or 1
+                    if oldOrder < v then
+                        if barOrder > oldOrder and barOrder <= v then
+                            b.textOrder = barOrder - 1
+                        end
+                    else
+                        if barOrder >= v and barOrder < oldOrder then
+                            b.textOrder = barOrder + 1
+                        end
+                    end
+                end
+            end
+            bar.textOrder = v
+            ascensionBars:updateDisplay()
+        end,
+        xOffset + 10)
+
+    layout.y = layout.y - 15
+end
+
+-------------------------------------------------------------------------------
+-- CONTENT CLEANUP
+-------------------------------------------------------------------------------
+
+local function cleanupContent(contentPanel)
+    if not contentPanel then return end
+    for _, child in ipairs({ contentPanel:GetChildren() }) do
         child:Hide()
         child:ClearAllPoints()
     end
-    local regions = { p:GetRegions() }
-    for _, region in ipairs(regions) do
+    for _, region in ipairs({ contentPanel:GetRegions() }) do
         if region.Hide then region:Hide() end
     end
 end
 
-local function BuildLayoutTab(panel)
-    local p = panel.content
-    CleanupContent(p)
-    local prof = AB and AB.db and AB.db.profile
-    if not prof then return end
+-------------------------------------------------------------------------------
+-- TAB BUILD FUNCTIONS
+-------------------------------------------------------------------------------
 
-    -- Use a stable width to prevent overlapping columns if GetWidth() returns 0 or too small
-    local panelWidth = 600
+local function buildLayoutTab(panel)
+    cleanupContent(panel.content)
+    local content = panel.content
+    local profile = ascensionBars.db.profile
+    if not profile then return end
+
+    local scrollFrame = panel.scrollFrame
+    local panelWidth = scrollFrame and scrollFrame:GetWidth() - 30 or 600
+    panelWidth = math.max(panelWidth, 400)
     local colWidth = (panelWidth - 80) / 3
-    local curY = -15
 
-    local _, curY = CreateHeader(p, "Global Positioning", curY)
-    curY = curY - 8
-    CreateSlider(p, "Global Blocks Offset", -100, 100, 1,
-        function() return prof.yOffset end,
-        function(v)
-            prof.yOffset = v; AB:UpdateDisplay()
+    -- Global sliders (manual horizontal placement)
+    local y = -15
+    local _, newY1 = createSlider {
+        elementID = "GlobalBlocksOffsetSlider", parent = content,
+        text = Locales["GLOBAL_BLOCKS_OFFSET"], minVal = -100, maxVal = 100, step = 1,
+        getter = function() return profile.yOffset end,
+        setter = function(v)
+            profile.yOffset = v; ascensionBars:updateDisplay()
         end,
-        curY)
-    CreateSlider(p, "Global Bar Height", 1, 50, 1,
-        function() return prof.globalBarHeight end,
-        function(v)
-            prof.globalBarHeight = v
-            for k, b in pairs(prof.bars) do b.freeHeight = v end
-            AB:UpdateDisplay()
+        width = 180, yOffset = y, xOffset = 15
+    }
+    local _, newY2 = createSlider {
+        elementID = "GlobalBarHeightSlider", parent = content,
+        text = Locales["GLOBAL_BAR_HEIGHT"], minVal = 1, maxVal = 50, step = 1,
+        getter = function() return profile.globalBarHeight end,
+        setter = function(v)
+            profile.globalBarHeight = v; for _, b in pairs(profile.bars) do b.freeHeight = v end; ascensionBars
+                :updateDisplay()
         end,
-        curY, 210)
-    curY = curY - 60
+        width = 180, yOffset = y, xOffset = 210
+    }
+    local mainY = math.min(newY1, newY2) - 10
 
-    local _, curY = CreateHeader(p, "Bar Management", curY)
-    local startY = curY
+    local mainLayout = layoutModel:new(content, mainY)
+    mainLayout:header("BarManagementHeader", Locales["BAR_MANAGEMENT"])
+    local startY = mainLayout.y
 
     local blocks = {
-        { name = "Top Block",    key = "TOP",    x = 10 },
-        { name = "Bottom Block", key = "BOTTOM", x = 10 + colWidth + 5 },
-        { name = "Free Mode",    key = "FREE",   x = 10 + (colWidth + 5) * 2 }
+        { name = Locales["TOP_BLOCK"],    key = "TOP",    x = 10 },
+        { name = Locales["BOTTOM_BLOCK"], key = "BOTTOM", x = 10 + colWidth + 5 },
+        { name = Locales["FREE_MODE"],    key = "FREE",   x = 10 + (colWidth + 5) * 2 }
     }
+
+    local barKeys = { "XP", "Rep", "Honor", "HouseXp", "Azerite" }
+    local barNames = { Locales["EXPERIENCE"], Locales["REPUTATION"], Locales["HONOR"], Locales["HOUSE_FAVOR"], Locales
+        ["AZERITE"] }
 
     local maxBottomY = startY
 
     for _, block in ipairs(blocks) do
-        local bY = startY
-        local label = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-        label:SetPoint("TOPLEFT", block.x, bY)
-        label:SetText(block.name)
-        label:SetTextColor(unpack(COLORS.primary))
-        bY = bY - 25
+        local layout = layoutModel:new(content, startY)
+        local header = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        header:SetPoint("TOPLEFT", block.x, startY)
+        header:SetText(block.name)
+        header:SetTextColor(unpack(colors.primary))
+        layout.y = startY - 25
 
-        local barKeys = { "XP", "Rep", "Honor", "HouseXp", "Azerite" }
-        local barNames = { "Experience", "Reputation", "Honor", "House XP", "Azerite" }
-
-        local sortedBars = {}
+        local sorted = {}
         for i, key in ipairs(barKeys) do
-            if prof.bars[key].block == block.key then
-                table.insert(sortedBars, { key = key, name = barNames[i] })
+            if profile.bars[key].block == block.key then
+                table.insert(sorted, { key = key, name = barNames[i] })
             end
         end
-        table.sort(sortedBars, function(a, b) return prof.bars[a.key].order < prof.bars[b.key].order end)
+        table.sort(sorted, function(a, b) return profile.bars[a.key].order < profile.bars[b.key].order end)
 
-        for _, barData in ipairs(sortedBars) do
-            local key = barData.key
-            local name = barData.name
-
-            local barHeader = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-            barHeader:SetPoint("TOPLEFT", block.x + 5, bY)
-            barHeader:SetText(name)
-            bY = bY - 20
-
-            local cbEn
-            cbEn, bY = CreateCheckbox(p, "Enable", nil,
-                function() return prof.bars[key].enabled end,
-                function(v)
-                    prof.bars[key].enabled = v; AB:UpdateDisplay()
-                end,
-                bY, block.x + 10)
-
-            local ddBlock
-            ddBlock, bY = CreateDropdown(p, "Anchor",
-                { { label = "Top", value = "TOP" }, { label = "Bottom", value = "BOTTOM" }, { label = "Free", value = "FREE" } },
-                function() return prof.bars[key].block end,
-                function(v)
-                    local oldBlock = prof.bars[key].block
-                    prof.bars[key].block = v
-                    cleanBlockOrders(prof, oldBlock)
-                    prof.bars[key].order = math.max(1, getBlockCount(prof, v))
-                    AB:UpdateDisplay()
-                    panel:UpdateLayout()
-                end,
-                bY, block.x + 10)
-
-            local orderOptions = {}
-            local count = getBlockCount(prof, prof.bars[key].block)
-            for j = 1, count do table.insert(orderOptions, { label = tostring(j), value = j }) end
-            local ddOrder
-            ddOrder, bY = CreateDropdown(p, "Order", orderOptions,
-                function() return prof.bars[key].order end,
-                function(v)
-                    local oldOrder = prof.bars[key].order
-                    local newOrder = v
-                    local bK = prof.bars[key].block
-                    if oldOrder == newOrder then return end
-                    for k, bar in pairs(prof.bars) do
-                        if k ~= key and bar.block == bK then
-                            if oldOrder < newOrder then
-                                if bar.order > oldOrder and bar.order <= newOrder then bar.order = bar.order - 1 end
-                            else
-                                if bar.order >= newOrder and bar.order < oldOrder then bar.order = bar.order + 1 end
-                            end
-                        end
-                    end
-                    prof.bars[key].order = newOrder
-                    AB:UpdateDisplay()
-                    panel:UpdateLayout()
-                end,
-                bY, block.x + 10)
-
-            if prof.textLayoutMode == "INDIVIDUAL_LINES" then
-                local slTX, slTY
-                slTX, bY = CreateSlider(p, "Txt X", -500, 500, 1,
-                    function() return prof.bars[key].textX or 0 end,
-                    function(v)
-                        prof.bars[key].textX = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-                slTY, bY = CreateSlider(p, "Txt Y", -500, 500, 1,
-                    function() return prof.bars[key].textY or 0 end,
-                    function(v)
-                        prof.bars[key].textY = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-            end
-
-            if block.key == "FREE" then
-                local slW, slH, slX, slY
-                slW, bY = CreateSlider(p, "Width", 50, 2000, 1,
-                    function() return prof.bars[key].freeWidth end,
-                    function(v)
-                        prof.bars[key].freeWidth = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-                slH, bY = CreateSlider(p, "Height", 2, 100, 1,
-                    function() return prof.bars[key].freeHeight or 15 end,
-                    function(v)
-                        prof.bars[key].freeHeight = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-                slX, bY = CreateSlider(p, "Pos X", -1000, 1000, 1,
-                    function() return prof.bars[key].freeX end,
-                    function(v)
-                        prof.bars[key].freeX = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-                slY, bY = CreateSlider(p, "Pos Y", -1000, 1000, 1,
-                    function() return prof.bars[key].freeY end,
-                    function(v)
-                        prof.bars[key].freeY = v; AB:UpdateDisplay()
-                    end,
-                    bY, block.x + 15)
-            end
-            bY = bY - 15
+        for _, bar in ipairs(sorted) do
+            createBarControls(layout, profile, bar.key, bar.name, block.key, colWidth - 40, block.x)
         end
 
-        if #sortedBars == 0 then
-            local empty = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-            empty:SetPoint("TOPLEFT", block.x + 10, bY)
-            empty:SetText("(Empty)")
+        if #sorted == 0 then
+            local empty = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+            empty:SetPoint("TOPLEFT", block.x + 10, layout.y)
+            empty:SetText(Locales["EMPTY"])
             empty:SetTextColor(0.5, 0.5, 0.5, 1)
-            bY = bY - 20
+            layout.y = layout.y - 20
         end
 
-        if bY < maxBottomY then maxBottomY = bY end
+        if layout.y < maxBottomY then maxBottomY = layout.y end
     end
 
-    p:SetHeight(math.abs(maxBottomY) + 50)
+    content:SetHeight(math.abs(maxBottomY) + 50)
 end
 
-local function BuildAppearanceTab(panel)
-    local p = panel.content
-    CleanupContent(p)
-    local curY = -15
-    local prof = AB and AB.db and AB.db.profile
-    if not prof then return end
+local function buildAppearanceTab(panel)
+    cleanupContent(panel.content)
+    local content = panel.content
+    local profile = ascensionBars.db.profile
+    if not profile then return end
 
-    local _, curY = CreateHeader(p, "Text & Font", curY)
-
-    local ddLayout
-    ddLayout, curY = CreateDropdown(p, "Layout Mode",
-        { { label = "All in one line", value = "SINGLE_LINE" }, { label = "Multiple lines", value = "INDIVIDUAL_LINES" } },
-        function() return prof.textLayoutMode end,
+    local layout = layoutModel:new(content, -15)
+    layout:header("TextAndFontHeader", Locales["TEXT_AND_FONT"])
+    layout:dropdown("LayoutModeDropdown", Locales["LAYOUT_MODE"],
+        {
+            { label = Locales["ALL_IN_ONE_LINE"], value = "SINGLE_LINE" },
+            { label = Locales["MULTIPLE_LINES"],  value = "INDIVIDUAL_LINES" }
+        },
+        function() return profile.textLayoutMode end,
         function(v)
-            prof.textLayoutMode = v; AB:UpdateDisplay(); panel:UpdateLayout()
+            profile.textLayoutMode = v; ascensionBars:updateDisplay(); panel:UpdateLayout()
         end,
-        curY)
+        15)
 
-    if prof.textLayoutMode == "INDIVIDUAL_LINES" then
-        local cbFollow
-        cbFollow, curY = CreateCheckbox(p, "Text follows its Bar", "If disabled, text will anchor to the global center.",
-            function() return prof.textFollowBar end,
+    if profile.textLayoutMode == "INDIVIDUAL_LINES" then
+        layout:checkbox("TextFollowsBarCheckbox", Locales["TEXT_FOLLOWS_BAR"], Locales["TEXT_FOLLOWS_BAR_DESC"],
+            function() return profile.textFollowBar end,
             function(v)
-                prof.textFollowBar = v; AB:UpdateDisplay()
+                profile.textFollowBar = v; ascensionBars:updateDisplay()
             end,
-            curY, 25)
+            25)
     end
 
-    local slSize, cpGlobal
-    slSize, curY = CreateSlider(p, "Font Size", 8, 32, 1,
-        function() return prof.textSize end,
+    layout:slider("FontSizeSlider", Locales["FONT_SIZE"], 8, 32, 1,
+        function() return profile.textSize end,
         function(v)
-            prof.textSize = v; AB:UpdateDisplay()
+            profile.textSize = v; ascensionBars:updateDisplay()
         end,
-        curY)
-    cpGlobal, curY = CreateColorPicker(p, "Global Text Color",
+        180, 15)
+
+    layout:colorPicker("GlobalTextColorPicker", Locales["GLOBAL_TEXT_COLOR"],
         function()
-            local c = prof.textColor; return c.r, c.g, c.b, c.a
+            local c = profile.textColor; return c.r, c.g, c.b, c.a
         end,
         function(r, g, b, a)
-            prof.textColor.r = r; prof.textColor.g = g; prof.textColor.b = b; prof.textColor.a = a; AB:UpdateDisplay()
+            profile.textColor.r = r; profile.textColor.g = g; profile.textColor.b = b; profile.textColor.a = a; ascensionBars
+                :updateDisplay()
         end,
-        curY, 15, true)
+        15, true)
 
-    local _, headerY = CreateHeader(p, "Text Group Positions", curY)
-    local startY = headerY
-    local colWidth = 190
-    local maxColumnBottom = startY
+    layout:header("TextGroupPositionsHeader", Locales["TEXT_GROUP_POSITIONS"])
+    local startY = layout.y
+    local panelWidth = panel.scrollFrame and panel.scrollFrame:GetWidth() - 30 or 600
+    panelWidth = math.max(panelWidth, 400)
+    local colWidth = (panelWidth - 30) / 3
+    local maxColY = startY
 
     for i = 1, 3 do
-        local key = "T" .. i
+        local groupKey = "T" .. i
         local xOff = 15 + (i - 1) * colWidth
-        local colY = startY
+        local layoutGroup = layoutModel:new(content, startY)
+        local settings = profile.textGroups[groupKey] or { detached = true, x = 0, y = -25 * i }
 
-        local gSet = prof.textGroups[key]
-        if not gSet then
-            prof.textGroups[key] = { detached = true, x = 0, y = -25 * i }
-            gSet = prof.textGroups[key]
-        end
-
-        local cbDetach
-        cbDetach, colY = CreateCheckbox(p, "Detach " .. i,
-            "Anchor group " .. i .. " globally instead of to the bars.",
-            function() return gSet.detached end,
+        layoutGroup:checkbox("DetachGroupCheckbox_" .. i, string.format(Locales["DETACH_GROUP"], i),
+            string.format(Locales["DETACH_GROUP_DESC"], i),
+            function() return settings.detached end,
             function(v)
-                gSet.detached = v; AB:UpdateDisplay(); panel:UpdateLayout()
+                settings.detached = v; ascensionBars:updateDisplay(); panel:UpdateLayout()
             end,
-            colY, xOff)
+            xOff)
 
-        if gSet.detached then
-            local slX, slY
-            slX, colY = CreateSlider(p, "Group " .. i .. " X", -1000, 1000, 1,
-                function() return gSet.x end,
+        if settings.detached then
+            layoutGroup:slider("GroupXSlider_" .. i, string.format(Locales["GROUP_X"], i), -1000, 1000, 1,
+                function() return settings.x end,
                 function(v)
-                    gSet.x = v; AB:UpdateDisplay()
+                    settings.x = v; ascensionBars:updateDisplay()
                 end,
-                colY, xOff + 5)
-            slY, colY = CreateSlider(p, "Group " .. i .. " Y", -1000, 1000, 1,
-                function() return gSet.y end,
+                colWidth - 20, xOff + 5)
+            layoutGroup:slider("GroupYSlider_" .. i, string.format(Locales["GROUP_Y"], i), -1000, 1000, 1,
+                function() return settings.y end,
                 function(v)
-                    gSet.y = v; AB:UpdateDisplay()
+                    settings.y = v; ascensionBars:updateDisplay()
                 end,
-                colY, xOff + 5)
+                colWidth - 20, xOff + 5)
         end
-        if colY < maxColumnBottom then maxColumnBottom = colY end
-    end
-    curY = maxColumnBottom - 10
 
-    local _, curY = CreateHeader(p, "Text Management", curY)
-    local startY = curY
-    local panelWidth = 600
-    local colWidth = (panelWidth - 80) / 3
+        if layoutGroup.y < maxColY then maxColY = layoutGroup.y end
+    end
+
+    layout.y = maxColY - 10
+    layout:header("TextManagementHeader", Locales["TEXT_MANAGEMENT"])
+    startY = layout.y
 
     local textBlocks = {
-        { name = "Group 1", key = "T1", x = 10 },
-        { name = "Group 2", key = "T2", x = 10 + colWidth + 5 },
-        { name = "Group 3", key = "T3", x = 10 + (colWidth + 5) * 2 }
+        { name = Locales["GROUP_1"], key = "T1", x = 10 },
+        { name = Locales["GROUP_2"], key = "T2", x = 10 + colWidth + 5 },
+        { name = Locales["GROUP_3"], key = "T3", x = 10 + (colWidth + 5) * 2 }
     }
+    local maxBottomY = startY
 
-    local maxBottomY = curY
     for _, block in ipairs(textBlocks) do
-        local bY = startY
-        local label = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-        label:SetPoint("TOPLEFT", block.x, bY)
-        label:SetText(block.name)
-        label:SetTextColor(unpack(COLORS.primary))
-        bY = bY - 25
+        local layout = layoutModel:new(content, startY)
+        local header = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        header:SetPoint("TOPLEFT", block.x, startY)
+        header:SetText(block.name)
+        header:SetTextColor(unpack(colors.primary))
+        layout.y = startY - 25
 
-        local sortedTexts = {}
-        for k, b in pairs(prof.bars) do
+        local sorted = {}
+        for k, b in pairs(profile.bars) do
             if b.textBlock == block.key then
-                table.insert(sortedTexts, { key = k, order = b.textOrder or 0, name = k })
+                table.insert(sorted, { key = k, order = b.textOrder or 0 })
             end
         end
-        table.sort(sortedTexts, function(a, b) return a.order < b.order end)
+        table.sort(sorted, function(a, b) return a.order < b.order end)
 
-        for i, textData in ipairs(sortedTexts) do
-            local key = textData.key
-            local name = textData.name
-
-            local textHeader = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-            textHeader:SetPoint("TOPLEFT", block.x + 5, bY)
-            textHeader:SetText(name)
-            bY = bY - 20
-
-            local ddTBlock
-            ddTBlock, bY = CreateDropdown(p, "Anchor",
-                { { label = "Group 1", value = "T1" }, { label = "Group 2", value = "T2" }, { label = "Group 3", value = "T3" } },
-                function() return prof.bars[key].textBlock or "T1" end,
-                function(v)
-                    local oldBlock = prof.bars[key].textBlock or "T1"
-                    prof.bars[key].textBlock = v
-                    cleanTextBlockOrders(prof, oldBlock)
-                    prof.bars[key].textOrder = math.max(1, getTextBlockCount(prof, v))
-                    AB:UpdateDisplay()
-                    panel:UpdateLayout()
-                end,
-                bY, block.x + 10)
-
-            local orderOptions = {}
-            local count = getTextBlockCount(prof, block.key)
-            for j = 1, count do table.insert(orderOptions, { label = tostring(j), value = j }) end
-            local ddTOrder
-            ddTOrder, bY = CreateDropdown(p, "Order", orderOptions,
-                function() return prof.bars[key].textOrder or 1 end,
-                function(v)
-                    local oldOrder = prof.bars[key].textOrder or 1
-                    local newOrder = v
-                    local bK = prof.bars[key].textBlock or "T1"
-                    if oldOrder == newOrder then return end
-                    for k, bar in pairs(prof.bars) do
-                        if k ~= key and (bar.textBlock or "T1") == bK then
-                            if oldOrder < newOrder then
-                                if (bar.textOrder or 0) > oldOrder and (bar.textOrder or 0) <= newOrder then
-                                    bar.textOrder = (bar.textOrder or 0) - 1
-                                end
-                            else
-                                if (bar.textOrder or 0) >= newOrder and (bar.textOrder or 0) < oldOrder then
-                                    bar.textOrder = (bar.textOrder or 0) + 1
-                                end
-                            end
-                        end
-                    end
-                    prof.bars[key].textOrder = newOrder
-                    AB:UpdateDisplay()
-                    panel:UpdateLayout()
-                end,
-                bY, block.x + 10)
-
-            bY = bY - 15
+        for _, td in ipairs(sorted) do
+            createTextControls(layout, profile, td.key, block.key, block.x)
         end
 
-        if #sortedTexts == 0 then
-            local empty = p:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-            empty:SetPoint("TOPLEFT", block.x + 10, bY)
-            empty:SetText("(Empty)")
+        if #sorted == 0 then
+            local empty = content:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+            empty:SetPoint("TOPLEFT", block.x + 10, layout.y)
+            empty:SetText(Locales["EMPTY"])
             empty:SetTextColor(0.5, 0.5, 0.5, 1)
-            bY = bY - 20
+            layout.y = layout.y - 20
         end
-        if bY < maxBottomY then maxBottomY = bY end
+
+        if layout.y < maxBottomY then maxBottomY = layout.y end
     end
 
-    panel.content:SetHeight(math.abs(maxBottomY) + 20)
+    content:SetHeight(math.abs(maxBottomY) + 20)
 end
 
-local function BuildBehaviorTab(panel)
-    local p = panel.content
-    CleanupContent(p)
-    local curY = -15
-    local prof = AB and AB.db and AB.db.profile
-    if not prof then return end
+local function buildBehaviorTab(panel)
+    cleanupContent(panel.content)
+    local content = panel.content
+    local profile = ascensionBars.db.profile
+    if not profile then return end
 
-    local _, curY = CreateHeader(p, "Auto-Hide Logic", curY)
+    local layout = layoutModel:new(content, -15)
+    layout:header("AutoHideLogicHeader", Locales["AUTO_HIDE_LOGIC"])
+    layout:checkbox("ShowOnMouseoverCheckbox", Locales["SHOW_ON_MOUSEOVER"], nil,
+        function() return profile.showOnMouseover end,
+        function(v)
+            profile.showOnMouseover = v; ascensionBars:updateDisplay()
+        end)
+    layout:checkbox("HideInCombatCheckbox", Locales["HIDE_IN_COMBAT"], nil,
+        function() return profile.hideInCombat end,
+        function(v)
+            profile.hideInCombat = v; ascensionBars:updateDisplay()
+        end)
+    layout:checkbox("HideAtMaxLevelCheckbox", Locales["HIDE_AT_MAX_LEVEL"], nil,
+        function() return profile.hideAtMaxLevel end,
+        function(v)
+            profile.hideAtMaxLevel = v; ascensionBars:updateDisplay()
+        end)
 
-    local cbMouse, cbCombat, cbMax
-    cbMouse, curY = CreateCheckbox(p, "Show on Mouseover", nil,
-        function() return prof.showOnMouseover end,
+    layout:header("DataDisplayHeader", Locales["DATA_DISPLAY"])
+    layout:checkbox("ShowPercentageCheckbox", Locales["SHOW_PERCENTAGE"], nil,
+        function() return profile.showPercentage end,
         function(v)
-            prof.showOnMouseover = v; AB:UpdateDisplay()
-        end,
-        curY)
-    cbCombat, curY = CreateCheckbox(p, "Hide in Combat", nil,
-        function() return prof.hideInCombat end,
+            profile.showPercentage = v; ascensionBars:updateDisplay()
+        end)
+    layout:checkbox("ShowAbsoluteValuesCheckbox", Locales["SHOW_ABSOLUTE_VALUES"], nil,
+        function() return profile.showAbsoluteValues end,
         function(v)
-            prof.hideInCombat = v; AB:UpdateDisplay()
-        end,
-        curY)
-    cbMax, curY = CreateCheckbox(p, "Hide at Max Level", nil,
-        function() return prof.hideAtMaxLevel end,
+            profile.showAbsoluteValues = v; ascensionBars:updateDisplay()
+        end)
+    layout:checkbox("ShowSparkCheckbox", Locales["SHOW_SPARK"], nil,
+        function() return profile.sparkEnabled end,
         function(v)
-            prof.hideAtMaxLevel = v; AB:UpdateDisplay()
-        end,
-        curY)
+            profile.sparkEnabled = v; ascensionBars:updateDisplay()
+        end)
 
-    local _, curY = CreateHeader(p, "Data Display", curY)
-    local cbPct, cbAbs, cbSpark
-    cbPct, curY = CreateCheckbox(p, "Show Percentage", nil,
-        function() return prof.showPercentage end,
-        function(v)
-            prof.showPercentage = v; AB:UpdateDisplay()
-        end,
-        curY)
-    cbAbs, curY = CreateCheckbox(p, "Show Absolute Values", nil,
-        function() return prof.showAbsoluteValues end,
-        function(v)
-            prof.showAbsoluteValues = v; AB:UpdateDisplay()
-        end,
-        curY)
-    cbSpark, curY = CreateCheckbox(p, "Show Spark", nil,
-        function() return prof.sparkEnabled end,
-        function(v)
-            prof.sparkEnabled = v; AB:UpdateDisplay()
-        end,
-        curY)
-
-    panel.content:SetHeight(math.abs(curY) + 20)
+    content:SetHeight(math.abs(layout.y) + 20)
 end
 
-local function BuildColorsTab(panel)
-    local p = panel.content
-    CleanupContent(p)
-    local curY = -15
-    local prof = AB and AB.db and AB.db.profile
-    if not prof then return end
+local function buildColorsTab(panel)
+    cleanupContent(panel.content)
+    local content = panel.content
+    local profile = ascensionBars.db.profile
+    if not profile then return end
 
-    -- XP
-    local _, curY = CreateHeader(p, "Experience", curY)
-    local cbClass, cpXP, cbRested, cpRested
-    cbClass, curY = CreateCheckbox(p, "Use Class Color", nil,
-        function() return prof.useClassColorXP end,
+    local layout = layoutModel:new(content, -15)
+
+    -- Experience
+    layout:header("ExperienceHeader", Locales["EXPERIENCE"])
+    layout:checkbox("UseClassColorXPCheckbox", Locales["USE_CLASS_COLOR"], nil,
+        function() return profile.useClassColorXP end,
         function(v)
-            prof.useClassColorXP = v; AB:UpdateDisplay(); panel:UpdateLayout()
-        end,
-        curY)
-
-    if not prof.useClassColorXP then
-        cpXP, curY = CreateColorPicker(p, "Custom XP Color",
+            profile.useClassColorXP = v; ascensionBars:updateDisplay(); panel:UpdateLayout()
+        end)
+    if not profile.useClassColorXP then
+        layout:colorPicker("CustomXPColorPicker", Locales["CUSTOM_XP_COLOR"],
             function()
-                local c = prof.xpBarColor; return c.r, c.g, c.b, c.a
+                local c = profile.xpBarColor; return c.r, c.g, c.b, c.a
             end,
             function(r, g, b, a)
-                prof.xpBarColor.r = r; prof.xpBarColor.g = g; prof.xpBarColor.b = b; prof.xpBarColor.a = a; AB
-                    :UpdateDisplay()
+                profile.xpBarColor.r = r; profile.xpBarColor.g = g; profile.xpBarColor.b = b; profile.xpBarColor.a = a; ascensionBars
+                    :updateDisplay()
             end,
-            curY, 25, true)
+            25, true)
     end
-
-    cbRested, curY = CreateCheckbox(p, "Show Rested Bar", nil,
-        function() return prof.showRestedBar end,
+    layout:checkbox("ShowRestedBarCheckbox", Locales["SHOW_RESTED_BAR"], nil,
+        function() return profile.showRestedBar end,
         function(v)
-            prof.showRestedBar = v; AB:UpdateDisplay(); panel:UpdateLayout()
-        end,
-        curY)
-
-    if prof.showRestedBar then
-        cpRested, curY = CreateColorPicker(p, "Rested Color",
+            profile.showRestedBar = v; ascensionBars:updateDisplay(); panel:UpdateLayout()
+        end)
+    if profile.showRestedBar then
+        layout:colorPicker("RestedColorPicker", Locales["RESTED_COLOR"],
             function()
-                local c = prof.restedBarColor; return c.r, c.g, c.b, c.a
+                local c = profile.restedBarColor; return c.r, c.g, c.b, c.a
             end,
             function(r, g, b, a)
-                prof.restedBarColor.r = r; prof.restedBarColor.g = g; prof.restedBarColor.b = b; prof.restedBarColor.a =
-                    a; AB:UpdateDisplay()
+                profile.restedBarColor.r = r; profile.restedBarColor.g = g; profile.restedBarColor.b = b; profile.restedBarColor.a =
+                    a; ascensionBars:updateDisplay()
             end,
-            curY, 25, true)
+            25, true)
     end
 
     -- Reputation
-    local _, curY = CreateHeader(p, "Reputation", curY)
-    local cbReact, cpRep
-    cbReact, curY = CreateCheckbox(p, "Use Reaction Colors", nil,
-        function() return prof.useReactionColorRep end,
+    layout:header("ReputationHeader", Locales["REPUTATION"])
+    layout:checkbox("UseReactionColorsCheckbox", Locales["USE_REACTION_COLORS"], nil,
+        function() return profile.useReactionColorRep end,
         function(v)
-            prof.useReactionColorRep = v; AB:UpdateDisplay(); panel:UpdateLayout()
-        end,
-        curY)
-    if not prof.useReactionColorRep then
-        cpRep, curY = CreateColorPicker(p, "Custom Rep Color",
+            profile.useReactionColorRep = v; ascensionBars:updateDisplay(); panel:UpdateLayout()
+        end)
+    if not profile.useReactionColorRep then
+        layout:colorPicker("CustomRepColorPicker", Locales["CUSTOM_REP_COLOR"],
             function()
-                local c = prof.repBarColor; return c.r, c.g, c.b, c.a
+                local c = profile.repBarColor; return c.r, c.g, c.b, c.a
             end,
             function(r, g, b, a)
-                prof.repBarColor.r = r; prof.repBarColor.g = g; prof.repBarColor.b = b; prof.repBarColor.a = a; AB
-                    :UpdateDisplay()
+                profile.repBarColor.r = r; profile.repBarColor.g = g; profile.repBarColor.b = b; profile.repBarColor.a =
+                    a; ascensionBars:updateDisplay()
             end,
-            curY, 25, true)
+            25, true)
     else
-        -- Standing Colors (shown when using reaction colors so each standing can be customized)
-        local labels = {
-            L["HATED"], L["HOSTILE"], L["UNFRIENDLY"], L["NEUTRAL"], L["FRIENDLY"],
-            L["HONORED"], L["REVERED"], L["EXALTED"], L["PARAGON"], L["MAXED"], L["RENOWN"]
+        local standingLabels = {
+            Locales["HATED"], Locales["HOSTILE"], Locales["UNFRIENDLY"], Locales["NEUTRAL"],
+            Locales["FRIENDLY"], Locales["HONORED"], Locales["REVERED"], Locales["EXALTED"],
+            Locales["PARAGON"], Locales["MAXED"], Locales["RENOWN"]
         }
-        local startY = curY
-        local colWidth = 190
+        local startY = layout.y
+        local colW = 190
         local lowestY = startY
         for i = 1, 11 do
-            local col = (i - 1) % 3
+            local colIdx = (i - 1) % 3
             local row = math.floor((i - 1) / 3)
-            local xOff = 15 + col * colWidth
-            local yPos = startY - (row * 35)
-
-            local _, nextY = CreateColorPicker(p, labels[i] or ("Rank " .. i),
-                function()
-                    local c = prof.repColors[i]; if not c then return 1, 1, 1, 1 end; return c.r, c.g, c.b, c.a
+            local xOff = 15 + colIdx * colW
+            local yPos = startY - row * 35
+            local _, newY = createColorPicker {
+                elementID = "RepStandingColorPicker_" .. i,
+                parent = content,
+                text = standingLabels[i] or string.format(Locales["RANK_NUM"], i),
+                getter = function()
+                    local c = profile.repColors[i]; if not c then return 1, 1, 1, 1 end; return c.r, c.g, c.b, c.a
                 end,
-                function(r, g, b, a)
-                    if not prof.repColors[i] then prof.repColors[i] = {} end
-                    local c = prof.repColors[i]; c.r = r; c.g = g; c.b = b; c.a = a; AB:UpdateDisplay()
+                setter = function(r, g, b, a)
+                    if not profile.repColors[i] then profile.repColors[i] = {} end; local c = profile.repColors[i]; c.r =
+                        r; c.g = g; c.b = b; c.a = a; ascensionBars:updateDisplay()
                 end,
-                yPos, xOff + 10, true) -- Reduced xOff for the button to accommodate labels better
-            if nextY < lowestY then lowestY = nextY end
+                yOffset = yPos,
+                xOffset = xOff + 10,
+                hasAlpha = true
+            }
+            if newY < lowestY then lowestY = newY end
         end
-        curY = lowestY - 10
+        layout.y = lowestY - 10
     end
 
     -- Honor
-    local _, curY = CreateHeader(p, "Honor", curY)
-    local cpHonor
-    cpHonor, curY = CreateColorPicker(p, "Honor Color",
+    layout:header("HonorHeader", Locales["HONOR"])
+    layout:colorPicker("HonorColorPicker", Locales["HONOR_COLOR"],
         function()
-            local c = prof.honorColor; if not c then return 0.8, 0.2, 0.2, 1 end; return c.r, c.g, c.b, c.a
+            local c = profile.honorColor; if not c then return 0.8, 0.2, 0.2, 1 end; return c.r, c.g, c.b, c.a
         end,
         function(r, g, b, a)
-            if not prof.honorColor then prof.honorColor = {} end; local c = prof.honorColor; c.r = r; c.g = g; c.b = b; c.a =
-                a; AB:UpdateDisplay()
+            if not profile.honorColor then profile.honorColor = {} end; local c = profile.honorColor; c.r = r; c.g = g; c.b =
+                b; c.a = a; ascensionBars:updateDisplay()
         end,
-        curY, 15, true)
+        15, true)
 
     -- House Favor
-    local _, curY = CreateHeader(p, "House Favor", curY)
-    local cpHouse, cpHReward, slHRewardY
-    cpHouse, curY = CreateColorPicker(p, "House XP Color",
+    layout:header("HouseFavorHeader", Locales["HOUSE_FAVOR"])
+    layout:colorPicker("HouseXPColorPicker", Locales["HOUSE_XP_COLOR"],
         function()
-            local c = prof.houseXpColor; if not c then return 0.9, 0.5, 0, 1 end; return c.r, c.g, c.b, c.a
+            local c = profile.houseXpColor; if not c then return 0.9, 0.5, 0, 1 end; return c.r, c.g, c.b, c.a
         end,
         function(r, g, b, a)
-            if not prof.houseXpColor then prof.houseXpColor = {} end; local c = prof.houseXpColor; c.r = r; c.g = g; c.b =
-                b; c.a = a; AB:UpdateDisplay()
+            if not profile.houseXpColor then profile.houseXpColor = {} end; local c = profile.houseXpColor; c.r = r; c.g =
+                g; c.b = b; c.a = a; ascensionBars:updateDisplay()
         end,
-        curY, 15, true)
-    cpHReward, curY = CreateColorPicker(p, "House Reward Color",
+        15, true)
+    layout:colorPicker("HouseRewardColorPicker", Locales["HOUSE_REWARD_COLOR"],
         function()
-            local c = prof.houseRewardTextColor; if not c then return 0.9, 0.5, 0, 1 end; return c.r, c.g, c.b, c.a
+            local c = profile.houseRewardTextColor; if not c then return 0.9, 0.5, 0, 1 end; return c.r, c.g, c.b, c.a
         end,
         function(r, g, b, a)
-            if not prof.houseRewardTextColor then prof.houseRewardTextColor = {} end; local c = prof
-                .houseRewardTextColor; c.r = r; c.g = g; c.b = b; c.a = a; AB:UpdateDisplay()
+            if not profile.houseRewardTextColor then profile.houseRewardTextColor = {} end; local c = profile
+                .houseRewardTextColor; c.r = r; c.g = g; c.b = b; c.a = a; ascensionBars:updateDisplay()
         end,
-        curY, 15, true)
-
-    slHRewardY, curY = CreateSlider(p, "House Reward Y Offset", -1000, 500, 5,
-        function() return prof.houseRewardTextYOffset or -40 end,
+        15, true)
+    layout:slider("HouseRewardYOffsetSlider", Locales["HOUSE_REWARD_Y_OFFSET"], -1000, 500, 5,
+        function() return profile.houseRewardTextYOffset or -40 end,
         function(v)
-            prof.houseRewardTextYOffset = v; AB:UpdateDisplay()
+            profile.houseRewardTextYOffset = v; ascensionBars:updateDisplay()
         end,
-        curY, 15)
+        180, 15)
 
     -- Azerite
-    local _, curY = CreateHeader(p, "Azerite", curY)
-    local cpAzerite
-    cpAzerite, curY = CreateColorPicker(p, "Azerite Color",
+    layout:header("AzeriteHeader", Locales["AZERITE"])
+    layout:colorPicker("AzeriteColorPicker", Locales["AZERITE_COLOR"],
         function()
-            local c = prof.azeriteColor; if not c then return 0.9, 0.8, 0.5, 1 end; return c.r, c.g, c.b, c.a
+            local c = profile.azeriteColor; if not c then return 0.9, 0.8, 0.5, 1 end; return c.r, c.g, c.b, c.a
         end,
         function(r, g, b, a)
-            if not prof.azeriteColor then prof.azeriteColor = {} end; local c = prof.azeriteColor; c.r = r; c.g = g; c.b =
-                b; c.a = a; AB:UpdateDisplay()
+            if not profile.azeriteColor then profile.azeriteColor = {} end; local c = profile.azeriteColor; c.r = r; c.g =
+                g; c.b = b; c.a = a; ascensionBars:updateDisplay()
         end,
-        curY, 15, true)
+        15, true)
 
-    panel.content:SetHeight(math.abs(curY) + 20)
+    content:SetHeight(math.abs(layout.y) + 20)
 end
 
-local function BuildParagonTab(panel)
-    local p = panel.content
-    CleanupContent(p)
-    local curY = -15
-    local prof = AB and AB.db and AB.db.profile
-    if not prof then return end
+local function buildParagonTab(panel)
+    cleanupContent(panel.content)
+    local content = panel.content
+    local profile = ascensionBars.db.profile
+    if not profile then return end
 
-    local _, curY = CreateHeader(p, "Alert Styling", curY)
-    local cbTop, cbSplit
-    cbTop, curY = CreateCheckbox(p, "Show On Top", nil,
-        function() return prof.paragonOnTop end,
+    local layout = layoutModel:new(content, -15)
+    layout:header("AlertStylingHeader", Locales["ALERT_STYLING"])
+    layout:checkbox("ShowOnTopCheckbox", Locales["SHOW_ON_TOP"], nil,
+        function() return profile.paragonOnTop end,
         function(v)
-            prof.paragonOnTop = v; AB:UpdateDisplay()
-        end,
-        curY)
-    cbSplit, curY = CreateCheckbox(p, "Split Lines", nil,
-        function() return prof.splitParagonText end,
+            profile.paragonOnTop = v; ascensionBars:updateDisplay()
+        end)
+    layout:checkbox("SplitLinesCheckbox", Locales["SPLIT_LINES"], nil,
+        function() return profile.splitParagonText end,
         function(v)
-            prof.splitParagonText = v; AB:UpdateDisplay()
-        end,
-        curY)
-
-    local slSize, slYOffset
-    slSize, curY = CreateSlider(p, "Text Size", 10, 40, 1,
-        function() return prof.paragonTextSize end,
+            profile.splitParagonText = v; ascensionBars:updateDisplay()
+        end)
+    layout:slider("ParagonTextSizeSlider", Locales["TEXT_SIZE"], 10, 40, 1,
+        function() return profile.paragonTextSize or 18 end,
         function(v)
-            prof.paragonTextSize = v; AB:UpdateDisplay()
+            profile.paragonTextSize = v; ascensionBars:updateDisplay()
         end,
-        curY)
-    slYOffset, curY = CreateSlider(p, "Vertical Offset Y", -1000, 500, 5,
-        function() return prof.paragonTextYOffset end,
+        180, 15)
+    layout:slider("ParagonVerticalOffsetYSlider", Locales["VERTICAL_OFFSET_Y"], -1000, 500, 5,
+        function() return profile.paragonTextYOffset or -100 end,
         function(v)
-            prof.paragonTextYOffset = v; AB:UpdateDisplay()
+            profile.paragonTextYOffset = v; ascensionBars:updateDisplay()
         end,
-        curY)
-
-    local cpAlert
-    cpAlert, curY = CreateColorPicker(p, "Alert Color",
+        180, 15)
+    layout:colorPicker("AlertColorPicker", Locales["ALERT_COLOR"],
         function()
-            local c = prof.paragonPendingColor; return c.r, c.g, c.b, 1
+            local c = profile.paragonPendingColor; return c.r, c.g, c.b, 1
         end,
-        function(r, g, b, a)
-            local c = prof.paragonPendingColor; c.r = r; c.g = g; c.b = b; AB:UpdateDisplay()
+        function(r, g, b)
+            local c = profile.paragonPendingColor; c.r = r; c.g = g; c.b = b; ascensionBars:updateDisplay()
         end,
-        curY, 15, false)
+        15, false)
 
-    panel.content:SetHeight(math.abs(curY) + 20)
+    content:SetHeight(math.abs(layout.y) + 20)
+end
+
+-------------------------------------------------------------------------------
+-- TABBED INTERFACE FACTORY
+-------------------------------------------------------------------------------
+
+local function createTabbedInterface(parent, tabNames, buildFuncs, initialIndex)
+    local tabs = {}
+    local panels = {}
+    local activeTab = initialIndex or 1
+
+    local sidebarSeparator = parent:CreateTexture(nil, "ARTWORK")
+    sidebarSeparator:SetWidth(1)
+    sidebarSeparator:SetPoint("TOPLEFT", menuStyle.sidebarWidth, -45)
+    sidebarSeparator:SetPoint("BOTTOMLEFT", menuStyle.sidebarWidth, 75)
+    sidebarSeparator:SetColorTexture(unpack(colors.surface_highlight))
+
+    local function selectTab(index)
+        activeTab = index
+        ascensionBars.activeTab = index
+        for i, tab in ipairs(tabs) do
+            if i == index then
+                tab:SetBackdropColor(unpack(colors.sidebar_active))
+            else
+                tab:SetBackdropColor(0, 0, 0, 0)
+            end
+        end
+        for i, panel in ipairs(panels) do
+            if i == index then
+                panel:Show()
+                C_Timer.After(0.01, function()
+                    if panel.UpdateLayout then panel.UpdateLayout() end
+                end)
+            else
+                panel:Hide()
+            end
+        end
+    end
+
+    local function createTabButton(label, idx)
+        local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+        btn:SetSize(140, 30)
+        btn:SetPoint("TOPLEFT", 10, -50 - ((idx - 1) * 35))
+        btn:SetBackdrop {
+            bgFile = files.bgfile,
+            edgeFile = files.edgefile,
+            edgeSize = 1,
+            insets = { left = 1, right = 1, top = 1, bottom = 1 }
+        }
+        btn:SetBackdropColor(0, 0, 0, 0)
+        btn:SetBackdropBorderColor(0, 0, 0, 0)
+
+        local text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+        text:SetPoint("LEFT", 15, 0)
+        text:SetText(label)
+
+        btn:SetScript("OnClick", function() selectTab(idx) end)
+        btn:SetScript("OnEnter", function()
+            if activeTab ~= idx then btn:SetBackdropColor(unpack(colors.sidebar_hover)) end
+        end)
+        btn:SetScript("OnLeave", function()
+            if activeTab ~= idx then btn:SetBackdropColor(0, 0, 0, 0) end
+        end)
+
+        table.insert(tabs, btn)
+        return btn
+    end
+
+    for i, name in ipairs(tabNames) do
+        createTabButton(name, i)
+        local panel = CreateFrame("Frame", nil, parent)
+        panel:SetPoint("TOPLEFT", sidebarSeparator, "TOPRIGHT", 0, 0)
+        panel:SetPoint("BOTTOMRIGHT", -10, 15)
+        panel:Hide()
+
+        local scrollFrame, content = createScrollPanel { elementID = "TabScrollPanel_" .. i, parent = panel }
+        panel.scrollFrame = scrollFrame
+        panel.content = content
+        panel.UpdateLayout = function() buildFuncs[i](panel) end
+
+        table.insert(panels, panel)
+    end
+
+    selectTab(activeTab)
+
+    return {
+        panels = panels,
+        selectTab = selectTab,
+        getActiveTab = function() return activeTab end
+    }
 end
 
 -------------------------------------------------------------------------------
 -- MAIN CONFIG WINDOW
 -------------------------------------------------------------------------------
 
-local function SelectTab(index)
-    activeTab = index
-    for i, t in ipairs(tabs) do
-        if i == index then
-            t:SetBackdropColor(unpack(COLORS.sidebar_active))
-        else
-            t:SetBackdropColor(0, 0, 0, 0)
-        end
-    end
-    for i, p in ipairs(panels) do
-        if i == index then
-            -- Rebuild layout continuously for dynamic conditions
-            if p.UpdateLayout then
-                p:UpdateLayout()
-            end
-            p:Show()
-        else
-            p:Hide()
-        end
-    end
-end
+local function createConfigFrame()
+    if ascensionBars.configFrame then return end
 
-local function CreateTabButton(parent, label, index)
-    local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
-    btn:SetSize(140, 30)
-    btn:SetPoint("TOPLEFT", 10, -50 - ((index - 1) * 35))
-
-    btn:SetBackdrop({ bgFile = FILES.bgfile, edgeFile = FILES.edgefile, edgeSize = 1, insets = { left = 1, right = 1, top = 1, bottom = 1 } })
-    btn:SetBackdropColor(0, 0, 0, 0)
-    btn:SetBackdropBorderColor(0, 0, 0, 0)
-
-    local text = btn:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    text:SetPoint("LEFT", 15, 0)
-    text:SetText(label)
-
-    btn:SetScript("OnClick", function() SelectTab(index) end)
-    btn:SetScript("OnEnter", function(self)
-        if activeTab ~= index then self:SetBackdropColor(unpack(COLORS.sidebar_hover)) end
-    end)
-    btn:SetScript("OnLeave", function(self)
-        if activeTab ~= index then self:SetBackdropColor(0, 0, 0, 0) end
-    end)
-
-    table.insert(tabs, btn)
-    return btn
-end
-
-local function CreateConfigFrame()
-    if configFrame then return end
-
-    configFrame = CreateFrame("Frame", "AscensionBarsConfigFrame", UIParent, "BackdropTemplate")
-    configFrame:SetSize(750, 500)
+    ascensionBars.configFrame = CreateFrame("Frame", "AscensionBarsConfigFrame", UIParent, "BackdropTemplate")
+    local configFrame = ascensionBars.configFrame
+    configFrame:SetSize(ascensionBars.normalWidth or 750, ascensionBars.normalHeight or 500)
     configFrame:SetPoint("CENTER")
     configFrame:SetMovable(true)
     configFrame:EnableMouse(true)
     configFrame:RegisterForDrag("LeftButton")
     configFrame:SetFrameStrata("HIGH")
-
     configFrame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     configFrame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 
-    configFrame:SetBackdrop({
-        bgFile = FILES.bgfile,
-        edgeFile = FILES.edgefile,
+    configFrame:SetBackdrop {
+        bgFile = files.bgfile,
+        edgeFile = files.edgefile,
         edgeSize = 16,
         insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    configFrame:SetBackdropColor(unpack(COLORS.background_dark))
-    configFrame:SetBackdropBorderColor(unpack(COLORS.surface_highlight))
+    }
+    configFrame:SetBackdropColor(unpack(colors.background_dark))
+    configFrame:SetBackdropBorderColor(unpack(colors.surface_highlight))
 
     configFrame:SetResizable(true)
-    if configFrame.SetResizeBounds then
-        configFrame:SetResizeBounds(500, 400, 1200, 1000)
-    else
-        configFrame:SetMinResize(500, 400)
-        configFrame:SetMaxResize(1200, 1000)
-    end
+    configFrame:SetResizeBounds(500, 400, 1200, 1000)
 
-    local resizeBtn = CreateFrame("Button", nil, configFrame)
-    resizeBtn:SetSize(16, 16)
-    resizeBtn:SetPoint("BOTTOMRIGHT", -4, 4)
-    resizeBtn:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-    resizeBtn:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
-    resizeBtn:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-    resizeBtn:SetScript("OnMouseDown", function(self, button)
-        if button == "LeftButton" then
-            configFrame:StartSizing("BOTTOMRIGHT")
-        end
+    local resizeButton = CreateFrame("Button", nil, configFrame)
+    resizeButton:SetSize(16, 16)
+    resizeButton:SetPoint("BOTTOMRIGHT", -4, 4)
+    resizeButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
+    resizeButton:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
+    resizeButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
+    resizeButton:SetScript("OnMouseDown", function(_, btn)
+        if btn == "LeftButton" then configFrame:StartSizing("BOTTOMRIGHT") end
     end)
-    resizeBtn:SetScript("OnMouseUp", function(self, button)
-        configFrame:StopMovingOrSizing()
-    end)
+    resizeButton:SetScript("OnMouseUp", function() configFrame:StopMovingOrSizing() end)
 
     local title = configFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    title:SetPoint("TOPLEFT", 15, -15)
-    title:SetText("Ascension Bars")
-    title:SetTextColor(unpack(COLORS.gold))
+    title:SetPoint("TOPLEFT", menuStyle.titleLeft, menuStyle.titleTop)
+    title:SetText(Locales["ADDON_NAME"])
+    title:SetTextColor(unpack(colors.gold))
 
-    local titleSep = configFrame:CreateTexture(nil, "ARTWORK")
-    titleSep:SetHeight(1)
-    titleSep:SetPoint("TOPLEFT", configFrame, "TOPLEFT", 10, -40)
-    titleSep:SetPoint("RIGHT", configFrame, "RIGHT", -10, 0)
-    titleSep:SetColorTexture(unpack(COLORS.surface_highlight))
-    -- Close button
-    local closeBtn = CreateFrame("Button", nil, configFrame, "UIPanelCloseButton")
-    closeBtn:SetPoint("TOPRIGHT", 0, 0)
-    closeBtn:SetScript("OnClick", function() configFrame:Hide() end)
+    local titleSeparator = configFrame:CreateTexture(nil, "ARTWORK")
+    titleSeparator:SetHeight(1)
+    titleSeparator:SetPoint("TOPLEFT", configFrame, "TOPLEFT", menuStyle.separatorSideMargin, menuStyle.separatorTop)
+    titleSeparator:SetPoint("RIGHT", configFrame, "RIGHT", -menuStyle.separatorSideMargin, 0)
+    titleSeparator:SetColorTexture(unpack(colors.surface_highlight))
 
-    local minimizeBtn = CreateFrame("Button", nil, configFrame)
-    minimizeBtn:SetSize(24, 24)
-    minimizeBtn:SetPoint("RIGHT", closeBtn, "LEFT", -5, 0)
-    minimizeBtn:SetNormalTexture(COLORS.minimize)
-    minimizeBtn:SetHighlightTexture(COLORS.minimize, "ADD")
+    local closeButton = CreateFrame("Button", nil, configFrame, "UIPanelCloseButton")
+    closeButton:SetPoint("TOPRIGHT", 0, 0)
+    closeButton:SetScript("OnClick", function() configFrame:Hide() end)
 
-    local function UpdateMinimizeState()
-        if isMinimized then
+    local minimizeButton = CreateFrame("Button", nil, configFrame)
+    minimizeButton:SetSize(24, 24)
+    minimizeButton:SetPoint("RIGHT", closeButton, "LEFT", -5, 0)
+    minimizeButton:SetNormalTexture(files.minimize)
+    minimizeButton:SetHighlightTexture(files.minimize, "ADD")
+
+    local function updateMinimizeState()
+        if ascensionBars.isMinimized then
             configFrame:SetSize(300, 40)
-            for i, child in ipairs({ configFrame:GetChildren() }) do
-                if child ~= minimizeBtn and child ~= closeBtn then
-                    child:Hide()
-                end
+            for _, child in ipairs({ configFrame:GetChildren() }) do
+                if child ~= minimizeButton and child ~= closeButton then child:Hide() end
             end
-            minimizeBtn:SetNormalTexture(COLORS.maximize)
+            minimizeButton:SetNormalTexture(files.maximize)
         else
-            configFrame:SetSize(normalWidth, normalHeight)
-            for i, child in ipairs({ configFrame:GetChildren() }) do
-                child:Show()
-            end
-            SelectTab(activeTab or 1)
-            minimizeBtn:SetNormalTexture(COLORS.minimize)
+            configFrame:SetSize(ascensionBars.normalWidth or 750, ascensionBars.normalHeight or 500)
+            for _, child in ipairs({ configFrame:GetChildren() }) do child:Show() end
+            ascensionBars.configTabs.selectTab(ascensionBars.activeTab or 1)
+            minimizeButton:SetNormalTexture(files.minimize)
         end
     end
 
-    minimizeBtn:SetScript("OnClick", function()
-        isMinimized = not isMinimized
-        UpdateMinimizeState()
+    minimizeButton:SetScript("OnClick", function()
+        ascensionBars.isMinimized = not ascensionBars.isMinimized
+        updateMinimizeState()
     end)
 
-    -- Sidebar Separator
-    local sep = configFrame:CreateTexture(nil, "ARTWORK")
-    sep:SetWidth(1)
-    sep:SetPoint("TOPLEFT", 160, -45)
-    sep:SetPoint("BOTTOMLEFT", 160, 75)
-    sep:SetColorTexture(unpack(COLORS.surface_highlight))
-
-    local btnReset = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
-    btnReset:SetSize(130, 24)
-    btnReset:SetPoint("BOTTOMLEFT", 15, 40)
-    btnReset:SetText((L and L["FACTION_STANDINGS_RESET"]) or "Reset Defaults")
-    btnReset:SetScript("OnClick", function()
-        if AB and AB.db then
-            AB.db:ResetProfile()
-            if AB.UpdateDisplay then AB:UpdateDisplay() end
-            SelectTab(1)
+    local resetButton = CreateFrame("Button", nil, configFrame, "UIPanelButtonTemplate")
+    resetButton:SetSize(130, 24)
+    resetButton:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 40)
+    resetButton:SetText((Locales and Locales["FACTION_STANDINGS_RESET"]) or "Reset Defaults")
+    resetButton:SetScript("OnClick", function()
+        if ascensionBars and ascensionBars.db then
+            ascensionBars.db:ResetProfile()
+            if ascensionBars.updateDisplay then ascensionBars:updateDisplay() end
+            ascensionBars.configTabs.selectTab(1)
         end
     end)
 
-    local cbConfig = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
-    cbConfig:SetPoint("BOTTOMLEFT", 15, 12)
-    cbConfig:SetSize(24, 24)
-    cbConfig.text = cbConfig:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    cbConfig.text:SetPoint("LEFT", cbConfig, "RIGHT", 5, 0)
-    cbConfig.text:SetText((L and L["CONFIG_MODE"]) or "Config Mode")
-
-    cbConfig:SetScript("OnShow", function(self)
-        if AB and AB.state then self:SetChecked(AB.state.isConfigMode) end
+    local configModeCheck = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
+    configModeCheck:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 12)
+    configModeCheck:SetSize(menuStyle.checkboxSize, menuStyle.checkboxSize)
+    configModeCheck.text = configModeCheck:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    configModeCheck.text:SetPoint("LEFT", configModeCheck, "RIGHT", 5, 0)
+    configModeCheck.text:SetText((Locales and Locales["CONFIG_MODE"]) or "Config Mode")
+    configModeCheck:SetScript("OnShow", function(self)
+        if ascensionBars and ascensionBars.state then self:SetChecked(ascensionBars.state.isConfigMode) end
     end)
-    cbConfig:SetScript("OnClick", function(self)
-        if AB and AB.state then
-            AB.state.isConfigMode = self:GetChecked()
-            if AB.UpdateDisplay then AB:UpdateDisplay() end
+    configModeCheck:SetScript("OnClick", function(self)
+        if ascensionBars and ascensionBars.state then
+            ascensionBars.state.isConfigMode = self:GetChecked()
+            if ascensionBars.updateDisplay then ascensionBars:updateDisplay() end
         end
     end)
 
-    local tabNames = { "Bars Layout", "Text Layout", "Behavior", "Colors", "Paragon Alerts" }
-    local buildFuncs = { BuildLayoutTab, BuildAppearanceTab, BuildBehaviorTab, BuildColorsTab, BuildParagonTab }
+    local tabNames = {
+        Locales["TAB_BARS_LAYOUT"],
+        Locales["TAB_TEXT_LAYOUT"],
+        Locales["TAB_BEHAVIOR"],
+        Locales["TAB_COLORS"],
+        Locales["TAB_PARAGON_ALERTS"]
+    }
+    local buildFuncs = { buildLayoutTab, buildAppearanceTab, buildBehaviorTab, buildColorsTab, buildParagonTab }
 
-    for i, name in ipairs(tabNames) do
-        CreateTabButton(configFrame, name, i)
+    ascensionBars.configTabs = createTabbedInterface(configFrame, tabNames, buildFuncs, 1)
 
-        local panel = CreateFrame("Frame", nil, configFrame)
-        panel:SetPoint("TOPLEFT", sep, "TOPRIGHT", 0, 0)
-        panel:SetPoint("BOTTOMRIGHT", -10, 15)
-        panel:Hide()
-
-        local scrollFrame, content = CreateScrollPanel(panel)
-        panel.scrollFrame = scrollFrame
-        panel.content = content
-        panel.UpdateLayout = buildFuncs[i]
-
-        table.insert(panels, panel)
-    end
-
-    SelectTab(1)
     configFrame:Hide()
 end
 
-function AB:ToggleConfig()
-    if not configFrame then
-        CreateConfigFrame()
-    end
-    if configFrame then
-        if configFrame:IsShown() then
-            configFrame:Hide()
+function ascensionBars:refreshConfigUI()
+    if self.configFrame then
+        local wasShown = self.configFrame:IsShown()
+        local currentTab = self.configTabs and self.configTabs.getActiveTab() or 1
+
+        self.configFrame:Hide()
+        self.configFrame = nil
+        self.configTabs = nil
+
+        self:toggleConfig()
+
+        if wasShown then
+            self.configTabs.selectTab(currentTab)
         else
-            configFrame:Show()
+            self.configFrame:Hide()
         end
+    end
+end
+
+function ascensionBars:refreshConfig() self:refreshConfigUI() end
+
+function ascensionBars:toggleConfig()
+    if not self.configFrame then createConfigFrame() end
+    if self.configFrame then
+        if self.configFrame:IsShown() then self.configFrame:Hide() else self.configFrame:Show() end
+    end
+end
+
+-------------------------------------------------------------------------------
+-- BLIZZARD OPTIONS PANEL
+-------------------------------------------------------------------------------
+
+local blizzardPanel = CreateFrame("Frame", "AscensionBars_BlizPanel", UIParent, "BackdropTemplate")
+blizzardPanel.name = Locales["ADDON_NAME"] or addonName
+blizzardPanel:Hide()
+
+local blizzardConfigFrame
+local blizzardTabs
+
+local function buildBlizUI()
+    if not blizzardConfigFrame then
+        blizzardConfigFrame = CreateFrame("Frame", nil, blizzardPanel)
+        blizzardConfigFrame:SetPoint("TOPLEFT", 0, 0)
+        blizzardConfigFrame:SetPoint("BOTTOMRIGHT", 0, 0)
+    else
+        for _, child in ipairs({ blizzardConfigFrame:GetChildren() }) do
+            child:Hide()
+            child:ClearAllPoints()
+        end
+    end
+
+    local tabNames = {
+        Locales["TAB_BARS_LAYOUT"],
+        Locales["TAB_TEXT_LAYOUT"],
+        Locales["TAB_BEHAVIOR"],
+        Locales["TAB_COLORS"],
+        Locales["TAB_PARAGON_ALERTS"]
+    }
+    local buildFuncs = { buildLayoutTab, buildAppearanceTab, buildBehaviorTab, buildColorsTab, buildParagonTab }
+
+    blizzardTabs = createTabbedInterface(blizzardConfigFrame, tabNames, buildFuncs, 1)
+end
+
+blizzardPanel:SetScript("OnShow", buildBlizUI)
+
+function blizzardPanel:refresh() buildBlizUI() end
+
+local function registerBlizzardOptions()
+    if Settings and Settings.RegisterCanvasLayoutCategory then
+        local category, layout = Settings.RegisterCanvasLayoutCategory(blizzardPanel, blizzardPanel.name)
+        Settings.RegisterAddOnCategory(category)
+    else
+        local addCategory = _G["InterfaceOptions_AddCategory"]
+        if addCategory then addCategory(blizzardPanel) end
+    end
+end
+
+if ascensionBars:IsEnabled() or (ascensionBars.db) then
+    registerBlizzardOptions()
+else
+    local oldInit = ascensionBars.OnInitialize
+    ascensionBars.OnInitialize = function(self)
+        if type(oldInit) == "function" then oldInit(self) end
+        registerBlizzardOptions()
     end
 end
