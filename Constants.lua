@@ -11,10 +11,8 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
-local addonName, addonTable = ...
+local addonName, _ = ...
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
----@class AscensionBars
----@cast ascensionBars AscensionBars
 
 -------------------------------------------------------------------------------
 -- Default profile
@@ -37,7 +35,7 @@ ascensionBars.defaults = {
         useClassColorXP = true,
         sparkEnabled = true,
         barAnchor = "TOP",
-        textColor = { r = 1.0, g = 1.0, b = 1.0, a = 1.0 },
+        textColor = { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, -- #FFFFFF
         textGroups = {
             T1 = { detached = false, x = 0, y = -25 },
             T2 = { detached = false, x = 0, y = -50 },
@@ -118,36 +116,44 @@ ascensionBars.defaults = {
             },
         },
         showRestedBar = true,
-        xpBarColor = { r = 0.0, g = 0.4, b = 0.9, a = 1.0 },
-        restedBarColor = { r = 0.6, g = 0.4, b = 0.8, a = 1.0 },
+        xpBarColor = { r = 0.0, g = 0.4, b = 0.9, a = 1.0 }, -- #0066E6
+        restedBarColor = { r = 0.6, g = 0.4, b = 0.8, a = 1.0 }, -- #9966CC
         useReactionColorRep = true,
-        repBarColor = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 },
+        repBarColor = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 }, -- #00FF00
         repColors = {
-            [1] = { r = 0.8, g = 0.133, b = 0.133, a = 1.0 },
-            [2] = { r = 1.0, g = 0.0, b = 0.0, a = 1.0 },
-            [3] = { r = 0.933, g = 0.4, b = 0.133, a = 1.0 },
-            [4] = { r = 1.0, g = 1.0, b = 0.0, a = 1.0 },
-            [5] = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 },
-            [6] = { r = 0.0, g = 1.0, b = 0.533, a = 1.0 },
-            [7] = { r = 0.0, g = 1.0, b = 0.8, a = 1.0 },
-            [8] = { r = 0.0, g = 1.0, b = 1.0, a = 1.0 },
-            [9] = { r = 0.858, g = 0.733, b = 0.008, a = 1.0 },
-            [10] = { r = 0.639, g = 0.208, b = 0.933, a = 1.0 },
-            [11] = { r = 0.255, g = 0.412, b = 0.882, a = 1.0 },
+            [1] = { r = 0.8, g = 0.133, b = 0.133, a = 1.0 }, -- #CC2222
+            [2] = { r = 1.0, g = 0.0, b = 0.0, a = 1.0 }, -- #FF0000
+            [3] = { r = 0.933, g = 0.4, b = 0.133, a = 1.0 }, -- #EE6622
+            [4] = { r = 1.0, g = 1.0, b = 0.0, a = 1.0 }, -- #FFFF00
+            [5] = { r = 0.0, g = 1.0, b = 0.0, a = 1.0 }, -- #00FF00
+            [6] = { r = 0.0, g = 1.0, b = 0.533, a = 1.0 }, -- #00FF88
+            [7] = { r = 0.0, g = 1.0, b = 0.8, a = 1.0 }, -- #00FFCC
+            [8] = { r = 0.0, g = 1.0, b = 1.0, a = 1.0 }, -- #00FFFF
+            [9] = { r = 0.858, g = 0.733, b = 0.008, a = 1.0 }, -- #DBBA02
+            [10] = { r = 0.639, g = 0.208, b = 0.933, a = 1.0 }, -- #A335EE
+            [11] = { r = 0.255, g = 0.412, b = 0.882, a = 1.0 }, -- #4169E1
         },
         paragonTextSize = 18,
         paragonTextYOffset = -100,
         splitParagonText = false,
         paragonOnTop = false,
-        paragonPendingColor = { r = 0, g = 1, b = 0, a = 1.0 },
+        paragonPendingColor = { r = 0, g = 1, b = 0, a = 1.0 }, -- #00FF00
         houseRewardTextYOffset = -60,
         houseXpBarEnabled = false,
-        houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 },
-        houseRewardTextColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 },
+        houseXpColor = { r = 0.9, g = 0.5, b = 0.0, a = 1.0 }, -- #E68000        
+        houseRewardTextColor = { r = 1, g = 0.5, b = 0.1, a = 1.0 }, -- #FF801A
         azeriteBarEnabled = false,
-        azeriteColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 },
+        azeriteColor = { r = 0.9, g = 0.8, b = 0.5, a = 1.0 }, -- #E6D180
         honorBarEnabled = false,
-        honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 },
+        honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 }, -- #CC3333
+        housingCache = {
+            favor = 0,
+            maxFavor = 0,
+            hasReward = false,
+        },
+    },
+    global = {
+        paragonRewards = {},
     }
 }
 

@@ -11,9 +11,8 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 ---
-local addonName, addonTable = ...
+local addonName, _ = ...
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
----@cast ascensionBars AscensionBars
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 function ascensionBars:renderExperience(shouldHideXP)

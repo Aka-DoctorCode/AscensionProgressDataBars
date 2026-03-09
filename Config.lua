@@ -11,11 +11,9 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
-local addonName, addonTable = ...
+local addonName, _ = ...
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
 local Locales = LibStub("AceLocale-3.0"):GetLocale(addonName)
----@class AscensionBars
----@cast ascensionBars AscensionBars
 local colors = ascensionBars.colors
 local files = ascensionBars.files
 local menuStyle = ascensionBars.menuStyle
@@ -1403,18 +1401,49 @@ blizzardPanel.name = Locales["ADDON_NAME"] or addonName
 blizzardPanel:Hide()
 
 local blizzardConfigFrame
-local blizzardTabs
+local toggleButton
+
+local blizzardPanel = CreateFrame("Frame", "AscensionBars_BlizPanel", UIParent, "BackdropTemplate")
+blizzardPanel.name = Locales["ADDON_NAME"] or addonName
+blizzardPanel:Hide()
+
+local blizzardConfigFrame
+local toggleButton
+local blizzardTabContainer -- new container for the tabbed interface
 
 local function buildBlizUI()
+    -- Create the main container if it doesn't exist
     if not blizzardConfigFrame then
         blizzardConfigFrame = CreateFrame("Frame", nil, blizzardPanel)
         blizzardConfigFrame:SetPoint("TOPLEFT", 0, 0)
         blizzardConfigFrame:SetPoint("BOTTOMRIGHT", 0, 0)
+    end
+
+    -- Create or reposition the toggle button (top‑right corner)
+    if not toggleButton then
+        toggleButton = CreateFrame("Button", nil, blizzardConfigFrame, "UIPanelButtonTemplate")
+        toggleButton:SetSize(120, 22)
+        toggleButton:SetText("Toggle Config Window")
+        toggleButton:SetPoint("TOPRIGHT", blizzardConfigFrame, "TOPRIGHT", -10, -10)
+        toggleButton:SetScript("OnClick", function()
+            ascensionBars:toggleConfig()
+        end)
     else
-        for _, child in ipairs({ blizzardConfigFrame:GetChildren() }) do
-            child:Hide()
-            child:ClearAllPoints()
-        end
+        toggleButton:Show()
+        toggleButton:ClearAllPoints()
+        toggleButton:SetPoint("TOPRIGHT", blizzardConfigFrame, "TOPRIGHT", -10, -10)
+    end
+
+    -- Create a container for the tabbed content that sits below the button
+    if not blizzardTabContainer then
+        blizzardTabContainer = CreateFrame("Frame", nil, blizzardConfigFrame)
+    end
+    blizzardTabContainer:SetPoint("TOPLEFT", blizzardConfigFrame, "TOPLEFT", 0, -35)
+    blizzardTabContainer:SetPoint("BOTTOMRIGHT", blizzardConfigFrame, "BOTTOMRIGHT", 0, 0)
+
+    for _, child in ipairs({ blizzardTabContainer:GetChildren() }) do
+        child:Hide()
+        child:ClearAllPoints()
     end
 
     local tabNames = {
@@ -1426,7 +1455,7 @@ local function buildBlizUI()
     }
     local buildFuncs = { buildLayoutTab, buildAppearanceTab, buildBehaviorTab, buildColorsTab, buildParagonTab }
 
-    blizzardTabs = createTabbedInterface(blizzardConfigFrame, tabNames, buildFuncs, 1)
+    _ = createTabbedInterface(blizzardTabContainer, tabNames, buildFuncs, 1)
 end
 
 blizzardPanel:SetScript("OnShow", buildBlizUI)

@@ -11,128 +11,9 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 ---
-local addonName = "AscensionBars"
+local addonName, _ = ...
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
-
----@class AB_BarContainer
----@field bar StatusBar
----@field spark Texture
----@field txFrame Frame
----@field text FontString
----@field restedOverlay Texture|nil
----@field background Texture
-
----@class AceWidget
----@field SetWidth fun(self: self, width: number)
----@field SetHeight fun(self: self, height: number)
----@field SetTitle fun(self: self, title: string)
----@field SetStatusText fun(self: self, text: string)
----@field SetCallback fun(self: self, name: string, callback: function)
----@field SetLayout fun(self: self, layout: string)
----@field AddChild fun(self: self, child: AceWidget)
----@field Release fun(self: self)
----@field Hide fun(self: self)
----@field SetFullWidth fun(self: self, full: boolean)
----@field SetFullHeight fun(self: self, full: boolean)
----@field SetLabel fun(self: self, label: string)
----@field SetText fun(self: self, text: string)
----@field SetList fun(self: self, list: table)
----@field SetValue fun(self: self, value: any)
----@field SetHasAlpha fun(self: self, alpha: boolean)
----@field SetColor fun(self: self, r: number, g: number, b: number, a: number)
----@field SetStatusTable fun(self: self, status: table)
-
----@alias AceFrame AceWidget
----@alias AceScrollFrame AceWidget
----@alias AceInlineGroup AceWidget
----@alias AceEditBox AceWidget
----@alias AceButton AceWidget
----@alias AceDropdown AceWidget
----@alias AceColorPicker AceWidget
-
----@class AceGUI
----@field Create fun(self: AceGUI, widgetType: string): AceWidget
----@field Release fun(self: AceGUI, widget: AceWidget)
-
----@class AscensionBars : AceAddon, AceEvent-3.0, AceConsole-3.0
----@field colors table
----@field files table
----@field configFrame Frame|BackdropTemplate
----@field devFrame AceFrame|nil
----@field isMinimized boolean
----@field normalWidth number
----@field normalHeight number
----@field activeTab number
----@field tabs table
----@field panels table
----@field configTabs table
----@field db table
----@field state table
----@field defaults table
----@field constants table
----@field textHolders table
----@field textHolder Frame
----@field hoverFrame Frame
----@field xp AB_BarContainer
----@field rep AB_BarContainer
----@field honor AB_BarContainer
----@field houseXp AB_BarContainer
----@field azerite AB_BarContainer
----@field paragonText FontString
----@field houseRewardText FontString
----@field fontToUse string
----@field updateDisplay function
----@field toggleConfig function
----@field OnInitialize function
----@field OnEnable function
----@field OnDisable function
----@field getPlayerMaxLevel function
----@field getClassColor function
----@field scanParagonRewards function
----@field hideBlizzardFrames function
----@field formatXP function
----@field createFrames function
----@field createBar function
----@field acquireTexture function
----@field cleanupTextures function
----@field updateSpark function
----@field setupBar function
----@field updateStandardBar function
----@field applyTextStyles function
----@field updateTextAnchors function
----@field renderExperience function
----@field renderReputation function
----@field renderHonor function
----@field renderHouseXp function
----@field renderAzerite function
----@field configExperience function
----@field configReputation function
----@field configHonor function
----@field renderConfig function
----@field updateLayout function
----@field updateVisibility function
----@field refreshHousingFavor function
----@field onUpdateFaction function
----@field onPlayerEnteringWorld function
----@field onCombatStart function
----@field onCombatEnd function
----@field onQuestTurnIn function
----@field onHouseFavorUpdated function
----@field onCVarUpdate function
----@field refreshConfigUI function
----@field refreshConfig function
----@field refreshDevPanel function
----@field openDevPanel function
----@field configHouseXp function
----@field configAzerite function
----@field menuStyle table
----@field RegisterChatCommand fun(self: AscensionBars, slash: string, handler: string|function)
----@field RegisterEvent fun(self: AscensionBars, event: string, method?: string|function, ...)
----@field UnregisterEvent fun(self: AscensionBars, event: string)
----@field IsEnabled fun(self: AscensionBars): boolean
-
 local ascensionBars = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
----@cast ascensionBars AscensionBars
 
 -------------------------------------------------------------------------------
 -- LOCAL VARIABLES
@@ -144,8 +25,8 @@ local lastUpdate = 0
 -- UTILITIES (definidas primero)
 -------------------------------------------------------------------------------
 function ascensionBars:getPlayerMaxLevel()
-    if GetMaxLevelForLatestExpansion then
-        local maxLevel = GetMaxLevelForLatestExpansion()
+    if _G.GetMaxLevelForLatestExpansion then
+        local maxLevel = _G.GetMaxLevelForLatestExpansion()
         if maxLevel then return maxLevel end
     end
     return 80
@@ -168,7 +49,7 @@ function ascensionBars:getClassColor()
 end
 
 function ascensionBars:hideBlizzardFrames()
-    local framesToHide = { StatusTrackingBarManager, UIWidgetPowerBarContainerFrame }
+    local framesToHide = { _G.StatusTrackingBarManager, _G.UIWidgetPowerBarContainerFrame }
     for _, frame in pairs(framesToHide) do
         if frame then
             frame:UnregisterAllEvents()
@@ -242,8 +123,6 @@ function ascensionBars:createFrames()
 
     self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 end
-
----@return AB_BarContainer
 function ascensionBars:createBar(name)
     local bar = CreateFrame("StatusBar", name, UIParent)
     bar:SetFrameStrata("LOW")
@@ -254,24 +133,26 @@ function ascensionBars:createBar(name)
     bar:SetScript("OnLeave", function()
         self.state.isHovering = false; self:updateVisibility()
     end)
-    bar:SetStatusBarTexture(ascensionBars.constants.TEXTURE_BAR)
+    bar:SetStatusBarTexture(self.constants.TEXTURE_BAR)
     bar:SetClipsChildren(true)
 
     local background = self:acquireTexture(bar)
     background:SetAllPoints()
-    background:SetTexture(ascensionBars.constants.TEXTURE_BAR)
-    background:SetVertexColor(0, 0, 0, self.db.profile.backgroundAlpha or 0.5)
+    background:SetTexture(self.constants.TEXTURE_BAR)
+    
+    local bgAlpha = (self.db and self.db.profile and self.db.profile.backgroundAlpha) or 0.5
+    background:SetVertexColor(0, 0, 0, bgAlpha) -- #000000
     background:SetDrawLayer("BACKGROUND", -1)
 
     local spark = bar:CreateTexture(nil, "ARTWORK")
-    spark:SetTexture(ascensionBars.constants.TEXTURE_SPARK)
+    spark:SetTexture(self.constants.TEXTURE_SPARK)
     spark:SetSize(6, 6)
     spark:SetBlendMode("ADD")
 
     local restedOverlay = (name == "AscensionXPBar_XP") and bar:CreateTexture(nil, "ARTWORK") or nil
 
     local txFrame = CreateFrame("Frame", nil, self.textHolder)
-    txFrame:SetSize(ascensionBars.constants.MIN_TEXT_WIDTH, 20)
+    txFrame:SetSize(self.constants.MIN_TEXT_WIDTH, 20)
 
     local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     text:SetAllPoints()
@@ -282,8 +163,7 @@ function ascensionBars:createBar(name)
         txFrame = txFrame,
         text = text,
         restedOverlay = restedOverlay,
-        background =
-            background
+        background = background
     }
 end
 
@@ -307,8 +187,8 @@ end
 -- DISPLAY HELPERS
 -------------------------------------------------------------------------------
 function ascensionBars:updateSpark(bar, minVal, maxVal, currentVal)
-    if not self.db.profile.sparkEnabled then
-        bar.spark:Hide()
+    if not (self.db and self.db.profile and self.db.profile.sparkEnabled) then
+        if bar and bar.spark then bar.spark:Hide() end
         return
     end
     local percentage = (maxVal > minVal) and (currentVal - minVal) / (maxVal - minVal) or 0
@@ -522,8 +402,6 @@ function ascensionBars:renderConfig()
     self:updateTextAnchors()
 end
 
----@param self AscensionBars
----@param shouldHideXP boolean
 function ascensionBars:updateLayout(shouldHideXP)
     local db = self.db
     if not db then return end
@@ -618,7 +496,6 @@ function ascensionBars:updateLayout(shouldHideXP)
     end
 end
 
----@param self AscensionBars
 function ascensionBars:updateVisibility()
     local db = self.db
     if not db then return end
@@ -643,7 +520,7 @@ end
 -------------------------------------------------------------------------------
 -- INITIALIZATION & EVENT HANDLERS
 -------------------------------------------------------------------------------
----@param self AscensionBars
+
 function ascensionBars:OnInitialize()
     local db = LibStub("AceDB-3.0"):New("AscensionBarsDB", self.defaults, true)
     self.db = db
@@ -656,9 +533,9 @@ function ascensionBars:OnInitialize()
         updatePending = false
     }
     local defaultFont = "Fonts\\FRIZQT__.TTF"
-    local fontName, fontSize, fontFlags = defaultFont, 12, "OUTLINE"
-    if GameFontNormal and GameFontNormal.GetFont then
-        fontName = GameFontNormal:GetFont() or defaultFont
+    local fontName = defaultFont
+    if _G.GameFontNormal and _G.GameFontNormal.GetFont then
+        fontName = _G.GameFontNormal:GetFont() or defaultFont
     end
     self.fontToUse = fontName
     local toggleConfig = function()
@@ -671,13 +548,11 @@ function ascensionBars:OnInitialize()
     self:createFrames()
 end
 
----@param self AscensionBars
 function ascensionBars:OnEnable()
     self.state.isConfigMode = false
     self.state.isHovering = false
     self.state.inCombat = false
     self.state.cachedClassColor = nil
-    self:createFrames()
     local function reg(event, method)
         if self[method] then
             self:RegisterEvent(event, method)
@@ -715,6 +590,7 @@ function ascensionBars:OnEnable()
     self:refreshHousingFavor()
     self:hideBlizzardFrames()
     self:scanParagonRewards()
+    self:RegisterEvent("NEIGHBORHOOD_NAME_UPDATED", "updateDisplay")
     self:updateDisplay(true)
 end
 
@@ -726,7 +602,7 @@ end
 function ascensionBars:onPlayerEnteringWorld()
     self:scanParagonRewards()
     self:refreshHousingFavor()
-    if self.updateDisplay then self:updateDisplay(true) end
+    self:updateDisplay(true)
 end
 
 function ascensionBars:onCombatStart()
@@ -774,6 +650,6 @@ end
 -- CONFIG TOGGLE (provided by Config.lua, but we keep a stub)
 -------------------------------------------------------------------------------
 function ascensionBars:toggleConfig()
-    -- This function is overridden by Config.lua
-    print("AscensionBars: Config.lua not loaded or toggleConfig not implemented.")
+    -- Logic placeholder if Config.lua fails to load
+    UIErrorsFrame:AddMessage("AscensionBars: Configuration module not found.", 1, 0, 0) -- #FF0000
 end

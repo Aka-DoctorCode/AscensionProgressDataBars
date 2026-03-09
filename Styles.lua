@@ -2,7 +2,7 @@
 -- Project: AscensionBars
 -- Author: Aka-DoctorCode
 -- File: Styles.lua
--- Version: V31
+-- Version: @project-version@
 -------------------------------------------------------------------------------
 -- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
 --
@@ -11,10 +11,8 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
-local addonName, addonTable = ...
+local addonName, _ = ...
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
----@class AscensionBars
----@cast ascensionBars AscensionBars
 
 -------------------------------------------------------------------------------
 -- CONSTANTS & colors

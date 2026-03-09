@@ -11,9 +11,8 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
-local addonName, addonTable = ...
+local addonName, _ = ...
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
----@cast ascensionBars AscensionBars
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 function ascensionBars:renderHonor()
@@ -24,11 +23,12 @@ function ascensionBars:renderHonor()
     local honorObj = self.honor
     if honorObj and bars and bars["Honor"] and bars["Honor"].enabled then
         self:updateStandardBar(honorObj, "Honor",
-            function() return UnitHonor("player") or 0 end,
-            function() return UnitHonorMax("player") or 100 end,
+            function() return _G.UnitHonor("player") or 0 end,
+            function() return _G.UnitHonorMax("player") or 100 end,
             function() return profile.honorColor or { r = 0.8, g = 0.2, b = 0.2, a = 1.0 } end,
             function(current, max, percentage)
-                return string.format("Honor %d/%d (%.1f%%)", current, max, percentage)
+                local honorLevel = _G.UnitHonorLevel("player") or 0
+                return string.format("Honor Level %d | %d/%d (%.1f%%)", honorLevel, current, max, percentage)
             end
         )
     elseif honorObj then

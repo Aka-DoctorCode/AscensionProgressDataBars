@@ -1,14 +1,16 @@
-<h1>V31 - Welcome to the menu</h1>
+<h1>V32</h1>
 <ul>
-    <li>Modularization of the project for easier maintenance and scalability</li>
-    <li>Review of the code to remove any unused code</li>
-    <li>Fixing some bugs and issues regarding bars not updating properly</li>
-    <li>New Menu 2.0, menu has been added to the wow menu, is recommended to use the /ab to open the true config frame</li>
-    <li>Added integration with AscensionSuit, this addon is just a central brain for the libraries used in some of my Ascension addons, previously these libraries were loaded by AscensionQoL.</li>
-</ul>
-<span>I still need to do some fine tuning to the menu UX/UI, but it is almost at its final form</span>
+    <li>Reputation bar logic improved, it detects now better the kind of reputation to display the level, name, etc. It now differentiates between Renown Factions, Friendship and Standard reputations.</li>
+    <li>No Menu ingame #2 (Github issue #2) </li>
+    <li>Added a cache for storing certain values between sessions.</li>
+    <li>Added to the honor bar string the honor level.</li>
+    <li>Added to the azerite bar string the azerite level.</li>
+    <li>Minor changes to the way the strings where formated.\
+    </li>
 
-<h2>I will be adding few more features soon for easier configuration of bars and bar texts placement, stay tuned!</h2>
-<h3>Positive feedback is always appreciated, it helps me to continue working on this project</h3>
-<h3>If you find any bugs or issues, please report them to me on github</h3>
-<h3>Thank you for using AscensionBars!</h3>
+</ul>
+<span>Know bugs: the UI in the text attachment section doesn't always updates position between the columns</span>
+
+<span>I haven't been able to do much lately, but I'm still around fine tuning the menu UX/UI, but it is almost at its final form</span>
+
+<h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>
