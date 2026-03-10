@@ -1,0 +1,628 @@
+-------------------------------------------------------------------------------
+-- Project: AscensionBars
+-- Author: Aka-DoctorCode
+-- File: UIFactory.lua
+-- Version: @project-version@
+-------------------------------------------------------------------------------
+-- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+--
+-- This software and its source code are the exclusive property of the author.
+-- No part of this file may be copied, modified, redistributed, or used in
+-- derivative works without express written permission.
+-------------------------------------------------------------------------------
+
+local addonName, addonTable = ...
+local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+
+local colors = ascensionBars.colors
+local files = ascensionBars.files
+local menuStyle = ascensionBars.menuStyle
+
+addonTable.layoutFactory = {}
+local layoutFactory = addonTable.layoutFactory
+
+-- Helper function to fetch specific element overrides
+local function getStyle(elementID)
+    if not ascensionBars.db or not ascensionBars.db.profile then return {} end
+    return ascensionBars.db.profile.elementStyles and ascensionBars.db.profile.elementStyles[elementID] or {}
+end
+
+function layoutFactory:createHeader(args)
+    local elementID, parent, text, yOffset = args.elementID, args.parent, args.text, args.yOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Header"
+    
+    local style = getStyle(elementID)
+    local headerColor = style.uiHeaderColor or menuStyle.uiHeaderColor or colors.gold
+    local headerSpacing = style.headerSpacing or menuStyle.headerSpacing or 32
+    local dividerSpacing = style.dividerSpacing or menuStyle.dividerSpacing or 8
+
+    local header = parent:CreateFontString(nil, "OVERLAY", menuStyle.headerFont)
+    header.elementID = elementID
+    header:SetPoint("TOPLEFT", style.contentPadding or menuStyle.contentPadding, yOffset)
+    header:SetText(text)
+    header:SetTextColor(unpack(headerColor))
+
+    local divider = parent:CreateTexture(nil, "ARTWORK")
+    divider:SetHeight(1)
+    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, dividerSpacing)
+
+    divider:SetPoint("RIGHT", parent, "RIGHT", -8, 0)
+    divider:SetColorTexture(unpack(colors.surfaceHighlight)) -- #2A243D
+
+    return header, yOffset - headerSpacing
+end
+
+function layoutFactory:createLabel(args)
+    local elementID, parent, text, yOffset, xOffset = args.elementID, args.parent, args.text, args.yOffset, args.xOffset
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Label"
+    
+    local style = getStyle(elementID)
+    local textColor = style.textLight or colors.textLight -- #E2E8F0
+    local labelSpacing = style.labelSpacing or menuStyle.labelSpacing or 16
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+
+    local label = parent:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    label.elementID = elementID
+    label:SetPoint("TOPLEFT", actualX, yOffset)
+    label:SetText(text)
+    label:SetTextColor(unpack(textColor))
+
+    return label, yOffset - labelSpacing
+end
+
+function layoutFactory:createCheckbox(args)
+    local elementID, parent, text, tooltip = args.elementID, args.parent, args.text, args.tooltip
+    local getter, setter, yOffset, xOffset = args.getter, args.setter, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Checkbox"
+    
+    local style = getStyle(elementID)
+    local actualParent = parent or menuStyle.contentPanel
+    local checkboxSize = style.checkboxSize or menuStyle.checkboxSize or 24
+    local checkboxSpacing = style.checkboxSpacing or menuStyle.checkboxSpacing or 24
+    local labelColor = style.textColor or colors.textLight -- #E2E8F0
+
+    local checkbox = CreateFrame("CheckButton", nil, actualParent, "UICheckButtonTemplate")
+    checkbox.elementID = elementID
+    checkbox:SetSize(checkboxSize, checkboxSize)
+    local actualX = style.contentPadding or xOffset or 16
+    checkbox:SetPoint("TOPLEFT", actualParent, "TOPLEFT", actualX, yOffset or -16)
+
+    local label = checkbox.Text
+    label:SetFontObject("GameFontHighlight")
+    label:SetPoint("LEFT", checkbox, "RIGHT", 8, 0)
+    label:SetText(text or "")
+    label:SetTextColor(unpack(labelColor))
+
+    if getter then checkbox:SetChecked(getter()) end
+
+    checkbox:SetScript("OnClick", function(self)
+        if setter then setter(self:GetChecked()) end
+    end)
+
+    if tooltip then
+        checkbox:SetScript("OnEnter", function(self)
+            local tooltipFrame = _G.GameTooltip
+            tooltipFrame:SetOwner(self, "ANCHOR_RIGHT")
+            tooltipFrame:SetText(text or "", 1, 1, 1) -- #FFFFFF
+            tooltipFrame:AddLine(tooltip, 1, 0.82, 0, true) -- #FFD100
+            tooltipFrame:Show()
+        end)
+        checkbox:SetScript("OnLeave", _G.GameTooltip_Hide)
+    end
+
+    return checkbox, yOffset - checkboxSpacing
+end
+
+function layoutFactory:createSlider(args)
+    local elementID, parent, text, minVal, maxVal = args.elementID, args.parent, args.text, args.minVal, args.maxVal
+    local step, getter, setter = args.step or 1, args.getter, args.setter
+    local width, yOffset, xOffset = args.width or menuStyle.sliderWidth, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Slider"
+    
+    local style = getStyle(elementID)
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+
+    local sliderName = "AscensionBarsSlider_" .. tostring(math.random(1000000, 9999999))
+    local slider = CreateFrame("Slider", sliderName, parent, "OptionsSliderTemplate")
+    slider:SetPoint("TOPLEFT", actualX, yOffset - 16)
+    slider:SetWidth(width)
+    slider:SetMinMaxValues(minVal, maxVal)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+
+    local val = getter() or minVal
+
+    -- Título del slider
+    slider.text = slider:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    slider.text:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
+    slider.text:SetText(text)
+    slider.text:SetTextColor(unpack(colors.textDim))
+
+    slider:SetValue(val)
+
+    -- Función auxiliar para actualizar valor desde los controles
+    local function updateValue(inputValue)
+        local numericValue = tonumber(inputValue)
+        if numericValue then
+            numericValue = math.max(minVal, math.min(maxVal, numericValue))
+            slider:SetValue(numericValue)
+            setter(numericValue)
+        end
+    end
+
+    -- ============================================
+    -- CONTROLES VERTICALES (debajo del slider)
+    -- ============================================
+    local btnSize = menuStyle.editBoxHeight or 28
+
+    -- Frame contenedor para los controles
+    local controlsFrame = CreateFrame("Frame", nil, parent)
+    controlsFrame:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -8)  -- 8 píxeles debajo del slider
+    controlsFrame:SetPoint("TOPRIGHT", slider, "BOTTOMRIGHT", 0, -8)
+    controlsFrame:SetHeight(btnSize + 10)
+
+    -- Caja de edición (centrada en el contenedor)
+    local editBox = CreateFrame("EditBox", nil, controlsFrame, "InputBoxTemplate")
+    editBox:SetSize(btnSize + 16, btnSize + 8)
+    editBox:SetPoint("CENTER", controlsFrame, "CENTER", 0, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetJustifyH("CENTER")
+    editBox:SetFontObject(menuStyle.labelFont)
+    editBox:SetText(tostring(math.floor(val * 100) / 100))
+
+    editBox:SetScript("OnEnterPressed", function(self)
+        updateValue(self:GetText())
+        self:ClearFocus()
+    end)
+
+    -- Botón "-" a la izquierda de la caja
+    local btnMinus = CreateFrame("Button", nil, controlsFrame, "UIPanelButtonTemplate")
+    btnMinus:SetSize(btnSize, btnSize)
+    btnMinus:SetText("-")
+    local minusFont = btnMinus:GetFontString()
+    if minusFont then
+        minusFont:SetFontObject(menuStyle.labelFont)
+    end
+    btnMinus:SetPoint("RIGHT", editBox, "LEFT", -12, 0)
+    btnMinus:SetScript("OnClick", function() updateValue(slider:GetValue() - step) end)
+
+    -- Botón "+" a la derecha de la caja
+    local btnPlus = CreateFrame("Button", nil, controlsFrame, "UIPanelButtonTemplate")
+    btnPlus:SetSize(btnSize, btnSize)
+    btnPlus:SetText("+")
+    local plusFont = btnPlus:GetFontString()
+    if plusFont then
+        plusFont:SetFontObject(menuStyle.labelFont)
+    end
+    btnPlus:SetPoint("LEFT", editBox, "RIGHT", 12, 0)
+    btnPlus:SetScript("OnClick", function() updateValue(slider:GetValue() + step) end)
+
+    -- Actualizar la caja cuando el slider cambie (por arrastre)
+    slider:SetScript("OnValueChanged", function(_, value)
+        editBox:SetText(tostring(math.floor(value * 100) / 100))
+        setter(value)
+    end)
+
+    -- Calcular la coordenada Y para el siguiente elemento
+    local sliderHeight = slider:GetHeight()  -- Altura real del slider
+    local controlsHeight = controlsFrame:GetHeight()
+    local gap = 4      -- Espacio entre slider y controles
+    local margin = 36   -- Margen adicional debajo de los controles
+    local totalDescent = sliderHeight + gap + controlsHeight + margin
+
+    local nextY = yOffset - totalDescent
+
+    return slider, nextY
+end
+
+function layoutFactory:createColorPicker(args)
+    local elementID, parent, text, getter = args.elementID, args.parent, args.text, args.getter
+    local setter, yOffset, xOffset, hasAlpha = args.setter, args.yOffset, args.xOffset, args.hasAlpha
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "ColorPicker"
+    
+    local style = getStyle(elementID)
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local pickerSize = style.colorPickerSize or menuStyle.colorPickerSize or 20
+    local pickerSpacing = style.colorPickerSpacing or menuStyle.colorPickerSpacing or 24
+    
+    local button = CreateFrame("Button", nil, parent)
+    button.elementID = elementID
+    button:SetSize(pickerSize, pickerSize)
+    button:SetPoint("TOPLEFT", actualX, yOffset)
+
+    local texture = button:CreateTexture(nil, "OVERLAY")
+    texture:SetAllPoints()
+    texture:SetColorTexture(getter())
+    button.tex = texture
+
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetPoint("TOPLEFT", -1, 1)
+    background:SetPoint("BOTTOMRIGHT", 1, -1)
+    background:SetColorTexture(1, 1, 1, 1) -- #FFFFFF
+
+    local label = button:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    label:SetPoint("LEFT", button, "RIGHT", 10, 0)
+    label:SetText(text)
+
+    local function colorCallback(restore)
+        local colorPicker = _G.ColorPickerFrame
+        local r, g, b, a
+        if restore then
+            r, g, b, a = unpack(restore)
+        else
+            if colorPicker.GetColorRGB then
+                r, g, b = colorPicker:GetColorRGB()
+            end
+            a = (colorPicker.GetColorAlpha and colorPicker:GetColorAlpha()) or
+                (colorPicker.GetColorOpacity and 1 - colorPicker:GetColorOpacity()) or 1
+        end
+        local finalAlpha = a or 1
+        setter(r or 1, g or 1, b or 1, finalAlpha)
+        button.tex:SetColorTexture(r or 1, g or 1, b or 1, finalAlpha)
+    end
+
+    button:SetScript("OnClick", function()
+        local colorPicker = _G.ColorPickerFrame
+        local r, g, b, a = getter()
+        local currentAlpha = a or 1
+        local info = {
+            swatchFunc = function() colorCallback() end,
+            opacityFunc = function() colorCallback() end,
+            cancelFunc = function() colorCallback({ r or 1, g or 1, b or 1, currentAlpha }) end,
+            hasOpacity = hasAlpha,
+            opacity = currentAlpha,
+            r = r or 1, g = g or 1, b = b or 1
+        }
+
+        if colorPicker.SetupColorPickerAndShow then
+            colorPicker:SetupColorPickerAndShow(info)
+        else
+            colorPicker.func = info.swatchFunc
+            colorPicker.opacityFunc = info.opacityFunc
+            colorPicker.cancelFunc = info.cancelFunc
+            colorPicker.hasOpacity = info.hasOpacity
+            colorPicker.opacity = info.opacity
+            if colorPicker.SetColorRGB then colorPicker:SetColorRGB(info.r, info.g, info.b) end
+            colorPicker:Show()
+        end
+    end)
+    return button, yOffset - pickerSpacing
+end
+
+function layoutFactory:createDropdown(args)
+    local elementID, parent, text, options = args.elementID, args.parent, args.text, args.options
+    local getter, setter, yOffset, xOffset = args.getter, args.setter, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Dropdown"
+    
+    local style = getStyle(elementID)
+    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local dropWidth = style.dropdownWidth or menuStyle.dropdownWidth or 140
+    local dropHeight = style.dropdownHeight or menuStyle.dropdownHeight or 44
+
+    local frame = CreateFrame("Frame", nil, parent)
+    frame.elementID = elementID
+    frame:SetSize(dropWidth, dropHeight)
+    frame:SetPoint("TOPLEFT", actualX, yOffset)
+
+    local label = frame:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    label:SetPoint("TOPLEFT", 0, 0)
+    label:SetText(text)
+    label:SetTextColor(unpack(colors.textLight)) -- #E2E8F0
+
+    local dropdown = CreateFrame("Button", nil, frame, "BackdropTemplate")
+    dropdown:SetSize(dropWidth, 24)
+    dropdown:SetPoint("BOTTOMLEFT", 0, 0)
+    dropdown:SetBackdrop({
+        bgFile = files.bgFile,
+        edgeFile = files.edgeFile,
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    dropdown:SetBackdropColor(unpack(colors.surfaceHighlight)) -- #2A243D
+    dropdown:SetBackdropBorderColor(unpack(colors.blackDetail)) -- #000000
+
+    local dropdownText = dropdown:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    dropdownText:SetPoint("LEFT", 10, 0)
+    dropdownText:SetPoint("RIGHT", -20, 0)
+    dropdownText:SetJustifyH("LEFT")
+
+    local function getLabel(val)
+        for _, opt in ipairs(options) do
+            if opt.value == val then return opt.label end
+        end
+        return tostring(val)
+    end
+    dropdownText:SetText(getLabel(getter()))
+
+    local arrow = dropdown:CreateTexture(nil, "OVERLAY")
+    arrow:SetSize(20, 20)
+    arrow:SetPoint("RIGHT", -5, 0)
+    arrow:SetTexture(files.arrow)
+    arrow:SetDesaturated(true)
+
+    local list = CreateFrame("Frame", nil, dropdown, "BackdropTemplate")
+    list:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
+    list:SetWidth(150)
+    list:SetFrameStrata("DIALOG")
+    list:Hide()
+    list:SetBackdrop({
+        bgFile = files.bgFile,
+        edgeFile = files.edgeFile,
+        edgeSize = 8,
+        insets = { left = 2, right = 2, top = 2, bottom = 2 }
+    })
+    list:SetBackdropColor(unpack(colors.surfaceDark)) -- #0C0A15
+    list:SetBackdropBorderColor(unpack(colors.surfaceHighlight)) -- #2A243D
+
+    dropdown:SetScript("OnClick", function()
+        if list:IsShown() then list:Hide() else list:Show() end
+    end)
+
+    list:SetHeight(#options * 20 + 10)
+
+    for i, opt in ipairs(options) do
+        local btn = CreateFrame("Button", nil, list, "BackdropTemplate")
+        btn:SetSize(140, 20)
+        btn:SetPoint("TOPLEFT", 5, -5 - ((i - 1) * 20))
+        btn:SetBackdrop({ bgFile = files.bgFile })
+        btn:SetBackdropColor(unpack(colors.surfaceDark)) -- #0C0A15
+
+        local btnText = btn:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+        btnText:SetPoint("LEFT", 5, 0)
+        btnText:SetText(opt.label)
+
+        btn:SetScript("OnEnter", function(self) self:SetBackdropColor(unpack(colors.surfaceHighlight)) end)
+        btn:SetScript("OnLeave", function(self) self:SetBackdropColor(unpack(colors.surfaceDark)) end)
+        btn:SetScript("OnClick", function()
+            setter(opt.value)
+            dropdownText:SetText(opt.label)
+            list:Hide()
+        end)
+    end
+
+    return frame, yOffset - (menuStyle.dropdownHeight + 16)
+end
+
+function layoutFactory:createScrollPanel(args)
+    local elementID, parent = args.elementID, args.parent
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "ScrollPanel"
+    
+    local scrollName = "AscensionBarsScrollPanel_" .. tostring(math.random(1000000, 9999999))
+    local scrollFrame = CreateFrame("ScrollFrame", scrollName, parent, "UIPanelScrollFrameTemplate")
+    scrollFrame.elementID = elementID
+    scrollFrame:SetPoint("TOPLEFT", 5, -5)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -25, 5)
+
+    local content = CreateFrame("Frame", nil, scrollFrame)
+    content:SetSize(scrollFrame:GetWidth(), 800)
+    scrollFrame:SetScrollChild(content)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
+
+    scrollFrame:SetScript("OnMouseWheel", function(self, delta)
+        local bar = self.ScrollBar
+        if not bar then return end
+        local minVal, maxVal = bar:GetMinMaxValues()
+        local currentVal = bar:GetValue()
+        local newVal = currentVal - delta * 50
+        if newVal < minVal then newVal = minVal end
+        if newVal > maxVal then newVal = maxVal end
+        bar:SetValue(newVal)
+    end)
+    
+    local scrollBar = scrollFrame.ScrollBar
+    if scrollBar then
+        if scrollBar.ScrollUpButton then scrollBar.ScrollUpButton:SetAlpha(0.7) end
+        if scrollBar.ScrollDownButton then scrollBar.ScrollDownButton:SetAlpha(0.7) end
+        
+        local thumb = scrollBar:GetThumbTexture()
+        if thumb then
+            local r, g, b = unpack(colors.surfaceHighlight)
+            thumb:SetVertexColor(r, g, b, 0.8)
+        end
+        
+        local regions = { scrollBar:GetRegions() }
+        for _, region in ipairs(regions) do
+            if region:IsObjectType("Texture") and region ~= thumb then
+                region:SetAlpha(0)
+            end
+        end
+    end
+
+    return scrollFrame, content
+end
+
+function layoutFactory:createTabbedInterface(parent, tabNames, buildFuncs, initialIndex)
+    local tabs = {}
+    local panels = {}
+    local activeTab = initialIndex or 1
+
+    local sidebarSeparator = parent:CreateTexture(nil, "ARTWORK")
+    sidebarSeparator:SetWidth(1)
+    sidebarSeparator:SetPoint("TOPLEFT", menuStyle.sidebarWidth, -45)
+    sidebarSeparator:SetPoint("BOTTOMLEFT", menuStyle.sidebarWidth, 75)
+    sidebarSeparator:SetColorTexture(unpack(colors.surfaceHighlight)) -- #2A243D
+
+    local function selectTab(index)
+        activeTab = index
+        ascensionBars.activeTab = index
+        for i, tab in ipairs(tabs) do
+            if i == index then
+                tab:SetBackdropColor(unpack(colors.sidebarActive))
+                tab.accent:Show()
+            else
+                tab:SetBackdropColor(0, 0, 0, 0)
+                tab.accent:Hide()
+            end
+        end
+        for i, panel in ipairs(panels) do
+            if i == index then
+                panel:Show()
+                _G.C_Timer.After(0.01, function()
+                    if panel.updateLayout then panel.updateLayout(panel) end
+                end)
+            else
+                panel:Hide()
+            end
+        end
+    end
+
+    local function createTabButton(label, idx)
+        local btn = CreateFrame("Button", nil, parent, "BackdropTemplate")
+        local xOffset = (menuStyle.sidebarWidth - menuStyle.tabWidth) / 2
+        local yOffset = -56 - ((idx - 1) * (menuStyle.tabHeight + menuStyle.tabSpacing))
+        
+        btn:SetSize(menuStyle.tabWidth, menuStyle.tabHeight)
+        btn:SetPoint("TOPLEFT", xOffset, yOffset)
+        
+        local accent = btn:CreateTexture(nil, "OVERLAY")
+        accent:SetWidth(menuStyle.sidebarAccentWidth)
+        accent:SetPoint("TOPLEFT", -xOffset, 0)
+        accent:SetPoint("BOTTOMLEFT", -xOffset, 0)
+        accent:SetColorTexture(unpack(colors.primary)) -- #FFD100
+        accent:Hide()
+        btn.accent = accent
+        
+        btn:SetBackdrop({
+            bgFile = files.bgFile,
+            edgeFile = files.edgeFile,
+            edgeSize = 1,
+            insets = { left = 1, right = 1, top = 1, bottom = 1 }
+        })
+        btn:SetBackdropColor(0, 0, 0, 0)
+        btn:SetBackdropBorderColor(0, 0, 0, 0)
+
+        local text = btn:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+        text:SetPoint("LEFT", 15, 0)
+        text:SetText(label)
+
+        btn:SetScript("OnClick", function() selectTab(idx) end)
+        btn:SetScript("OnEnter", function()
+            if activeTab ~= idx then btn:SetBackdropColor(unpack(colors.sidebarHover)) end
+        end)
+        btn:SetScript("OnLeave", function()
+            if activeTab ~= idx then btn:SetBackdropColor(0, 0, 0, 0) end
+        end)
+
+        table.insert(tabs, btn)
+        return btn
+    end
+
+    for i, name in ipairs(tabNames) do
+        createTabButton(name, i)
+        local panel = CreateFrame("Frame", nil, parent)
+        panel:SetPoint("TOPLEFT", sidebarSeparator, "TOPRIGHT", 0, 0)
+        panel:SetPoint("BOTTOMRIGHT", -10, 15)
+        panel:Hide()
+
+        local scrollFrame, content = layoutFactory:createScrollPanel({ elementID = "TabScrollPanel_" .. i, parent = panel })
+        panel.scrollFrame = scrollFrame
+        panel.content = content
+        panel.updateLayout = buildFuncs[i]
+
+        table.insert(panels, panel)
+    end
+
+    selectTab(activeTab)
+
+    return {
+        panels = panels,
+        selectTab = selectTab,
+        getActiveTab = function() return activeTab end
+    }
+end
+
+-------------------------------------------------------------------------------
+-- LAYOUT MODEL (OOP Wrapper)
+-------------------------------------------------------------------------------
+addonTable.layoutModel = {}
+local layoutModel = addonTable.layoutModel
+
+function layoutModel:new(parent, startY)
+    local obj = { parent = parent, y = startY or -15 }
+    setmetatable(obj, { __index = self })
+    return obj
+end
+
+function layoutModel:header(elementID, text)
+    local h, newY = layoutFactory:createHeader({ elementID = elementID, parent = self.parent, text = text, yOffset = self.y })
+    self.y = newY
+    return h
+end
+
+function layoutModel:label(elementID, text, xOffset)
+    local l, newY = layoutFactory:createLabel({ elementID = elementID, parent = self.parent, text = text, yOffset = self.y, xOffset = xOffset })
+    self.y = newY
+    return l
+end
+
+function layoutModel:checkbox(elementID, text, tooltip, getter, setter, xOffset)
+    local cb, newY = layoutFactory:createCheckbox({
+        elementID = elementID, parent = self.parent, text = text, tooltip = tooltip,
+        getter = getter, setter = setter, yOffset = self.y, xOffset = xOffset
+    })
+    self.y = newY
+    return cb
+end
+
+function layoutModel:slider(elementID, text, minVal, maxVal, step, getter, setter, width, xOffset)
+    local s, newY = layoutFactory:createSlider({
+        elementID = elementID, parent = self.parent, text = text, minVal = minVal, maxVal = maxVal, step = step,
+        getter = getter, setter = setter, width = width, yOffset = self.y, xOffset = xOffset
+    })
+    self.y = newY
+    return s
+end
+
+function layoutModel:colorPicker(elementID, text, getter, setter, xOffset, hasAlpha)
+    local cp, newY = layoutFactory:createColorPicker({
+        elementID = elementID, parent = self.parent, text = text, getter = getter, setter = setter,
+        yOffset = self.y, xOffset = xOffset, hasAlpha = hasAlpha
+    })
+    self.y = newY
+    return cp
+end
+
+function layoutModel:dropdown(elementID, text, options, getter, setter, xOffset)
+    local dd, newY = layoutFactory:createDropdown({
+        elementID = elementID, parent = self.parent, text = text, options = options,
+        getter = getter, setter = setter, yOffset = self.y, xOffset = xOffset
+    })
+    self.y = newY
+    return dd
+end
+
+function layoutModel:beginSection()
+    local section = CreateFrame("Frame", nil, self.parent, "BackdropTemplate")
+    section:SetPoint("TOPLEFT", 8, self.y + 8)
+    section:SetPoint("RIGHT", -8, 0)
+    section:SetBackdrop({
+        bgFile = files.bgFile,
+        edgeFile = files.edgeFile,
+        edgeSize = 1,
+        insets = { left = 1, right = 1, top = 1, bottom = 1 }
+    })
+    section:SetBackdropColor(unpack(colors.surfaceDark)) -- #0C0A15
+    section:SetBackdropBorderColor(unpack(colors.surfaceHighlight)) -- #2A243D
+    self.currentSection = section
+    self.y = self.y - 8
+end
+
+function layoutModel:endSection()
+    if self.currentSection then
+        self.currentSection:SetPoint("BOTTOM", 0, self.y)
+        self.currentSection = nil
+        self.y = self.y - 16
+    end
+end

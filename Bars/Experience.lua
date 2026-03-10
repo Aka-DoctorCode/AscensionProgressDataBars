@@ -10,76 +10,95 @@
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
----
-local addonName, _ = ...
-local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
+
+local addonName, addonTable = ...
+local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
+--- Renders the Experience bar and optional rested overlay
+-- @param shouldHideXP boolean Whether the bar should be hidden (e.g., at max level)
 function ascensionBars:renderExperience(shouldHideXP)
-    local profile = self.db and self.db.profile
-    if not profile then return end
+    if not self.db or not self.db.profile then return end
+    
+    local profile = self.db.profile
     local bars = profile.bars
+    local xpObj = self.xp
 
-    if bars and bars["XP"] and bars["XP"].enabled and not shouldHideXP then
+    if xpObj and bars and bars["XP"] and bars["XP"].enabled and not shouldHideXP then
         local currentXP = UnitXP("player") or 0
         local maxXP = UnitXPMax("player") or 1
+        
+        -- Default XP Blue: #0066E6
         local xpColor = profile.xpBarColor or { r = 0, g = 0.4, b = 0.9, a = 1 }
         local classColor = profile.useClassColorXP and self:getClassColor() or xpColor
-        local xpObj = self.xp
+        
+        self:setupBar(xpObj, 0, maxXP, currentXP, classColor)
 
-        if xpObj then
-            self:setupBar(xpObj, 0, maxXP, currentXP, classColor)
-
-            if profile.showRestedBar then
-                local rested = GetXPExhaustion()
-                local overlay = xpObj.restedOverlay
-                local bar = xpObj.bar
-                if rested and rested > 0 and overlay and bar then
-                    local rw = bar:GetWidth() * (math.min(currentXP + rested, maxXP) / maxXP)
-                    overlay:SetSize(rw, bar:GetHeight())
-                    overlay:SetPoint("LEFT", bar, "LEFT")
-                    local rBarColor = profile.restedBarColor
-                    if rBarColor then
-                        overlay:SetColorTexture(rBarColor.r or 0.6, rBarColor.g or 0.4, rBarColor.b or 0.8,
-                            rBarColor.a or 1)
-                    end
-                    overlay:Show()
-                elseif overlay then
-                    overlay:Hide()
-                end
-            elseif xpObj.restedOverlay then
-                xpObj.restedOverlay:Hide()
+        -- Handle Rested XP Overlay
+        if profile.showRestedBar then
+            local rested = GetXPExhaustion()
+            local overlay = xpObj.restedOverlay
+            local bar = xpObj.bar
+            
+            if rested and rested > 0 and overlay and bar then
+                local barWidth = bar:GetWidth()
+                local barHeight = bar:GetHeight()
+                local restedWidth = barWidth * (math.min(currentXP + rested, maxXP) / maxXP)
+                
+                overlay:SetSize(restedWidth, barHeight)
+                overlay:SetPoint("LEFT", bar, "LEFT")
+                
+                -- Default Rested Purple: #9966CC
+                local rBarColor = profile.restedBarColor or { r = 0.6, g = 0.4, b = 0.8, a = 1 }
+                overlay:SetColorTexture(rBarColor.r, rBarColor.g, rBarColor.b, rBarColor.a)
+                overlay:Show()
+            elseif overlay then
+                overlay:Hide()
             end
-
-            local xpText = self:formatXP()
-            if xpObj.text then
-                xpObj.text:SetText(xpText or "")
-            end
-            if xpObj.txFrame then
-                xpObj.txFrame:Show()
-            end
+        elseif xpObj.restedOverlay then
+            xpObj.restedOverlay:Hide()
         end
-    elseif self.xp then
-        if self.xp.bar then self.xp.bar:Hide() end
-        if self.xp.txFrame then self.xp.txFrame:Hide() end
+
+        -- Update Text using the formatted string from main logic
+        if xpObj.text then
+            xpObj.text:SetText(self:formatXP() or "")
+        end
+        
+        if xpObj.txFrame then
+            xpObj.txFrame:Show()
+        end
+    elseif xpObj then
+        if xpObj.bar then xpObj.bar:Hide() end
+        if xpObj.txFrame then xpObj.txFrame:Hide() end
+        if xpObj.restedOverlay then xpObj.restedOverlay:Hide() end
     end
 end
 
+--- Displays the Experience bar in a dummy state for configuration
+-- @param profile table The active DB profile
+-- @param bars table The bars configuration sub-table
+-- @param textColor table The RGB table for text
 function ascensionBars:configExperience(profile, bars, textColor)
     local xpObj = self.xp
-    if xpObj then
+    if not xpObj then return end
+    
+    local xpConfig = bars["XP"]
+    if xpConfig and xpConfig.enabled then
         if xpObj.bar then xpObj.bar:Show() end
         if xpObj.txFrame then xpObj.txFrame:Show() end
-        local xpConfig = bars["XP"]
+        
+        -- Default XP Blue: #0066E6
         local xpColor = profile.xpBarColor or { r = 0, g = 0.4, b = 0.9, a = 1 }
-        local classColor = xpConfig and profile.useClassColorXP and self:getClassColor() or xpColor
+        local classColor = profile.useClassColorXP and self:getClassColor() or xpColor
+        
         self:setupBar(xpObj, 0, 100, 75, classColor)
 
         if xpObj.text then
-            xpObj.text:SetText(Locales["XP_BAR_DATA"])
+            xpObj.text:SetText(Locales["XP_BAR_CONFIG_TEXT"] or Locales["XP_BAR_DATA"])
             xpObj.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
         end
 
+        -- Config Preview for Rested Bar
         if profile.showRestedBar then
             local bar = xpObj.bar
             local overlay = xpObj.restedOverlay
@@ -88,19 +107,18 @@ function ascensionBars:configExperience(profile, bars, textColor)
                 overlay:SetSize(barWidth * 0.25, bar:GetHeight() or 6)
                 overlay:ClearAllPoints()
                 overlay:SetPoint("LEFT", bar, "LEFT", barWidth * 0.75, 0)
-                local rBarColor = profile.restedBarColor
-                if rBarColor then
-                    overlay:SetColorTexture(
-                        rBarColor.r or 0.6,
-                        rBarColor.g or 0.4,
-                        rBarColor.b or 0.8,
-                        rBarColor.a or 1
-                    )
-                end
+                
+                -- Default Rested Purple: #9966CC
+                local rBarColor = profile.restedBarColor or { r = 0.6, g = 0.4, b = 0.8, a = 1 }
+                overlay:SetColorTexture(rBarColor.r, rBarColor.g, rBarColor.b, rBarColor.a)
                 overlay:Show()
             end
         elseif xpObj.restedOverlay then
             xpObj.restedOverlay:Hide()
         end
+    else
+        if xpObj.bar then xpObj.bar:Hide() end
+        if xpObj.txFrame then xpObj.txFrame:Hide() end
+        if xpObj.restedOverlay then xpObj.restedOverlay:Hide() end
     end
 end

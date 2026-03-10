@@ -25,4 +25,14 @@ Bars\Housing.lua
 Bars\Azerite.lua
 Constants.lua
 Styles.lua
+
+# Config Panel
+ConfigPanel/ConfigUtils.lua
+ConfigPanel/UIFactory.lua
+ConfigPanel/BarsLayout.lua
+ConfigPanel/TextLayout.lua
+ConfigPanel/Behavior.lua
+ConfigPanel/Colors.lua
+ConfigPanel/ParagonAlerts.lua
+ConfigPanel/BlizzardIntegration.lua
 Config.lua

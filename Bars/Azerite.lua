@@ -11,47 +11,62 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
-local addonName, _ = ...
-local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
+local addonName, addonTable = ...
+local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
+--- Renders the Azerite Power bar based on current item progression
 function ascensionBars:renderAzerite()
-    local profile = self.db and self.db.profile
-    if not profile then return end
+    if not self.db or not self.db.profile then return end
+    
+    local profile = self.db.profile
     local bars = profile.bars
 
     if self.azerite and bars and bars["Azerite"] and bars["Azerite"].enabled then
         self:updateStandardBar(self.azerite, "Azerite",
+            -- Current XP Function
             function()
-                if _G.C_AzeriteItem and _G.C_AzeriteItem.FindActiveAzeriteItem then
-                    local itemLoc = _G.C_AzeriteItem.FindActiveAzeriteItem()
-                    if itemLoc and _G.C_AzeriteItem.GetAzeriteItemXPInfo then
-                        local xp, _ = _G.C_AzeriteItem.GetAzeriteItemXPInfo(itemLoc)
+                if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
+                    local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()
+                    if itemLoc and C_AzeriteItem.GetAzeriteItemXPInfo then
+                        local xp, _ = C_AzeriteItem.GetAzeriteItemXPInfo(itemLoc)
                         return xp or 0
                     end
                 end
                 return 0
             end,
+            -- Max XP Function
             function()
-                if _G.C_AzeriteItem and _G.C_AzeriteItem.FindActiveAzeriteItem then
-                    local itemLoc = _G.C_AzeriteItem.FindActiveAzeriteItem()
-                    if itemLoc and _G.C_AzeriteItem.GetAzeriteItemXPInfo then
-                        local _, total = _G.C_AzeriteItem.GetAzeriteItemXPInfo(itemLoc)
+                if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
+                    local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()
+                    if itemLoc and C_AzeriteItem.GetAzeriteItemXPInfo then
+                        local _, total = C_AzeriteItem.GetAzeriteItemXPInfo(itemLoc)
                         return total or 100
                     end
                 end
                 return 100
             end,
-            function() return profile.azeriteColor or { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } end, -- #E5CC7F
+            -- Color Function
+            function() 
+                return profile.azeriteColor or { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } -- #E5CC7F
+            end,
+            -- Text Format Function
             function(current, max, percentage)
                 local azeriteLevel = 0
-                if _G.C_AzeriteItem and _G.C_AzeriteItem.FindActiveAzeriteItem then
-                    local itemLoc = _G.C_AzeriteItem.FindActiveAzeriteItem()
-                    if itemLoc and _G.C_AzeriteItem.GetPowerLevel then
-                        azeriteLevel = _G.C_AzeriteItem.GetPowerLevel(itemLoc) or 0
+                if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
+                    local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()
+                    if itemLoc and C_AzeriteItem.GetPowerLevel then
+                        azeriteLevel = C_AzeriteItem.GetPowerLevel(itemLoc) or 0
                     end
                 end
-                return string.format("Azerite Level %d | %d/%d (%.1f%%)", azeriteLevel, current, max, percentage)
+                
+                -- Use localized string and BreakUpLargeNumbers for consistency
+                return string.format(Locales["AZERITE_LEVEL_FORMAT"], 
+                    azeriteLevel, 
+                    BreakUpLargeNumbers(current), 
+                    BreakUpLargeNumbers(max), 
+                    percentage
+                )
             end
         )
     elseif self.azerite then
@@ -60,13 +75,19 @@ function ascensionBars:renderAzerite()
     end
 end
 
+--- Displays the Azerite bar in a dummy state for configuration
+-- @param profile table The active DB profile
+-- @param bars table The bars configuration sub-table
+-- @param textColor table The RGB table for text
 function ascensionBars:configAzerite(profile, bars, textColor)
     local azeriteConfig = bars["Azerite"]
     if self.azerite and azeriteConfig and azeriteConfig.enabled then
         self.azerite.bar:Show()
         self.azerite.txFrame:Show()
+        
         local azeriteColor = profile.azeriteColor or { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } -- #E5CC7F
         self:setupBar(self.azerite, 0, 100, 80, azeriteColor)
+        
         self.azerite.text:SetText(Locales["AZERITE_BAR_DATA"])
         self.azerite.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
     elseif self.azerite then

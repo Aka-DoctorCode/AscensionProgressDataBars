@@ -1,16 +1,13 @@
-<h1>V32</h1>
+<h1>V33</h1>
 <ul>
     <li>Reputation bar logic improved, it detects now better the kind of reputation to display the level, name, etc. It now differentiates between Renown Factions, Friendship and Standard reputations.</li>
     <li>No Menu ingame #2 (Github issue #2) </li>
     <li>Added a cache for storing certain values between sessions.</li>
     <li>Added to the honor bar string the honor level.</li>
     <li>Added to the azerite bar string the azerite level.</li>
-    <li>Minor changes to the way the strings where formated.\
-    </li>
-
+    <li>Minor changes to the way the strings where formated.</li>
+    <li>Some improvedments in the UX of the config menu.</li>
+    <li>Major code modularization to facilitate the add ons maintenance.</li>
+    <li>Fix bug in where the position of the text attachment section didn't always updates position between the columns</li>
 </ul>
-<span>Know bugs: the UI in the text attachment section doesn't always updates position between the columns</span>
-
-<span>I haven't been able to do much lately, but I'm still around fine tuning the menu UX/UI, but it is almost at its final form</span>
-
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>

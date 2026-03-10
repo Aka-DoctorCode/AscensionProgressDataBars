@@ -147,9 +147,8 @@ ascensionBars.defaults = {
         honorBarEnabled = false,
         honorColor = { r = 0.8, g = 0.2, b = 0.2, a = 1.0 }, -- #CC3333
         housingCache = {
-            favor = 0,
-            maxFavor = 0,
-            hasReward = false,
+            lastTrackedGuid = "",
+            houses = {},
         },
     },
     global = {
