@@ -25,25 +25,31 @@ function ascensionBars:renderHonor()
 
     if honorObj and bars and bars["Honor"] and bars["Honor"].enabled then
         self:updateStandardBar(honorObj, "Honor",
-            -- Current Honor Function
             function() return UnitHonor("player") or 0 end,
-            -- Max Honor Function
             function() return UnitHonorMax("player") or 100 end,
-            -- Color Function
             function() 
                 return profile.honorColor or { r = 0.8, g = 0.2, b = 0.2, a = 1.0 } -- #CC3333
             end,
-            -- Text Format Function
             function(current, max, percentage)
                 local honorLevel = UnitHonorLevel("player") or 0
+                -- Start with the Honor Level base text
+                local displayText = string.format(Locales["LEVEL_TEXT"], honorLevel)
                 
-                -- Use localized string and BreakUpLargeNumbers for consistency
-                return string.format(Locales["HONOR_LEVEL_FORMAT"], 
-                    honorLevel, 
-                    BreakUpLargeNumbers(current), 
-                    BreakUpLargeNumbers(max), 
-                    percentage
-                )
+                local showAbs = profile.showAbsoluteValues
+                local showPct = profile.showPercentage
+
+                -- Append data based on visibility toggles
+                if showAbs and showPct then
+                    displayText = string.format(Locales["HONOR_LEVEL_FORMAT"], honorLevel, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max), percentage)
+                elseif showAbs then
+                    -- You might need to add a "LEVEL_TEXT_ABS" equivalent if not in Locales, 
+                    -- but using a standard pattern for now:
+                    displayText = string.format("%s | %s / %s", displayText, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max))
+                elseif showPct then
+                    displayText = string.format("%s | %.1f%%", displayText, percentage)
+                end
+
+                return displayText
             end
         )
     elseif honorObj then

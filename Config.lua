@@ -15,11 +15,10 @@
 local addonName, addonTable = ...
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
-
+---@
 local colors = ascensionBars.colors
 local files = ascensionBars.files
 local menuStyle = ascensionBars.menuStyle
-
 local layoutFactory = addonTable.layoutFactory
 
 local function createConfigFrame()
@@ -37,7 +36,7 @@ local function createConfigFrame()
     configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
     
     configFrame:SetResizable(true)
-    configFrame:SetResizeBounds(600, 400)
+    configFrame:SetResizeBounds(400, 300)
     configFrame:SetFrameStrata("HIGH")
     
     configFrame:SetBackdrop({

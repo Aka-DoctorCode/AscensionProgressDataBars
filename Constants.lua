@@ -172,7 +172,7 @@ ascensionBars.constants = {
 -- UI State Management variables
 ascensionBars.configFrame = nil
 ascensionBars.isMinimized = false
-ascensionBars.normalWidth = 750
+ascensionBars.normalWidth = 800
 ascensionBars.normalHeight = 500
 ascensionBars.activeTab = 1
 ascensionBars.tabs = {}

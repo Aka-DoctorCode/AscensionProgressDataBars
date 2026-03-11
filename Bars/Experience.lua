@@ -61,7 +61,8 @@ function ascensionBars:renderExperience(shouldHideXP)
 
         -- Update Text using the formatted string from main logic
         if xpObj.text then
-            xpObj.text:SetText(self:formatXP() or "")
+            local rested = GetXPExhaustion() or 0
+            xpObj.text:SetText(self:formatXP(rested) or "")
         end
         
         if xpObj.txFrame then

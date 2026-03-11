@@ -71,39 +71,47 @@ function ascensionBars:hideBlizzardFrames()
 end
 
 --- Formats the experience string using localized patterns
--- @return string The formatted XP text
-function ascensionBars:formatXP()
-    local currentXP, maxXP = UnitXP("player") or 0, UnitXPMax("player") or 1
-    local percentage = (maxXP > 0 and (currentXP / maxXP) * 100) or 0
-    
-    if not self.db or not self.db.profile then return "" end
-    
+function ascensionBars:formatXP(rested)
     local profile = self.db.profile
-    local text = ""
-    local playerLevel = UnitLevel("player") or 0
-
-    if profile.showAbsoluteValues then
-        if profile.showPercentage then
-            text = string.format(Locales["LEVEL_TEXT_ABS_PCT"], playerLevel,
-                BreakUpLargeNumbers(currentXP),
-                BreakUpLargeNumbers(maxXP), percentage)
-        else
-            text = string.format(Locales["LEVEL_TEXT_ABS"], playerLevel,
-                BreakUpLargeNumbers(currentXP),
-                BreakUpLargeNumbers(maxXP))
-        end
-    elseif profile.showPercentage then
-        text = string.format(Locales["LEVEL_TEXT_PCT"], playerLevel, percentage)
-    else
-        text = string.format(Locales["LEVEL_TEXT"], playerLevel)
-    end
-
-    local rested = GetXPExhaustion()
-    if rested and rested > 0 and profile.showRestedBar then
-        local restedPct = (maxXP > 0 and (rested / maxXP) * 100) or 0
-        text = text .. string.format(Locales["RESTED_TEXT"], restedPct)
-    end
+    local currentXP = UnitXP("player") or 0
+    local maxXP = UnitXPMax("player") or 1
+    local level = UnitLevel("player")
+    local percentage = (currentXP / maxXP) * 100
     
+    local showAbs = profile.showAbsoluteValues
+    local showPct = profile.showPercentage
+    
+    -- 1. Base Level Part
+    local text = string.format(Locales["LEVEL_TEXT"], level) -- "Level 70"
+
+    -- 2. Main XP Part: | Absolute / Max (Percentage)
+    local mainXPStr = ""
+    if showAbs and showPct then
+        mainXPStr = string.format(" | %s / %s (%.1f%%)", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP), percentage)
+    elseif showAbs then
+        mainXPStr = string.format(" | %s / %s", BreakUpLargeNumbers(currentXP), BreakUpLargeNumbers(maxXP))
+    elseif showPct then
+        mainXPStr = string.format(" | %.1f%%", percentage)
+    end
+    text = text .. mainXPStr
+
+    -- 3. Rested Part: | Rested: Absolute / Max (Percentage)
+    if rested and rested > 0 then
+        local restedPct = (rested / maxXP) * 100
+        local restedStr = ""
+        
+        -- Building the Rested segment based on toggles
+        if showAbs and showPct then
+            restedStr = string.format(" | Rested: %s / %s (%.1f%%)", BreakUpLargeNumbers(rested), BreakUpLargeNumbers(maxXP), restedPct)
+        elseif showAbs then
+            restedStr = string.format(" | Rested: %s / %s", BreakUpLargeNumbers(rested), BreakUpLargeNumbers(maxXP))
+        elseif showPct then
+            restedStr = string.format(" | Rested: %.1f%%", restedPct)
+        end
+        
+        text = text .. restedStr
+    end
+
     return text
 end
 

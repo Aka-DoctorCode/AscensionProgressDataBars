@@ -144,6 +144,7 @@ function barsLayoutTab:build(panel)
     local scrollFrame = panel.scrollFrame
     local panelWidth = scrollFrame and scrollFrame:GetWidth() - 30 or 600
     panelWidth = math.max(panelWidth, 400)
+    content:SetWidth(panelWidth)
     local colWidth = (panelWidth - 80) / 3
 
     local y = -15

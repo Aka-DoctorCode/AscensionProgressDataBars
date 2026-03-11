@@ -100,7 +100,6 @@ function ascensionBars:getFactionData(factionId)
     return data
 end
 
-
 --- Scans for paragon rewards and updates character cache
 function ascensionBars:scanParagonRewards()
     if not self.db or not self.db.global then return end
@@ -195,13 +194,13 @@ function ascensionBars:renderReputation()
             alertText = hex .. string.format(Locales["REWARD_ON_CHAR"], charName) .. "|r"
         end
         
-        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "THICKOUTLINE")
+        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE")
         self.paragonText:SetText(alertText)
         self.paragonText:ClearAllPoints()
         
         local pY = profile.paragonTextYOffset or -100
         if profile.paragonOnTop then
-            self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, pY)
+            self.paragonText:SetPoint("TOP", _G.UIParent, "TOP", 0, pY)
         else
             if profile.barAnchor == "BOTTOM" then
                 self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -pY)
@@ -251,17 +250,35 @@ function ascensionBars:renderReputation()
         local labelPart = string.format(Locales["REP_LABEL_FORMAT"], name, standingLabel)
         local valuePart = ""
 
+        -- Dynamic Visibility logic
+        local showAbs = profile.showAbsoluteValues
+        local showPct = profile.showPercentage
+
         if isMaxLevel and not hasParagon then
-            valuePart = string.format(Locales["REP_VALUE_FORMAT_PCT"], 100.0)
+            if showPct then
+                valuePart = string.format(Locales["REP_VALUE_FORMAT_PCT"], 100.0)
+            end
         else
-            valuePart = string.format(Locales["REP_VALUE_FORMAT_FULL"], 
-                BreakUpLargeNumbers(cur), 
-                BreakUpLargeNumbers(max), 
-                percentage
-            )
+            if showAbs and showPct then
+                valuePart = string.format(Locales["REP_VALUE_FORMAT_FULL"], 
+                    BreakUpLargeNumbers(cur), 
+                    BreakUpLargeNumbers(max), 
+                    percentage
+                )
+            elseif showAbs then
+                valuePart = string.format("%s / %s", BreakUpLargeNumbers(cur), BreakUpLargeNumbers(max))
+            elseif showPct then
+                valuePart = string.format(Locales["REP_VALUE_FORMAT_PCT"], percentage)
+            end
         end
 
-        self.rep.text:SetText(labelPart .. " | " .. valuePart)
+        -- Construct final string
+        if valuePart ~= "" then
+            self.rep.text:SetText(labelPart .. " | " .. valuePart)
+        else
+            self.rep.text:SetText(labelPart)
+        end
+
         local textColor = profile.textColor
         if textColor then
             self.rep.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
@@ -269,50 +286,5 @@ function ascensionBars:renderReputation()
     elseif self.rep then
         self.rep.bar:Hide()
         self.rep.txFrame:Hide()
-    end
-end
-
---- Configuration mode for Reputation
-function ascensionBars:configReputation(profile, bars, textColor)
-    if not self.rep then return end
-    
-    self.rep.bar:Show()
-    self.rep.txFrame:Show()
-    
-    -- #00FF00
-    local repColor = profile.repBarColor or { r = 0, g = 1, b = 0, a = 1 }
-    self:setupBar(self.rep, 0, 100, 50, repColor)
-    
-    self.rep.text:SetText(Locales["REP_BAR_DATA"])
-    self.rep.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
-
-    if self.paragonText then
-        local pColor = profile.paragonPendingColor or { r = 0, g = 1, b = 0, a = 1 }
-        local hex = string.format("|cff%02x%02x%02x",
-            math.floor(pColor.r * 255),
-            math.floor(pColor.g * 255),
-            math.floor(pColor.b * 255)
-        )
-        self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "THICKOUTLINE")
-        
-        if profile.splitParagonText then
-            self.paragonText:SetText(hex .. Locales["CONFIG_FACTION_A_REWARD"] .. "|r\n" .. hex .. Locales["CONFIG_FACTION_B_REWARD"] .. "|r")
-        else
-            self.paragonText:SetText(hex .. Locales["CONFIG_MULTIPLE_REWARDS"] .. "|r")
-        end
-        
-        self.paragonText:Show()
-        self.paragonText:ClearAllPoints()
-        local pY = profile.paragonTextYOffset or -100
-        
-        if profile.paragonOnTop then
-            self.paragonText:SetPoint("TOP", UIParent, "TOP", 0, pY)
-        else
-            if profile.barAnchor == "BOTTOM" then
-                self.paragonText:SetPoint("BOTTOM", self.textHolder, "TOP", 0, -pY)
-            else
-                self.paragonText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, pY)
-            end
-        end
     end
 end

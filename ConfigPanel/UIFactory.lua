@@ -29,28 +29,21 @@ end
 
 function layoutFactory:createHeader(args)
     local elementID, parent, text, yOffset = args.elementID, args.parent, args.text, args.yOffset
-    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+        ascensionBars.registeredElements = ascensionBars.registeredElements or {}
     ascensionBars.registeredElements[elementID] = "Header"
-    
     local style = getStyle(elementID)
     local headerColor = style.uiHeaderColor or menuStyle.uiHeaderColor or colors.gold
-    local headerSpacing = style.headerSpacing or menuStyle.headerSpacing or 32
-    local dividerSpacing = style.dividerSpacing or menuStyle.dividerSpacing or 8
-
+    local leftPadding = style.contentPadding or menuStyle.contentPadding or 16
     local header = parent:CreateFontString(nil, "OVERLAY", menuStyle.headerFont)
-    header.elementID = elementID
-    header:SetPoint("TOPLEFT", style.contentPadding or menuStyle.contentPadding, yOffset)
-    header:SetText(text)
-    header:SetTextColor(unpack(headerColor))
+        header.elementID = elementID
+        header:SetPoint("TOPLEFT", leftPadding, yOffset)
+        header:SetText(text)
+        header:SetTextColor(unpack(headerColor))
+    local headerHeight = header:GetStringHeight()
+    local spacingAfter = 8
+    local nextY = yOffset - headerHeight - spacingAfter
 
-    local divider = parent:CreateTexture(nil, "ARTWORK")
-    divider:SetHeight(1)
-    divider:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, dividerSpacing)
-
-    divider:SetPoint("RIGHT", parent, "RIGHT", -8, 0)
-    divider:SetColorTexture(unpack(colors.surfaceHighlight)) -- #2A243D
-
-    return header, yOffset - headerSpacing
+    return header, nextY
 end
 
 function layoutFactory:createLabel(args)
@@ -169,7 +162,7 @@ function layoutFactory:createSlider(args)
 
     -- Caja de edición (centrada en el contenedor)
     local editBox = CreateFrame("EditBox", nil, controlsFrame, "InputBoxTemplate")
-    editBox:SetSize(btnSize + 16, btnSize + 8)
+    editBox:SetSize(btnSize + 20, btnSize + 20)
     editBox:SetPoint("CENTER", controlsFrame, "CENTER", 0, 0)
     editBox:SetAutoFocus(false)
     editBox:SetJustifyH("CENTER")
@@ -395,20 +388,20 @@ end
 
 function layoutFactory:createScrollPanel(args)
     local elementID, parent = args.elementID, args.parent
-    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
-    ascensionBars.registeredElements[elementID] = "ScrollPanel"
+        ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+        ascensionBars.registeredElements[elementID] = "ScrollPanel"
     
     local scrollName = "AscensionBarsScrollPanel_" .. tostring(math.random(1000000, 9999999))
     local scrollFrame = CreateFrame("ScrollFrame", scrollName, parent, "UIPanelScrollFrameTemplate")
-    scrollFrame.elementID = elementID
-    scrollFrame:SetPoint("TOPLEFT", 5, -5)
-    scrollFrame:SetPoint("BOTTOMRIGHT", -25, 5)
+        scrollFrame.elementID = elementID
+        scrollFrame:SetPoint("TOPLEFT", 0, 0)
+        scrollFrame:SetPoint("BOTTOMRIGHT", -15, 10)
 
     local content = CreateFrame("Frame", nil, scrollFrame)
-    content:SetSize(scrollFrame:GetWidth(), 800)
-    scrollFrame:SetScrollChild(content)
-    scrollFrame:EnableMouseWheel(true)
-    scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
+        content:SetSize(scrollFrame:GetWidth(), 800) -- aqui
+        scrollFrame:SetScrollChild(content)
+        scrollFrame:EnableMouseWheel(true)
+        scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
 
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local bar = self.ScrollBar

@@ -16,6 +16,7 @@ local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonN
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 --- Renders the Azerite Power bar based on current item progression
+--- Renders the Azerite Power bar based on current item progression
 function ascensionBars:renderAzerite()
     if not self.db or not self.db.profile then return end
     
@@ -60,13 +61,20 @@ function ascensionBars:renderAzerite()
                     end
                 end
                 
-                -- Use localized string and BreakUpLargeNumbers for consistency
-                return string.format(Locales["AZERITE_LEVEL_FORMAT"], 
-                    azeriteLevel, 
-                    BreakUpLargeNumbers(current), 
-                    BreakUpLargeNumbers(max), 
-                    percentage
-                )
+                -- Dynamic visibility logic
+                local showAbs = profile.showAbsoluteValues
+                local showPct = profile.showPercentage
+                local text = string.format(Locales["AZERITE"] .. " " .. Locales["RANK_NUM"], azeriteLevel)
+
+                if showAbs and showPct then
+                    text = string.format(Locales["AZERITE_LEVEL_FORMAT"], azeriteLevel, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max), percentage)
+                elseif showAbs then
+                    text = string.format("%s | %s / %s", text, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max))
+                elseif showPct then
+                    text = string.format("%s | %.1f%%", text, percentage)
+                end
+
+                return text
             end
         )
     elseif self.azerite then

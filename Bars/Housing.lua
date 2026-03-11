@@ -69,6 +69,23 @@ local function findHouseName(guid)
     return Locales["HOUSE_XP"] -- "House Favor" fallback from Locales
 end
 
+--- Obtiene el nivel máximo de la casa rastreada actualmente.
+-- @param guid string|number GUID de la casa.
+-- @return number El nivel máximo, o 0 si no se puede determinar.
+local function getHouseMaxLevel(guid)
+    if not guid or guid == 0 or guid == "0" then return 0 end
+    local level = 1
+    while true do
+        local favorReq = C_Housing.GetHouseLevelFavorForLevel(level)
+        if not favorReq or favorReq <= 0 then
+            return level - 1
+        end
+        level = level + 1
+        if level > 100 then break end -- Límite de seguridad
+    end
+    return 0
+end
+
 --- Event handler for house favor updates
 function ascensionBars:onHouseFavorUpdated(_, houseLevelFavor)
     if not (C_Housing and houseLevelFavor and self.db.profile) then return end
@@ -112,11 +129,12 @@ function ascensionBars:renderHouseXp()
         return 
     end
 
-    -- Default House Orange: #FF801A
+    -- Color por defecto: naranja casa (#FF801A)
     local color = profile.houseXpColor or { r = 1.0, g = 0.5, b = 0.1, a = 1.0 }
     local currentFavor, maxFavor, currentLevel = 0, 1, 0
     local isMonitoring = false
     local addressString = Locales["HOUSE_XP"]
+    local maxLevel = 0
 
     local trackedGuid = C_Housing.GetTrackedHouseGuid()
     if not trackedGuid or trackedGuid == 0 or trackedGuid == "0" or trackedGuid == "" then
@@ -138,8 +156,25 @@ function ascensionBars:renderHouseXp()
 
         currentFavor = cache.favor or (C_Housing.GetCurrentHouseLevelFavor and C_Housing.GetCurrentHouseLevelFavor(trackedGuid)) or 0
         currentLevel = cache.level or 0
-        maxFavor = (C_Housing.GetHouseLevelFavorForLevel and C_Housing.GetHouseLevelFavorForLevel(currentLevel)) or 1
-        if maxFavor <= 0 then maxFavor = 1 end
+
+        -- Obtener o calcular el nivel máximo de la casa
+        if cache.maxLevel then
+            maxLevel = cache.maxLevel
+        else
+            maxLevel = getHouseMaxLevel(trackedGuid)
+            cache.maxLevel = maxLevel
+        end
+
+        -- Determinar el favor necesario para el siguiente nivel
+        local nextLevel = currentLevel + 1
+        local nextFavor = C_Housing.GetHouseLevelFavorForLevel and C_Housing.GetHouseLevelFavorForLevel(nextLevel)
+        if nextFavor and nextFavor > 0 then
+            maxFavor = nextFavor
+        else
+            -- No hay siguiente nivel (la casa ya está al máximo)
+            maxFavor = currentFavor  -- para que el porcentaje sea 100%
+            if maxFavor <= 0 then maxFavor = 1 end  -- seguridad
+        end
     end
 
     if isMonitoring then
@@ -148,10 +183,40 @@ function ascensionBars:renderHouseXp()
         self:setupBar(houseObj, 0, maxFavor, currentFavor, color)
         
         local percentage = (currentFavor / maxFavor) * 100
+        local showAbs = profile.showAbsoluteValues
+        local showPct = profile.showPercentage
+
+        -- Formatear el texto usando las claves de localización (ajustadas previamente)
+        local text
+        if showAbs and showPct then
+            text = string.format(Locales["HOUSE_LEVEL_FORMAT"], 
+                addressString, 
+                currentLevel, 
+                BreakUpLargeNumbers(currentFavor), 
+                BreakUpLargeNumbers(maxFavor), 
+                percentage)
+        elseif showAbs then
+            text = string.format(Locales["HOUSE_LEVEL_ABS"], 
+                addressString, 
+                currentLevel, 
+                BreakUpLargeNumbers(currentFavor), 
+                BreakUpLargeNumbers(maxFavor))
+        elseif showPct then
+            text = string.format(Locales["HOUSE_LEVEL_PCT"], 
+                addressString, 
+                currentLevel, 
+                percentage)
+        else
+            text = string.format(Locales["HOUSE_LEVEL_SIMPLE"], 
+                addressString, 
+                currentLevel)
+        end
+
+        houseObj.text:SetText(text)
         
-        if percentage >= 100 then
-            houseObj.text:SetText(string.format(Locales["HOUSE_LEVEL_SIMPLE"], addressString, currentLevel))
-            
+        -- Mostrar mensaje de recompensa SOLO si hay mejora real
+        -- (favor suficiente y nivel actual < nivel máximo)
+        if currentFavor >= maxFavor and currentLevel < maxLevel then
             if not self.houseRewardText then
                 self.houseRewardText = self.textHolder:CreateFontString(nil, "OVERLAY")
             end
@@ -176,13 +241,6 @@ function ascensionBars:renderHouseXp()
                 self.houseRewardText:SetPoint("TOP", self.textHolder, "BOTTOM", 0, offset)
             end
         else
-            houseObj.text:SetText(string.format(Locales["HOUSE_LEVEL_FORMAT"], 
-                addressString, 
-                currentLevel, 
-                BreakUpLargeNumbers(currentFavor), 
-                BreakUpLargeNumbers(maxFavor), 
-                percentage
-            ))
             if self.houseRewardText then self.houseRewardText:Hide() end
         end
     else

@@ -1,13 +1,9 @@
-<h1>V33</h1>
+<h1>V34</h1>
 <ul>
-    <li>Reputation bar logic improved, it detects now better the kind of reputation to display the level, name, etc. It now differentiates between Renown Factions, Friendship and Standard reputations.</li>
-    <li>No Menu ingame #2 (Github issue #2) </li>
-    <li>Added a cache for storing certain values between sessions.</li>
-    <li>Added to the honor bar string the honor level.</li>
-    <li>Added to the azerite bar string the azerite level.</li>
-    <li>Minor changes to the way the strings where formated.</li>
-    <li>Some improvedments in the UX of the config menu.</li>
-    <li>Major code modularization to facilitate the add ons maintenance.</li>
-    <li>Fix bug in where the position of the text attachment section didn't always updates position between the columns</li>
+    <li>Paragon Reward string font weight reduce.</li>
+    <li>Change the XP bar string format.</li>
+    <li>Fix bug: That shown the Housing reward text when there was no reward pending.</li>
+    <li>Added the abosolute value string and percentage for the Housing bar.</li>
+    <li>Fix bug: Absolute and percentage values for the Rep, Azerite and Honor bars where not showing/hidding correctly.</li>
 </ul>
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>
