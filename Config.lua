@@ -27,7 +27,7 @@ local function createConfigFrame()
 
     ascensionBars.configFrame = CreateFrame("Frame", "AscensionBarsConfigFrame", _G.UIParent, "BackdropTemplate")
     local configFrame = ascensionBars.configFrame
-    configFrame:SetSize(ascensionBars.normalWidth or 750, ascensionBars.normalHeight or 500)
+    configFrame:SetSize(ascensionBars.normalWidth or 850, ascensionBars.normalHeight or 500)
     configFrame:SetPoint("CENTER")
     configFrame:SetMovable(true)
     configFrame:EnableMouse(true)
@@ -87,11 +87,23 @@ local function createConfigFrame()
     end)
 
     local configModeCheck = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
-    configModeCheck:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 8)
-    configModeCheck:SetSize(menuStyle.checkboxSize, menuStyle.checkboxSize)
-    configModeCheck.text = configModeCheck:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-    configModeCheck.text:SetPoint("LEFT", configModeCheck, "RIGHT", 5, 0)
-    configModeCheck.text:SetText(locales["CONFIG_MODE"])
+        configModeCheck:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 8)
+        configModeCheck:SetSize(menuStyle.checkboxSize, menuStyle.checkboxSize)
+        configModeCheck.text = configModeCheck:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+        configModeCheck.text:SetPoint("LEFT", configModeCheck, "RIGHT", 5, 0)
+        configModeCheck.text:SetText(locales["CONFIG_MODE"])
+        configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
+        
+        configModeCheck:SetScript("OnClick", function(self)
+            -- Update the state and refresh the bars
+            ascensionBars.state.isConfigMode = self:GetChecked()
+            ascensionBars:updateDisplay(true)
+        end)
+    
+        -- Sync checkbox state whenever the frame is shown
+        configFrame:HookScript("OnShow", function()
+            configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
+        end)
 
     local tabNames = {
         locales["TAB_BARS_LAYOUT"],
@@ -114,35 +126,31 @@ local function createConfigFrame()
 end
 
 function ascensionBars:refreshConfigUI()
+    if not self.configFrame then
+        createConfigFrame()
+    end
+
     if self.configFrame then
         local wasShown = self.configFrame:IsShown()
         local currentTab = self.configTabs and self.configTabs.getActiveTab() or 1
 
+        -- Reset current frame to apply changes
         self.configFrame:Hide()
         self.configFrame = nil
         self.configTabs = nil
 
-        self:toggleConfig()
+        -- Re-initialize
+        createConfigFrame()
 
         if wasShown then
-            self.configTabs.selectTab(currentTab)
-        else
-            self.configFrame:Hide()
+            self.configFrame:Show()
+            if self.configTabs and self.configTabs.selectTab then
+                self.configTabs.selectTab(currentTab)
+            end
         end
     end
 end
 
 function ascensionBars:refreshConfig() 
     self:refreshConfigUI() 
-end
-
-function ascensionBars:toggleConfig()
-    if not self.configFrame then createConfigFrame() end
-    if self.configFrame then
-        if self.configFrame:IsShown() then 
-            self.configFrame:Hide() 
-        else 
-            self.configFrame:Show() 
-        end
-    end
 end

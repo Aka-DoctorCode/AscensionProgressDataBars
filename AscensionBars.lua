@@ -15,7 +15,6 @@ local addonName, addonTable = ...
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local ascensionBars = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0", "AceConsole-3.0")
 
--- Assign the addon object to the table for cross-file access
 addonTable.main = ascensionBars
 
 -------------------------------------------------------------------------------
@@ -186,7 +185,8 @@ function ascensionBars:createBar(name)
 
     local spark = bar:CreateTexture(nil, "ARTWORK")
     spark:SetTexture(self.constants.TEXTURE_SPARK)
-    spark:SetSize(6, 6)
+    -- MODIFIED: Increased size from 6x6 to 12x24 for better visibility
+    spark:SetSize(200, 24) 
     spark:SetBlendMode("ADD")
 
     local restedOverlay = (name == "AscensionXPBar_XP") and bar:CreateTexture(nil, "ARTWORK") or nil
@@ -419,21 +419,37 @@ function ascensionBars:updateDisplay(force)
 
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
+    local bars = profile.bars
 
     self:applyTextStyles()
 
     local maxLevel = self:getPlayerMaxLevel() or 1
     local curLevel = UnitLevel("player") or 0
-    local shouldHideXP = (curLevel >= maxLevel) and profile.hideAtMaxLevel
+    local isConfig = self.state and self.state.isConfigMode
+    
+    -- If in config mode, we force shouldHideXP to false so the bar layout is calculated
+    local shouldHideXP = (curLevel >= maxLevel) and profile.hideAtMaxLevel and not isConfig
 
     self:updateLayout(shouldHideXP)
     self:updateVisibility()
 
-    if self.state and self.state.isConfigMode then
-        if self.renderConfig then self:renderConfig() end
-        return
+    -- CONFIGURATION MODE LOGIC
+    if isConfig then
+        local textColor = profile.textColor or { r = 1, g = 1, b = 1, a = 1 }
+        
+        -- Call dedicated config functions for each module
+        if self.configExperience then self:configExperience(profile, bars, textColor) end
+        if self.configReputation then self:configReputation(profile, bars, textColor) end
+        if self.configHonor then self:configHonor(profile, bars, textColor) end
+        if self.configHouseXp then self:configHouseXp(profile, bars, textColor) end
+        if self.configAzerite then self:configAzerite(profile, bars, textColor) end
+        
+        -- Always update anchors in config mode to reflect position changes
+        self:updateTextAnchors()
+        return -- We return here because config modules handle their own internal rendering
     end
 
+    -- NORMAL MODE LOGIC
     if self.renderExperience then self:renderExperience(shouldHideXP) end
     if self.renderReputation then self:renderReputation() end
     if self.renderHonor then self:renderHonor() end
@@ -534,9 +550,18 @@ function ascensionBars:updateVisibility()
     end
     
     local bars = { self.xp, self.rep, self.honor, self.houseXp, self.azerite }
-    for _, bar in ipairs(bars) do
-        if bar and bar.bar then bar.bar:SetAlpha(alpha) end
-        if bar and bar.txFrame then bar.txFrame:SetAlpha(alpha) end -- Controla la opacidad del texto
+    for _, barObj in ipairs(bars) do
+        if barObj and barObj.bar then 
+            barObj.bar:SetAlpha(alpha)
+            -- If alpha is 1, ensure the frame is actually visible
+            if alpha > 0 and not barObj.bar:IsShown() then
+                local config = profile.bars[barObj.key or ""]
+                if config and config.enabled then
+                    barObj.bar:Show()
+                end
+            end
+        end
+        if barObj and barObj.txFrame then barObj.txFrame:SetAlpha(alpha) end
     end
     if self.textHolder then self.textHolder:SetAlpha(alpha) end
 end
@@ -669,8 +694,19 @@ function ascensionBars:OnDisable()
     if self.textHolder then self.textHolder:Hide() end
 end
 
---- Toggles the configuration mode
 function ascensionBars:toggleConfig()
-    -- This method is usually overridden by Config.lua
-    UIErrorsFrame:AddMessage(Locales["CONFIG_MODULE_MISSING"], 1, 0, 0) -- #FF0000
+    if not self.configFrame then 
+        self:refreshConfigUI() 
+    end
+    
+    if self.configFrame then
+        local isNowShown = not self.configFrame:IsShown()
+        self.configFrame:SetShown(isNowShown)
+        
+        -- Sync state with window visibility
+        self.state.isConfigMode = isNowShown
+        
+        -- Refresh to show/hide bars immediately
+        self:updateDisplay(true)
+    end
 end

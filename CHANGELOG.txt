@@ -1,9 +1,7 @@
-<h1>V34</h1>
+<h1>V35</h1>
 <ul>
-    <li>Paragon Reward string font weight reduce.</li>
-    <li>Change the XP bar string format.</li>
-    <li>Fix bug: That shown the Housing reward text when there was no reward pending.</li>
-    <li>Added the abosolute value string and percentage for the Housing bar.</li>
-    <li>Fix bug: Absolute and percentage values for the Rep, Azerite and Honor bars where not showing/hidding correctly.</li>
+    <li>Spark size and apperance has been updated</li>
+    <li>Big fix: The configuration mode was not working after modularization</li>
+    <li>Several UI/UX Improvements to the config menu</li>
 </ul>
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>

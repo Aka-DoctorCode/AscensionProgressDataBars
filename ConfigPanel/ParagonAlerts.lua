@@ -15,7 +15,11 @@ local addonName, addonTable = ...
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
--- Object-Oriented module for the Paragon Alerts Tab
+-- Shared utilities mapped from the main table
+local colors = ascensionBars.colors
+local menuStyle = ascensionBars.menuStyle
+
+-- Object-Oriented module for the Alerts Tab
 addonTable.paragonAlertsTab = {}
 local paragonAlertsTab = addonTable.paragonAlertsTab
 
@@ -28,41 +32,61 @@ function paragonAlertsTab:build(panel)
     local profile = ascensionBars.db.profile
     if not profile then return end
 
-    local layout = addonTable.layoutModel:new(content, -15)
+    -- UX IMPROVEMENT: 2-Column Layout Calculations
+    local defaultAvailableSpace = (ascensionBars.normalWidth or 750) - (menuStyle.sidebarWidth or 150) - 30
+    local colGap = 15
+    local colWidth = (defaultAvailableSpace - colGap) / 2
+    local sliderWidth = colWidth - 20
+
+    local col1X = 10
+    local col2X = 10 + colWidth + colGap
+    local startY = -15
+
+    -- Independent Layout Models for the 2 columns
+    local col1Layout = addonTable.layoutModel:new(content, startY)
+    local col2Layout = addonTable.layoutModel:new(content, startY)
+
+    ---------------------------------------------------------------------------
+    -- COLUMN 1: Paragon Alerts
+    ---------------------------------------------------------------------------
+    local inner1X = col1X + 5
+    local check1X = inner1X - 6
+    local picker1X = inner1X + 6
+    local slider1X = inner1X + 10
+
+    col1Layout:beginSection(col1X, colWidth)
+    col1Layout:label("ParagonAlertsHeader", locales["PARAGON"] or "Paragon Alerts", inner1X, colors.gold)
+    col1Layout.y = col1Layout.y - 4 -- Header bottom margin
     
-    layout:header("AlertStylingHeader", locales["ALERT_STYLING"])
-    
-    layout:checkbox("ShowOnTopCheckbox", locales["SHOW_ON_TOP"], nil,
+    col1Layout:checkbox("ShowOnTopCheckbox", locales["SHOW_ON_TOP"], nil,
         function() return profile.paragonOnTop end,
         function(v)
             profile.paragonOnTop = v
             ascensionBars:updateDisplay()
-        end)
+        end, check1X)
         
-    layout:checkbox("SplitLinesCheckbox", locales["SPLIT_LINES"], nil,
+    col1Layout:checkbox("SplitLinesCheckbox", locales["SPLIT_LINES"], nil,
         function() return profile.splitParagonText end,
         function(v)
             profile.splitParagonText = v
             ascensionBars:updateDisplay()
-        end)
+        end, check1X)
         
-    layout:slider("ParagonTextSizeSlider", locales["TEXT_SIZE"], 10, 40, 1,
+    col1Layout:slider("ParagonTextSizeSlider", locales["TEXT_SIZE"], 10, 40, 1,
         function() return profile.paragonTextSize or 18 end,
         function(v)
             profile.paragonTextSize = v
             ascensionBars:updateDisplay()
-        end,
-        180, 15)
+        end, sliderWidth, slider1X)
         
-    layout:slider("ParagonVerticalOffsetYSlider", locales["VERTICAL_OFFSET_Y"], -1000, 500, 5,
+    col1Layout:slider("ParagonVerticalOffsetYSlider", locales["VERTICAL_OFFSET_Y"], -1000, 500, 5,
         function() return profile.paragonTextYOffset or -100 end,
         function(v)
             profile.paragonTextYOffset = v
             ascensionBars:updateDisplay()
-        end,
-        180, 15)
+        end, sliderWidth, slider1X)
         
-    layout:colorPicker("AlertColorPicker", locales["ALERT_COLOR"],
+    col1Layout:colorPicker("AlertColorPicker", locales["ALERT_COLOR"],
         function()
             local c = profile.paragonPendingColor
             if not c then return 0, 0.8, 1, 1 end -- #00CCFF
@@ -71,12 +95,48 @@ function paragonAlertsTab:build(panel)
         function(r, g, b)
             if not profile.paragonPendingColor then profile.paragonPendingColor = {} end
             local c = profile.paragonPendingColor
-            c.r = r
-            c.g = g
-            c.b = b
+            c.r = r; c.g = g; c.b = b
             ascensionBars:updateDisplay()
-        end,
-        15, false)
+        end, picker1X, false)
 
-    content:SetHeight(math.abs(layout.y) + 20)
+    col1Layout.y = col1Layout.y - 12 -- Bottom padding for the card
+    col1Layout:endSection()
+
+    ---------------------------------------------------------------------------
+    -- COLUMN 2: House Rewards Alerts
+    ---------------------------------------------------------------------------
+    local inner2X = col2X + 5
+    local picker2X = inner2X + 6
+    local slider2X = inner2X + 10
+
+    col2Layout:beginSection(col2X, colWidth)
+    col2Layout:label("HouseRewardsHeader", locales["HOUSE_FAVOR"] or "House Rewards", inner2X, colors.gold)
+    col2Layout.y = col2Layout.y - 4 -- Header bottom margin
+
+    col2Layout:colorPicker("HouseRewardColorPicker", locales["HOUSE_REWARD_COLOR"],
+        function()
+            local c = profile.houseRewardTextColor
+            if not c then return 0.9, 0.5, 0, 1 end -- #E68000
+            return c.r, c.g, c.b, c.a
+        end,
+        function(r, g, b, a)
+            if not profile.houseRewardTextColor then profile.houseRewardTextColor = {} end
+            local c = profile.houseRewardTextColor
+            c.r = r; c.g = g; c.b = b; c.a = a
+            ascensionBars:updateDisplay()
+        end, picker2X, true)
+        
+    col2Layout:slider("HouseRewardYOffsetSlider", locales["HOUSE_REWARD_Y_OFFSET"], -1000, 500, 5,
+        function() return profile.houseRewardTextYOffset or -40 end,
+        function(v)
+            profile.houseRewardTextYOffset = v
+            ascensionBars:updateDisplay()
+        end, sliderWidth, slider2X)
+
+    col2Layout.y = col2Layout.y - 12 -- Bottom padding for the card
+    col2Layout:endSection()
+
+    -- Calculate the lowest Y point between the columns to set the canvas height accurately
+    local maxBottomY = math.min(col1Layout.y, col2Layout.y)
+    content:SetHeight(math.abs(maxBottomY) + 20)
 end

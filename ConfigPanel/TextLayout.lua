@@ -23,12 +23,20 @@ local menuStyle = ascensionBars.menuStyle
 addonTable.textLayoutTab = {}
 local textLayoutTab = addonTable.textLayoutTab
 
-function textLayoutTab:createTextControls(layout, profile, barKey, panel, xOffset)
+function textLayoutTab:createTextControls(layout, profile, barKey, panel, controlWidth, xOffset)
     if not profile or not profile.bars or not profile.bars[barKey] then return end
     
     local bar = profile.bars[barKey]
 
-    layout:label("TextHeader_" .. barKey, barKey, xOffset + 5)
+    -- UX IMPROVEMENT: Encapsulate the text configuration inside a visual Card
+    layout:beginSection(xOffset, controlWidth)
+
+    -- Reduce internal padding by half (from 10 to 5)
+    local innerX = xOffset + 5
+    local innerWidth = controlWidth - 10
+
+    -- Apply the header gold color to the label
+    layout:label("TextHeader_" .. barKey, barKey, innerX, colors.gold)
     
     layout:dropdown("TextAnchorDropdown_" .. barKey, locales["ANCHOR"],
         {
@@ -43,9 +51,11 @@ function textLayoutTab:createTextControls(layout, profile, barKey, panel, xOffse
             addonTable.configUtils:cleanOrders(profile, "textBlock", "textOrder", oldBlock)
             bar.textOrder = math.max(1, addonTable.configUtils:getCount(profile, "textBlock", v))
             ascensionBars:updateDisplay()
-            if panel and panel.updateLayout then panel:updateLayout() end
+            if panel and panel.updateLayout then 
+                _G.C_Timer.After(0.01, function() panel:updateLayout() end) 
+            end
         end,
-        xOffset + 10)
+        innerWidth, innerX)
 
     local orderOptions = {}
     local count = addonTable.configUtils:getCount(profile, "textBlock", bar.textBlock or "T1")
@@ -64,10 +74,16 @@ function textLayoutTab:createTextControls(layout, profile, barKey, panel, xOffse
             addonTable.configUtils:cleanOrders(profile, "textBlock", "textOrder", bar.textBlock or "T1")
             
             ascensionBars:updateDisplay()
-            if panel and panel.updateLayout then panel:updateLayout() end
+            if panel and panel.updateLayout then 
+                _G.C_Timer.After(0.01, function() panel:updateLayout() end) 
+            end
         end,
-        xOffset + 10)
+        innerWidth, innerX)
 
+    -- Close the Card logic
+    layout:endSection()
+    
+    -- Small gap before the next card in the column
     layout.y = layout.y - 15
 end
 
@@ -95,7 +111,7 @@ function textLayoutTab:build(panel)
             ascensionBars:updateDisplay()
             if panel.updateLayout then panel:updateLayout() end
         end,
-        15)
+        180, 15)
 
     if profile.textLayoutMode == "INDIVIDUAL_LINES" then
         layout:checkbox("TextFollowsBarCheckbox", locales["TEXT_FOLLOWS_BAR"], locales["TEXT_FOLLOWS_BAR_DESC"],
@@ -135,9 +151,9 @@ function textLayoutTab:build(panel)
     layout:header("TextGroupPositionsHeader", locales["TEXT_GROUP_POSITIONS"])
     
     local startY = layout.y
-    local panelWidth = panel.scrollFrame and panel.scrollFrame:GetWidth() - 30 or 600
-    panelWidth = math.max(panelWidth, 400)
-    local colWidth = (panelWidth - 30) / 3
+    local defaultAvailableSpace = (ascensionBars.normalWidth or 750) - (menuStyle.sidebarWidth or 150) - 30
+    local colGap = 10
+    local colWidth = (defaultAvailableSpace - (colGap * 2)) / 3
     local maxColY = startY
 
     for i = 1, 3 do
@@ -185,8 +201,8 @@ function textLayoutTab:build(panel)
 
     local textBlocks = {
         { name = locales["GROUP_1"], key = "T1", x = 10 },
-        { name = locales["GROUP_2"], key = "T2", x = 10 + colWidth + 5 },
-        { name = locales["GROUP_3"], key = "T3", x = 10 + (colWidth + 5) * 2 }
+        { name = locales["GROUP_2"], key = "T2", x = 10 + colWidth + colGap },
+        { name = locales["GROUP_3"], key = "T3", x = 10 + (colWidth + colGap) * 2 }
     }
     local maxBottomY = startY
 
@@ -195,6 +211,8 @@ function textLayoutTab:build(panel)
         
         local header = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
         header:SetPoint("TOPLEFT", block.x, startY)
+        header:SetWidth(colWidth)
+        header:SetJustifyH("CENTER")
         header:SetText(block.name)
         header:SetTextColor(unpack(colors.primary)) -- #FFD100
         
@@ -210,7 +228,7 @@ function textLayoutTab:build(panel)
         table.sort(sorted, function(a, b) return a.order < b.order end)
 
         for _, td in ipairs(sorted) do
-            self:createTextControls(layoutCol, profile, td.key, panel, block.x)
+            self:createTextControls(layoutCol, profile, td.key, panel, colWidth, block.x)
         end
 
         if #sorted == 0 then

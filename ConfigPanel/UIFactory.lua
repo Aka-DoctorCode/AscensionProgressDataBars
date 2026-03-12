@@ -48,17 +48,19 @@ end
 
 function layoutFactory:createLabel(args)
     local elementID, parent, text, yOffset, xOffset = args.elementID, args.parent, args.text, args.yOffset, args.xOffset
+    local anchorFrame = args.anchorFrame
+    local color = args.color -- Fetch the custom color
     ascensionBars.registeredElements = ascensionBars.registeredElements or {}
     ascensionBars.registeredElements[elementID] = "Label"
     
     local style = getStyle(elementID)
-    local textColor = style.textLight or colors.textLight -- #E2E8F0
+    local textColor = color or style.textLight or colors.textLight -- Apply custom color or fallback #E2E8F0
     local labelSpacing = style.labelSpacing or menuStyle.labelSpacing or 16
-    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
 
     local label = parent:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
     label.elementID = elementID
-    label:SetPoint("TOPLEFT", actualX, yOffset)
+    label:SetPoint("TOPLEFT", anchorFrame or parent, "TOPLEFT", actualX, yOffset)
     label:SetText(text)
     label:SetTextColor(unpack(textColor))
 
@@ -81,11 +83,12 @@ function layoutFactory:createCheckbox(args)
     local checkbox = CreateFrame("CheckButton", nil, actualParent, "UICheckButtonTemplate")
     checkbox.elementID = elementID
     checkbox:SetSize(checkboxSize, checkboxSize)
-    local actualX = style.contentPadding or xOffset or 16
+    local actualX = xOffset or style.contentPadding or 16
     checkbox:SetPoint("TOPLEFT", actualParent, "TOPLEFT", actualX, yOffset or -16)
 
     local label = checkbox.Text
-    label:SetFontObject("GameFontHighlight")
+    -- Upgrade checkbox text font to match the UI style
+    label:SetFontObject(menuStyle.labelFont)
     label:SetPoint("LEFT", checkbox, "RIGHT", 8, 0)
     label:SetText(text or "")
     label:SetTextColor(unpack(labelColor))
@@ -119,7 +122,7 @@ function layoutFactory:createSlider(args)
     ascensionBars.registeredElements[elementID] = "Slider"
     
     local style = getStyle(elementID)
-    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
 
     local sliderName = "AscensionBarsSlider_" .. tostring(math.random(1000000, 9999999))
     local slider = CreateFrame("Slider", sliderName, parent, "OptionsSliderTemplate")
@@ -131,11 +134,25 @@ function layoutFactory:createSlider(args)
 
     local val = getter() or minVal
 
-    -- Título del slider
     slider.text = slider:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
     slider.text:SetPoint("BOTTOMLEFT", slider, "TOPLEFT", 0, 4)
     slider.text:SetText(text)
     slider.text:SetTextColor(unpack(colors.textDim))
+
+    -- Upgrade Low and High text fonts to match the UI style
+    local lowText = _G[sliderName .. "Low"]
+    if lowText then
+        lowText:SetFontObject(menuStyle.labelFont)
+        lowText:SetText(minVal)
+        lowText:SetTextColor(unpack(colors.textDim))
+    end
+
+    local highText = _G[sliderName .. "High"]
+    if highText then
+        highText:SetFontObject(menuStyle.labelFont)
+        highText:SetText(maxVal)
+        highText:SetTextColor(unpack(colors.textDim))
+    end
 
     slider:SetValue(val)
 
@@ -222,7 +239,10 @@ function layoutFactory:createColorPicker(args)
     ascensionBars.registeredElements[elementID] = "ColorPicker"
     
     local style = getStyle(elementID)
-    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
+    -- Reduce the left padding by 4 pixels for better optical alignment
+    local basePadding = xOffset or style.contentPadding or menuStyle.contentPadding
+    local actualX = basePadding - 4
+    
     local pickerSize = style.colorPickerSize or menuStyle.colorPickerSize or 20
     local pickerSpacing = style.colorPickerSpacing or menuStyle.colorPickerSpacing or 24
     
@@ -292,14 +312,14 @@ end
 
 function layoutFactory:createDropdown(args)
     local elementID, parent, text, options = args.elementID, args.parent, args.text, args.options
-    local getter, setter, yOffset, xOffset = args.getter, args.setter, args.yOffset, args.xOffset
+    local getter, setter, width, yOffset, xOffset = args.getter, args.setter, args.width, args.yOffset, args.xOffset
     
     ascensionBars.registeredElements = ascensionBars.registeredElements or {}
     ascensionBars.registeredElements[elementID] = "Dropdown"
     
     local style = getStyle(elementID)
-    local actualX = style.contentPadding or xOffset or menuStyle.contentPadding
-    local dropWidth = style.dropdownWidth or menuStyle.dropdownWidth or 140
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
+    local dropWidth = width or style.dropdownWidth or menuStyle.dropdownWidth or 140
     local dropHeight = style.dropdownHeight or menuStyle.dropdownHeight or 44
 
     local frame = CreateFrame("Frame", nil, parent)
@@ -345,7 +365,7 @@ function layoutFactory:createDropdown(args)
 
     local list = CreateFrame("Frame", nil, dropdown, "BackdropTemplate")
     list:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
-    list:SetWidth(150)
+    list:SetWidth(dropWidth)
     list:SetFrameStrata("DIALOG")
     list:Hide()
     list:SetBackdrop({
@@ -365,7 +385,7 @@ function layoutFactory:createDropdown(args)
 
     for i, opt in ipairs(options) do
         local btn = CreateFrame("Button", nil, list, "BackdropTemplate")
-        btn:SetSize(140, 20)
+        btn:SetSize(dropWidth - 10, 20)
         btn:SetPoint("TOPLEFT", 5, -5 - ((i - 1) * 20))
         btn:SetBackdrop({ bgFile = files.bgFile })
         btn:SetBackdropColor(unpack(colors.surfaceDark)) -- #0C0A15
@@ -393,15 +413,30 @@ function layoutFactory:createScrollPanel(args)
     
     local scrollName = "AscensionBarsScrollPanel_" .. tostring(math.random(1000000, 9999999))
     local scrollFrame = CreateFrame("ScrollFrame", scrollName, parent, "UIPanelScrollFrameTemplate")
-        scrollFrame.elementID = elementID
-        scrollFrame:SetPoint("TOPLEFT", 0, 0)
-        scrollFrame:SetPoint("BOTTOMRIGHT", -15, 10)
+    scrollFrame.elementID = elementID
+    
+    -- Anchor to all corners of the parent. 
+    -- We leave a 25px margin on the right to accommodate the native vertical scrollbar.
+    scrollFrame:SetPoint("TOPLEFT", parent, "TOPLEFT", 0, 0)
+    scrollFrame:SetPoint("BOTTOMRIGHT", parent, "BOTTOMRIGHT", -15, 0)
 
     local content = CreateFrame("Frame", nil, scrollFrame)
-        content:SetSize(scrollFrame:GetWidth(), 800) -- aqui
-        scrollFrame:SetScrollChild(content)
-        scrollFrame:EnableMouseWheel(true)
-        scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
+    
+    -- Set an initial safe size. The height will be dynamically overridden by your build() functions.
+    local initialWidth = scrollFrame:GetWidth()
+    if initialWidth == 0 then initialWidth = 600 end
+    content:SetSize(initialWidth, 1) 
+    
+    scrollFrame:SetScrollChild(content)
+    scrollFrame:EnableMouseWheel(true)
+    scrollFrame.ScrollBar = _G[scrollName .. "ScrollBar"]
+
+    -- Make the content canvas responsive to main frame resizing
+    scrollFrame:SetScript("OnSizeChanged", function(self, width)
+        if content and width and width > 0 then
+            content:SetWidth(width)
+        end
+    end)
 
     scrollFrame:SetScript("OnMouseWheel", function(self, delta)
         local bar = self.ScrollBar
@@ -554,8 +589,17 @@ function layoutModel:header(elementID, text)
     return h
 end
 
-function layoutModel:label(elementID, text, xOffset)
-    local l, newY = layoutFactory:createLabel({ elementID = elementID, parent = self.parent, text = text, yOffset = self.y, xOffset = xOffset })
+function layoutModel:label(elementID, text, xOffset, color)
+    local targetParent = self.currentSection or self.parent
+    local l, newY = layoutFactory:createLabel({ 
+        elementID = elementID, 
+        parent = targetParent, 
+        anchorFrame = self.parent, 
+        text = text, 
+        yOffset = self.y, 
+        xOffset = xOffset,
+        color = color 
+    })
     self.y = newY
     return l
 end
@@ -587,19 +631,29 @@ function layoutModel:colorPicker(elementID, text, getter, setter, xOffset, hasAl
     return cp
 end
 
-function layoutModel:dropdown(elementID, text, options, getter, setter, xOffset)
+function layoutModel:dropdown(elementID, text, options, getter, setter, width, xOffset)
     local dd, newY = layoutFactory:createDropdown({
         elementID = elementID, parent = self.parent, text = text, options = options,
-        getter = getter, setter = setter, yOffset = self.y, xOffset = xOffset
+        getter = getter, setter = setter, width = width, yOffset = self.y, xOffset = xOffset
     })
     self.y = newY
     return dd
 end
 
-function layoutModel:beginSection()
+function layoutModel:beginSection(xOffset, width)
     local section = CreateFrame("Frame", nil, self.parent, "BackdropTemplate")
-    section:SetPoint("TOPLEFT", 8, self.y + 8)
-    section:SetPoint("RIGHT", -8, 0)
+    local actualX = xOffset or 8
+    
+    -- Reduced top padding from 8 to 4
+    self.sectionStartY = self.y + 4
+    section:SetPoint("TOPLEFT", self.parent, "TOPLEFT", actualX, self.sectionStartY)
+    
+    if width then
+        section:SetWidth(width)
+    else
+        section:SetPoint("RIGHT", self.parent, "RIGHT", -8, 0)
+    end
+
     section:SetBackdrop({
         bgFile = files.bgFile,
         edgeFile = files.edgeFile,
@@ -609,12 +663,17 @@ function layoutModel:beginSection()
     section:SetBackdropColor(unpack(colors.surfaceDark)) -- #0C0A15
     section:SetBackdropBorderColor(unpack(colors.surfaceHighlight)) -- #2A243D
     self.currentSection = section
-    self.y = self.y - 8
+    self.y = self.y - 4 -- Reduced top padding inside the card
 end
 
 function layoutModel:endSection()
     if self.currentSection then
-        self.currentSection:SetPoint("BOTTOM", 0, self.y)
+        -- Reduce the inherent bottom gap left by the last UI element by moving Y up by 8 pixels
+        self.y = self.y + 8 
+        
+        local totalHeight = self.sectionStartY - self.y
+        self.currentSection:SetHeight(totalHeight)
+        
         self.currentSection = nil
         self.y = self.y - 16
     end

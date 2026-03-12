@@ -64,7 +64,6 @@ ascensionBars.menuStyle = {
     contentPadding      = 16,     -- Internal margin between the frame edges and the content
     headerSpacing       = 32,     -- Vertical distance between major category sections
     labelSpacing        = 16,     -- Vertical distance after a standalone text label
-    dividerSpacing      = 8,      -- Gap between a section header and its visual separator line
     
     -- Title & Typography
     titleTop            = -16,    -- Y-offset for the main addon title at the top-left
@@ -75,12 +74,12 @@ ascensionBars.menuStyle = {
     
     -- Sidebar Tabs
     tabWidth            = 144,    -- Horizontal width of each button in the sidebar
-    tabHeight           = 32,     -- Vertical height of each button in the sidebar
-    tabSpacing          = 8,      -- Vertical gap between consecutive sidebar buttons
+    tabHeight           = 30,     -- Vertical height of each button in the sidebar
+    tabSpacing          = 6,      -- Vertical gap between consecutive sidebar buttons
     
     -- Interactive Elements
-    checkboxSize        = 24,     -- Width and height dimensions for checkbox squares
-    checkboxSpacing     = 24,     -- Total vertical space reserved for a checkbox row
+    checkboxSize        = 36,     -- Width and height dimensions for checkbox squares
+    checkboxSpacing     = 40,     -- Total vertical space reserved for a checkbox row
     sliderWidth         = 160,    -- Horizontal length of the slider's interactive bar
     sliderSpacing       = 56,     -- Total vertical height for a slider (Label + Bar + EditBox)
     dropdownWidth       = 160,    -- Horizontal length of the dropdown menu button

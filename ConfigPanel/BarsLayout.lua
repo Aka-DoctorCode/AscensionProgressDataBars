@@ -29,7 +29,15 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
     
     local bar = profile.bars[barKey]
 
-    layout:label("BarHeader_" .. barKey, displayName, xOffset + 5)
+    -- UX IMPROVEMENT: Encapsulate the entire bar configuration inside a visual Card
+    layout:beginSection(xOffset, controlWidth)
+
+    -- Reduce internal padding by half (from 10 to 5)
+    local innerX = xOffset + 5
+    local innerWidth = controlWidth - 10
+
+    -- Apply the header gold color to the label
+    layout:label("BarHeader_" .. barKey, displayName, innerX, colors.gold)
     
     layout:checkbox("EnableBarCheckbox_" .. barKey, locales["ENABLE"], nil,
         function() return bar.enabled end,
@@ -37,7 +45,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
             bar.enabled = v
             ascensionBars:updateDisplay()
         end,
-        xOffset + 10)
+        innerX)
 
     layout:dropdown("AnchorDropdown_" .. barKey, locales["ANCHOR"],
         {
@@ -52,30 +60,37 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
             addonTable.configUtils:cleanOrders(profile, "block", "order", oldBlock)
             bar.order = math.max(1, addonTable.configUtils:getCount(profile, "block", v))
             ascensionBars:updateDisplay()
-            if panel and panel.updateLayout then panel:updateLayout() end
+            if panel and panel.updateLayout then 
+                _G.C_Timer.After(0.01, function() panel:updateLayout() end) 
+            end
         end,
-        xOffset + 10)
+        innerWidth, innerX)
 
-    local orderOptions = {}
-    local count = addonTable.configUtils:getCount(profile, "block", bar.block)
-    for j = 1, count do
-        table.insert(orderOptions, { label = tostring(j), value = j })
+    -- UX IMPROVEMENT: Hide 'Order' Dropdown entirely if the bar is freely moved via coordinates
+    if bar.block ~= "FREE" then
+        local orderOptions = {}
+        local count = addonTable.configUtils:getCount(profile, "block", bar.block)
+        for j = 1, count do
+            table.insert(orderOptions, { label = tostring(j), value = j })
+        end
+        
+        layout:dropdown("OrderDropdown_" .. barKey, locales["ORDER"], orderOptions,
+            function() return bar.order or 1 end,
+            function(v)
+                local oldOrder = bar.order or 1
+                if oldOrder == v then return end
+                
+                local targetOrder = (v > oldOrder) and (v + 0.5) or (v - 0.5)
+                bar.order = targetOrder
+                addonTable.configUtils:cleanOrders(profile, "block", "order", bar.block or "TOP")
+                
+                ascensionBars:updateDisplay()
+                if panel and panel.updateLayout then 
+                    _G.C_Timer.After(0.01, function() panel:updateLayout() end) 
+                end
+            end,
+            innerWidth, innerX)
     end
-    
-    layout:dropdown("OrderDropdown_" .. barKey, locales["ORDER"], orderOptions,
-        function() return bar.order or 1 end,
-        function(v)
-            local oldOrder = bar.order or 1
-            if oldOrder == v then return end
-            
-            local targetOrder = (v > oldOrder) and (v + 0.5) or (v - 0.5)
-            bar.order = targetOrder
-            addonTable.configUtils:cleanOrders(profile, "block", "order", bar.block or "TOP")
-            
-            ascensionBars:updateDisplay()
-            if panel and panel.updateLayout then panel:updateLayout() end
-        end,
-        xOffset + 10)
 
     if profile.textLayoutMode == "INDIVIDUAL_LINES" then
         layout:slider("TextXSlider_" .. barKey, locales["TXT_X"], -500, 500, 1,
@@ -84,7 +99,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.textX = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
 
         layout:slider("TextYSlider_" .. barKey, locales["TXT_Y"], -500, 500, 1,
             function() return bar.textY or 0 end,
@@ -92,7 +107,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.textY = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
     end
 
     if bar.block == "FREE" then
@@ -102,7 +117,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.freeWidth = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
 
         layout:slider("HeightSlider_" .. barKey, locales["HEIGHT"], 2, 100, 1,
             function() return bar.freeHeight or 15 end,
@@ -110,7 +125,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.freeHeight = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
 
         layout:slider("PosXSlider_" .. barKey, locales["POS_X"], -1000, 1000, 1,
             function() return bar.freeX end,
@@ -118,7 +133,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.freeX = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
 
         layout:slider("PosYSlider_" .. barKey, locales["POS_Y"], -1000, 1000, 1,
             function() return bar.freeY end,
@@ -126,9 +141,13 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 bar.freeY = v
                 ascensionBars:updateDisplay()
             end,
-            controlWidth, xOffset + 15)
+            innerWidth - 20, innerX + 10)
     end
 
+    -- Close the Card logic
+    layout:endSection()
+    
+    -- Small gap before the next card in the column
     layout.y = layout.y - 15
 end
 
@@ -141,11 +160,10 @@ function barsLayoutTab:build(panel)
     local profile = ascensionBars.db.profile
     if not profile then return end
 
-    local scrollFrame = panel.scrollFrame
-    local panelWidth = scrollFrame and scrollFrame:GetWidth() - 30 or 600
-    panelWidth = math.max(panelWidth, 400)
-    content:SetWidth(panelWidth)
-    local colWidth = (panelWidth - 80) / 3
+    -- Default NormalWidth(750) - SidebarWidth(~150) - SafeMargins(30)
+    local defaultAvailableSpace = (ascensionBars.normalWidth or 750) - (menuStyle.sidebarWidth or 150) - 30
+    local colGap = 10
+    local colWidth = (defaultAvailableSpace - (colGap * 2)) / 3
 
     local y = -15
 
@@ -154,39 +172,33 @@ function barsLayoutTab:build(panel)
     mainLayout:header("GlobalOffsetHeader", locales["GLOBAL_OFFSET"])
     local afterHeaderY = mainLayout.y
 
-    -- Sliders (usando afterHeaderY como punto de partida)
-    local slider1, newY1 = addonTable.layoutFactory:createSlider({
-        elementID = "GlobalBlocksOffsetSlider", 
-        parent = content,
-        text = locales["GLOBAL_BLOCKS_OFFSET"], 
-        minVal = -100, maxVal = 100, step = 1,
-        getter = function() return profile.yOffset end,
-        setter = function(v) profile.yOffset = v; ascensionBars:updateDisplay() end,
-        width = 180, yOffset = afterHeaderY, xOffset = 15
-    })
+    mainLayout:slider("GlobalBlocksOffsetSlider", locales["GLOBAL_BLOCKS_OFFSET"], -100, 100, 1,
+        function() return profile.yOffset end,
+        function(v) 
+            profile.yOffset = v 
+            ascensionBars:updateDisplay() 
+        end,
+        180, 15)
 
-    local slider2, newY2 = addonTable.layoutFactory:createSlider({
-        elementID = "GlobalBarHeightSlider", 
-        parent = content,
-        text = locales["GLOBAL_BAR_HEIGHT"], 
-        minVal = 1, maxVal = 50, step = 1,
-        getter = function() return profile.globalBarHeight end,
-        setter = function(v) profile.globalBarHeight = v; for _, b in pairs(profile.bars) do b.freeHeight = v end; ascensionBars:updateDisplay() end,
-        width = 180, yOffset = newY1, xOffset = 15
-    })
+    mainLayout:slider("GlobalBarHeightSlider", locales["GLOBAL_BAR_HEIGHT"], 1, 50, 1,
+        function() return profile.globalBarHeight end,
+        function(v) 
+            profile.globalBarHeight = v 
+            for _, b in pairs(profile.bars) do b.freeHeight = v end 
+            ascensionBars:updateDisplay() 
+        end,
+        180, 15)
 
-    -- Espacio adicional opcional antes de la siguiente sección
-    local mainY = newY2 - 10
-
-    -- SECCIÓN 2: BAR MANAGEMENT
-    local mainLayout2 = addonTable.layoutModel:new(content, mainY)
-    mainLayout2:header("BarManagementHeader", locales["BAR_MANAGEMENT"])
-    local startY = mainLayout2.y
+    -- Spacer before next section
+    mainLayout.y = mainLayout.y - 10
+    
+    mainLayout:header("BarManagementHeader", locales["BAR_MANAGEMENT"])
+    local startY = mainLayout.y
 
     local blocks = {
         { name = locales["TOP_BLOCK"],    key = "TOP",    x = 10 },
-        { name = locales["BOTTOM_BLOCK"], key = "BOTTOM", x = 10 + colWidth + 5 },
-        { name = locales["FREE_MODE"],    key = "FREE",   x = 10 + (colWidth + 5) * 2 }
+        { name = locales["BOTTOM_BLOCK"], key = "BOTTOM", x = 10 + colWidth + colGap },
+        { name = locales["FREE_MODE"],    key = "FREE",   x = 10 + (colWidth + colGap) * 2 }
     }
 
     local barKeys = { "XP", "Rep", "Honor", "HouseXp", "Azerite" }
@@ -205,6 +217,8 @@ function barsLayoutTab:build(panel)
         
         local header = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
         header:SetPoint("TOPLEFT", block.x, startY)
+        header:SetWidth(colWidth)
+        header:SetJustifyH("CENTER")
         header:SetText(block.name)
         header:SetTextColor(unpack(colors.primary)) -- #FFD100
         
@@ -225,7 +239,7 @@ function barsLayoutTab:build(panel)
         end)
 
         for _, bar in ipairs(sorted) do
-            self:createBarControls(layoutCol, profile, bar.key, bar.name, panel, colWidth - 40, block.x)
+            self:createBarControls(layoutCol, profile, bar.key, bar.name, panel, colWidth, block.x)
         end
 
         if #sorted == 0 then
