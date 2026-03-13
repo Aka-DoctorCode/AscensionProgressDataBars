@@ -1,4 +1,4 @@
-<h1>V35</h1>
+<h1>V36</h1>
 <ul>
     <li>Spark size and apperance has been updated</li>
     <li>Big fix: The configuration mode was not working after modularization</li>

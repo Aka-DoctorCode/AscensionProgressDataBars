@@ -58,7 +58,7 @@ end
 
 --- Hides default Blizzard status bars to prevent UI overlap
 function ascensionBars:hideBlizzardFrames()
-    local framesToHide = { _G.StatusTrackingBarManager, _G.UIWidgetPowerBarContainerFrame }
+    local framesToHide = { _G["StatusTrackingBarManager"], _G["UIWidgetPowerBarContainerFrame"] }
     for _, frame in pairs(framesToHide) do
         if frame then
             frame:UnregisterAllEvents()
@@ -77,8 +77,8 @@ function ascensionBars:formatXP(rested)
     local level = UnitLevel("player")
     local percentage = (currentXP / maxXP) * 100
     
-    local showAbs = profile.showAbsoluteValues
-    local showPct = profile.showPercentage
+    local showAbs = profile and profile.showAbsoluteValues
+    local showPct = profile and profile.showPercentage
     
     -- 1. Base Level Part
     local text = string.format(Locales["LEVEL_TEXT"], level) -- "Level 70"
@@ -176,12 +176,14 @@ function ascensionBars:createBar(name)
     bar:SetClipsChildren(true)
 
     local background = self:acquireTexture(bar)
-    background:SetAllPoints()
-    background:SetTexture(self.constants.TEXTURE_BAR)
-    
-    local bgAlpha = (self.db and self.db.profile and self.db.profile.backgroundAlpha) or 0.5
-    background:SetVertexColor(0, 0, 0, bgAlpha) -- #000000
-    background:SetDrawLayer("BACKGROUND", -1)
+    if background then
+        background:SetAllPoints()
+        background:SetTexture(self.constants.TEXTURE_BAR)
+        
+        local bgAlpha = (self.db and self.db.profile and self.db.profile.backgroundAlpha) or 0.5
+        background:SetVertexColor(0, 0, 0, bgAlpha) -- #000000
+        background:SetDrawLayer("BACKGROUND", -1)
+    end
 
     local spark = bar:CreateTexture(nil, "ARTWORK")
     spark:SetTexture(self.constants.TEXTURE_SPARK)
@@ -328,7 +330,7 @@ function ascensionBars:updateTextAnchors()
 
         -- 2. Asignar posiciones individuales para cada texto anclado SIEMPRE AL TOP
         for _, entry in ipairs(barList) do
-            local config = profile.bars[entry.key]
+            local config = profile.bars and profile.bars[entry.key] or nil
             -- Solo mostrar textos de barras activas y visibles
             if config and config.enabled and entry.obj.bar:IsShown() then
                 entry.obj.txFrame:ClearAllPoints()
@@ -344,7 +346,7 @@ function ascensionBars:updateTextAnchors()
         -- 3. Lógica para el modo agrupado (SINGLE_LINE)
         local groups = { T1 = {}, T2 = {}, T3 = {} }
         for _, entry in ipairs(barList) do
-            local config = profile.bars[entry.key]
+            local config = profile.bars and profile.bars[entry.key] or nil
             if config and config.enabled and entry.obj.bar:IsShown() then
                 local blockKey = config.textBlock or "T1"
                 table.insert(groups[blockKey], entry)
@@ -355,8 +357,8 @@ function ascensionBars:updateTextAnchors()
 
         for gKey, activeFrames in pairs(groups) do
             table.sort(activeFrames, function(a, b)
-                local barA = profile.bars[a.key]
-                local barB = profile.bars[b.key]
+                local barA = profile.bars and profile.bars[a.key] or {}
+                local barB = profile.bars and profile.bars[b.key] or {}
                 return (barA.textOrder or 0) < (barB.textOrder or 0)
             end)
 
@@ -379,7 +381,7 @@ function ascensionBars:updateTextAnchors()
                     container:Show()
                     container:SetWidth(totalWidth)
                     
-                    local gSet = profile.textGroups[gKey] or { detached = true, x = 0, y = 0 }
+                    local gSet = profile.textGroups and profile.textGroups[gKey] or { detached = true, x = 0, y = 0 }
                     container:ClearAllPoints()
                     
                     -- ANCLAJE ABSOLUTO AL TOP
@@ -419,7 +421,8 @@ function ascensionBars:updateDisplay(force)
 
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
-    local bars = profile.bars
+    local bars = profile and profile.bars or nil
+    if not bars then return end
 
     self:applyTextStyles()
 
@@ -428,7 +431,7 @@ function ascensionBars:updateDisplay(force)
     local isConfig = self.state and self.state.isConfigMode
     
     -- If in config mode, we force shouldHideXP to false so the bar layout is calculated
-    local shouldHideXP = (curLevel >= maxLevel) and profile.hideAtMaxLevel and not isConfig
+    local shouldHideXP = (curLevel >= maxLevel) and profile and profile.hideAtMaxLevel and not isConfig
 
     self:updateLayout(shouldHideXP)
     self:updateVisibility()
@@ -462,9 +465,10 @@ end
 function ascensionBars:updateLayout(shouldHideXP)
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
-    local bars = profile.bars
+    local bars = profile and profile.bars or nil
+    if not bars then return end
 
-    local gap = profile.barGap or 1
+    -- 1. Organización de bloques
     local blocks = { TOP = {}, BOTTOM = {}, FREE = {} }
     local barList = {
         { obj = self.xp,      key = "XP" },
@@ -485,52 +489,77 @@ function ascensionBars:updateLayout(shouldHideXP)
         end
     end
 
+    -- 2. Función interna para calcular la altura dinámica de cada barra
+    local function getBarHeight(entry)
+        local config = bars and bars[entry.key] or nil
+        if not config then return profile and profile.globalBarHeight or 6 end
+        local block = config.block or "TOP"
+        
+        -- Prioridad: 1. Modo FREE (freeHeight) | 2. Custom Height | 3. Block Height | 4. Global Height
+        if block == "FREE" then return config.freeHeight or 15 end
+        if config.useCustomHeight then return config.customHeight or 10 end
+        if profile.blockHeights and profile.blockHeights[block] then
+            return profile.blockHeights[block]
+        end
+        return profile and profile.globalBarHeight or 6
+    end
+
+    -- 3. Ordenamiento por prioridad 'order'
     local sortFn = function(a, b)
         return (bars[a.key].order or 0) < (bars[b.key].order or 0)
     end
     table.sort(blocks.TOP, sortFn)
     table.sort(blocks.BOTTOM, sortFn)
 
-    local gHeight = profile.globalBarHeight or 6
-    local yOffset = profile.yOffset or 0
+    ---------------------------------------------------------------------------
+    -- LAYOUT: TOP BLOCKS
+    ---------------------------------------------------------------------------
+    local topOffset = profile.usePerBlockOffsets and (profile.topOffset or 0) or (profile.yOffset or 0)
+    local topGap = profile.usePerBlockGaps and (profile.topBarGap or 2) or (profile.barGap or 1)
 
-    -- Layout TOP blocks
     for i, entry in ipairs(blocks.TOP) do
-        local config = bars[entry.key]
         entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetHeight(config.freeHeight or gHeight)
+        entry.obj.bar:SetHeight(getBarHeight(entry))
+        
         if i == 1 then
-            entry.obj.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, yOffset)
-            entry.obj.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, yOffset)
+            entry.obj.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, topOffset)
+            entry.obj.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, topOffset)
         else
             local prev = blocks.TOP[i - 1]
-            entry.obj.bar:SetPoint("TOPLEFT", prev.obj.bar, "BOTTOMLEFT", 0, -gap)
-            entry.obj.bar:SetPoint("TOPRIGHT", prev.obj.bar, "BOTTOMRIGHT", 0, -gap)
+            entry.obj.bar:SetPoint("TOPLEFT", prev.obj.bar, "BOTTOMLEFT", 0, -topGap)
+            entry.obj.bar:SetPoint("TOPRIGHT", prev.obj.bar, "BOTTOMRIGHT", 0, -topGap)
         end
         entry.obj.bar:Show()
     end
 
-    -- Layout BOTTOM blocks
+    ---------------------------------------------------------------------------
+    -- LAYOUT: BOTTOM BLOCKS
+    ---------------------------------------------------------------------------
+    local botOffset = profile.usePerBlockOffsets and (profile.bottomOffset or 0) or math.abs(profile.yOffset or 0)
+    local botGap = profile.usePerBlockGaps and (profile.bottomBarGap or 2) or (profile.barGap or 1)
+
     for i, entry in ipairs(blocks.BOTTOM) do
-        local config = bars[entry.key]
         entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetHeight(config.freeHeight or gHeight)
+        entry.obj.bar:SetHeight(getBarHeight(entry))
+        
         if i == 1 then
-            entry.obj.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, math.abs(yOffset))
-            entry.obj.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, math.abs(yOffset))
+            entry.obj.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, botOffset)
+            entry.obj.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, botOffset)
         else
             local prev = blocks.BOTTOM[i - 1]
-            entry.obj.bar:SetPoint("BOTTOMLEFT", prev.obj.bar, "TOPLEFT", 0, gap)
-            entry.obj.bar:SetPoint("BOTTOMRIGHT", prev.obj.bar, "TOPRIGHT", 0, gap)
+            entry.obj.bar:SetPoint("BOTTOMLEFT", prev.obj.bar, "TOPLEFT", 0, botGap)
+            entry.obj.bar:SetPoint("BOTTOMRIGHT", prev.obj.bar, "TOPRIGHT", 0, botGap)
         end
         entry.obj.bar:Show()
     end
 
-    -- Layout FREE blocks
+    ---------------------------------------------------------------------------
+    -- LAYOUT: FREE BLOCKS
+    ---------------------------------------------------------------------------
     for _, entry in ipairs(blocks.FREE) do
         local config = bars[entry.key]
         entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetSize(config.freeWidth or 500, config.freeHeight or 6)
+        entry.obj.bar:SetSize(config.freeWidth or 500, config.freeHeight or 15)
         entry.obj.bar:SetPoint("CENTER", UIParent, "CENTER", config.freeX or 0, config.freeY or 0)
         entry.obj.bar:Show()
     end
@@ -542,9 +571,9 @@ function ascensionBars:updateVisibility()
 
     local alpha = 1
     if not self.state.isConfigMode then
-        if profile.hideInCombat and self.state.inCombat then
+        if profile and profile.hideInCombat and self.state.inCombat then
             alpha = 0
-        elseif profile.showOnMouseover and not self.state.isHovering then
+        elseif profile and profile.showOnMouseover and not self.state.isHovering then
             alpha = 0
         end
     end
@@ -555,7 +584,7 @@ function ascensionBars:updateVisibility()
             barObj.bar:SetAlpha(alpha)
             -- If alpha is 1, ensure the frame is actually visible
             if alpha > 0 and not barObj.bar:IsShown() then
-                local config = profile.bars[barObj.key or ""]
+                local config = profile and profile.bars and profile.bars[barObj.key or ""] or nil
                 if config and config.enabled then
                     barObj.bar:Show()
                 end

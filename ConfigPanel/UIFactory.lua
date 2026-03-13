@@ -12,7 +12,15 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@class AscensionBars : AceAddon
+---@field colors table
+---@field files table
+---@field menuStyle table
+---@field db { profile: table }
+---@field registeredElements table
+---@field activeTab number
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 
 local colors = ascensionBars.colors
 local files = ascensionBars.files
@@ -107,7 +115,7 @@ function layoutFactory:createCheckbox(args)
             tooltipFrame:AddLine(tooltip, 1, 0.82, 0, true) -- #FFD100
             tooltipFrame:Show()
         end)
-        checkbox:SetScript("OnLeave", _G.GameTooltip_Hide)
+        checkbox:SetScript("OnLeave", _G["GameTooltip_Hide"])
     end
 
     return checkbox, yOffset - checkboxSpacing
@@ -266,7 +274,7 @@ function layoutFactory:createColorPicker(args)
     label:SetText(text)
 
     local function colorCallback(restore)
-        local colorPicker = _G.ColorPickerFrame
+        local colorPicker = _G["ColorPickerFrame"]
         local r, g, b, a
         if restore then
             r, g, b, a = unpack(restore)
@@ -283,7 +291,7 @@ function layoutFactory:createColorPicker(args)
     end
 
     button:SetScript("OnClick", function()
-        local colorPicker = _G.ColorPickerFrame
+        local colorPicker = _G["ColorPickerFrame"]
         local r, g, b, a = getter()
         local currentAlpha = a or 1
         local info = {
