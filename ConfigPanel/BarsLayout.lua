@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: BarsLayout.lua
 -- Version: @project-version@
@@ -13,7 +13,9 @@
 
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 -- Use the shared utilities that will be defined in our main ConfigMain.lua
@@ -30,13 +32,13 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
 
     layout:beginSection(xOffset, controlWidth)
     
-    -- Título de la tarjeta
+    -- Card Title
     layout:label("BarHeader_" .. barKey, displayName, xOffset + 5, colors.gold)
     
     local margin = 10
     local internalWidth = controlWidth - (margin * 2)
     
-    -- VARIABLES GLOBALES DE LA FUNCIÓN (Para evitar errores de 'nil')
+    -- GLOBAL FUNCTION VARIABLES (To prevent 'nil' errors)
     local halfWidth = (internalWidth - 10) / 2
     local colWidth = (internalWidth - 20) / 3
     
@@ -46,19 +48,19 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
     local ddCol2X = col1X + halfWidth + 10
 
     ---------------------------------------------------------------------------
-    -- DISPOSICIÓN DE ELEMENTOS (FILAS Y COLUMNAS)
+    -- ELEMENT LAYOUT (ROWS AND COLUMNS)
     ---------------------------------------------------------------------------
     local row1Y = layout.y
-    local row2Y = row1Y - 45 -- Fila 2 para modo TOP/BOTTOM
-    local freeRow2Y = row1Y - 85 -- Separación MUCHO MAYOR (85px) para dar espacio a los Sliders en FREE
+    local row2Y = row1Y - 45 -- Row 2 for TOP/BOTTOM mode
+    local freeRow2Y = row1Y - 85 -- MUCH LARGER separation (85px) to give space to Sliders in FREE
     local finalY = row2Y
 
     if bar.block == "FREE" then
         -- ====================================================
-        -- MODO FREE: 3 Columnas, 2 Filas exactas
+        -- FREE MODE: 3 Columns, 2 Exact Rows
         -- ====================================================
         
-        -- COLUMNA 1: Toggle & Dropdown
+        -- COLUMN 1: Toggle & Dropdown
         layout.y = row1Y
         layout:checkbox("EnableBarCheckbox_" .. barKey, locales["ENABLE"], nil,
             function() return bar.enabled end,
@@ -77,7 +79,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
             end, colWidth, col1X)
         finalY = math.min(finalY, layout.y)
 
-        -- COLUMNA 2: Width & Height
+        -- COLUMN 2: Width & Height
         layout.y = row1Y
         layout:slider("WidthSlider_" .. barKey, locales["WIDTH"], 50, 2000, 1,
             function() return bar.freeWidth end,
@@ -89,7 +91,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
             function(v) bar.freeHeight = v; ascensionBars:updateDisplay() end, colWidth, col2X)
         finalY = math.min(finalY, layout.y)
 
-        -- COLUMNA 3: PosX & PosY
+        -- COLUMN 3: PosX & PosY
         layout.y = row1Y
         layout:slider("PosXSlider_" .. barKey, locales["POS_X"], -1000, 1000, 1,
             function() return bar.freeX end,
@@ -103,10 +105,10 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
 
     else
         -- ====================================================
-        -- MODO TOP / BOTTOM (Estructura Original Respetada)
+        -- TOP / BOTTOM MODE (Original Structure Respected)
         -- ====================================================
         
-        -- Fila 1: Checkboxes
+        -- Row 1: Checkboxes
         layout.y = row1Y
         layout:checkbox("EnableBarCheckbox_" .. barKey, locales["ENABLE"], nil,
             function() return bar.enabled end,
@@ -121,7 +123,7 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
                 if panel.updateLayout then panel:updateLayout() end 
             end, col2X - 6)
             
-        -- Fila 2: Dropdowns (Mitad y Mitad)
+        -- Row 2: Dropdowns (Half and Half)
         layout.y = row2Y
         layout:dropdown("AnchorDropdown_" .. barKey, locales["ANCHOR"],
             {{label=locales["TOP"], value="TOP"}, {label=locales["BOTTOM"], value="BOTTOM"}, {label=locales["FREE"], value="FREE"}},
@@ -152,12 +154,13 @@ function barsLayoutTab:createBarControls(layout, profile, barKey, displayName, p
         local row3Y = layout.y - 10
         finalY = row3Y
         
-        -- Fila 3: Sliders Opcionales
+        -- Row 3: Optional Sliders
         if bar.useCustomHeight then
             layout.y = row3Y
+            -- Occupies the full internal width (internalWidth) centered with col1X
             layout:slider("CustomHeightSlider_" .. barKey, locales["CUSTOM_HEIGHT"], 1, 50, 1,
                 function() return bar.customHeight or 10 end,
-                function(v) bar.customHeight = v; ascensionBars:updateDisplay() end, colWidth, col1X)
+                function(v) bar.customHeight = v; ascensionBars:updateDisplay() end, internalWidth, col1X)
             finalY = math.min(finalY, layout.y)
         end
         
@@ -194,7 +197,7 @@ function barsLayoutTab:build(panel)
     local colGap = 10
     local y = -15
 
-    -- SECCIÓN 1: GLOBAL SETTINGS
+    -- SECTION 1: GLOBAL SETTINGS
     local mainLayout = addonTable.layoutModel:new(content, y)
     mainLayout:header("GlobalOffsetHeader", locales["GLOBAL_SETTINGS"] or "Global Settings")
     
@@ -261,8 +264,17 @@ function barsLayoutTab:build(panel)
 
     mainLayout.y = math.min(afterOffsetsY, mainLayout.y) - 15
     
-    -- SECCIÓN BAR MANAGEMENT
+    -- BAR MANAGEMENT SECTION
     mainLayout:header("BarManagementHeader", locales["BAR_MANAGEMENT"])
+
+    mainLayout:checkbox("PerBlockHeightToggle", locales["USE_PER_BLOCK_HEIGHT"], nil,
+        function() return profile.usePerBlockHeights end,
+        function(v)
+            profile.usePerBlockHeights = v
+            ascensionBars:updateDisplay()
+            if panel.updateLayout then _G.C_Timer.After(0.01, function() panel:updateLayout() end) end
+        end, 15)
+
     local barStartY = mainLayout.y
 
     local barKeys = { "XP", "Rep", "Honor", "HouseXp", "Azerite" }
@@ -289,16 +301,19 @@ function barsLayoutTab:build(panel)
         header:SetTextColor(0.64, 0.21, 0.93)
         
         layoutCol.y = barStartY - 30
-        layoutCol:slider("BlockHeightSlider_" .. block.key, locales["BLOCK_HEIGHT"], 1, 50, 1,
-            function() 
-                profile.blockHeights = profile.blockHeights or {}
-                return profile.blockHeights[block.key] or profile.globalBarHeight or 10
-            end,
-            function(v) 
-                profile.blockHeights = profile.blockHeights or {}
-                profile.blockHeights[block.key] = v
-                ascensionBars:updateDisplay() 
-            end, block.width - 10, block.x + 5)
+
+        if profile.usePerBlockHeights then
+            layoutCol:slider("BlockHeightSlider_" .. block.key, locales["BLOCK_HEIGHT"], 1, 50, 1,
+                function() 
+                    profile.blockHeights = profile.blockHeights or {}
+                    return profile.blockHeights[block.key] or profile.globalBarHeight or 10
+                end,
+                function(v) 
+                    profile.blockHeights = profile.blockHeights or {}
+                    profile.blockHeights[block.key] = v
+                    ascensionBars:updateDisplay() 
+                end, block.width - 10, block.x + 5)
+        end
         
         layoutCol.y = layoutCol.y - 10
 
@@ -316,7 +331,7 @@ function barsLayoutTab:build(panel)
         if layoutCol.y < maxRowY then maxRowY = layoutCol.y end
     end
 
-    -- SECCIÓN FREE MODE
+    -- FREE MODE SECTION
     local freeStartY = maxRowY - 10
     local layoutFree = addonTable.layoutModel:new(content, freeStartY)
     local freeHeader = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)

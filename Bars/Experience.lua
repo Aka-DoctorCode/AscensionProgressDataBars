@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Experience.lua
 -- Version: @project-version@
@@ -12,8 +12,13 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local dataText = addonTable.dataText
+
+
 
 --- Renders the Experience bar and optional rested overlay
 -- @param shouldHideXP boolean Whether the bar should be hidden (e.g., at max level)
@@ -33,6 +38,14 @@ function ascensionBars:renderExperience(shouldHideXP)
         local classColor = profile.useClassColorXP and self:getClassColor() or xpColor
         
         self:setupBar(xpObj, 0, maxXP, currentXP, classColor)
+
+        -- Store values for legend
+        xpObj.current = currentXP
+        xpObj.max = maxXP
+        xpObj.percentage = (currentXP / maxXP) * 100
+        xpObj.displayName = string.format(Locales["LEVEL_TEXT"] or "Level %d", UnitLevel("player") or 0)
+        xpObj.color = classColor
+        xpObj.rested = GetXPExhaustion() or 0
 
         -- Handle Rested XP Overlay
         if profile.showRestedBar then
@@ -59,10 +72,11 @@ function ascensionBars:renderExperience(shouldHideXP)
             xpObj.restedOverlay:Hide()
         end
 
-        -- Update Text using the formatted string from main logic
-        if xpObj.text then
-            local rested = GetXPExhaustion() or 0
-            xpObj.text:SetText(self:formatXP(rested) or "")
+        if dataText then
+            local str = dataText:formatExperience()
+            xpObj.centerText:SetText(str)
+            xpObj.leftText:SetText("")
+            xpObj.rightText:SetText("")
         end
         
         if xpObj.txFrame then
@@ -92,11 +106,18 @@ function ascensionBars:configExperience(profile, bars, textColor)
         local xpColor = profile.xpBarColor or { r = 0, g = 0.4, b = 0.9, a = 1 }
         local classColor = profile.useClassColorXP and self:getClassColor() or xpColor
         
-        self:setupBar(xpObj, 0, 100, 75, classColor)
+                self:setupBar(xpObj, 0, 100, 75, classColor)
 
-        if xpObj.text then
-            xpObj.text:SetText(Locales["XP_BAR_CONFIG_TEXT"] or Locales["XP_BAR_DATA"])
-            xpObj.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
+        -- Store config preview values for legend
+        xpObj.current = 7500
+        xpObj.max = 10000
+        xpObj.percentage = 75
+        xpObj.displayName = string.format(Locales["LEVEL_TEXT"] or "Level %d", 60)
+        xpObj.color = classColor
+        xpObj.rested = 2500
+
+        if xpObj.centerText then
+            xpObj.centerText:SetText(Locales["XP_BAR_CONFIG_TEXT"] or Locales["XP_BAR_DATA"])
         end
 
         -- Config Preview for Rested Bar

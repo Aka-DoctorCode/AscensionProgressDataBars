@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Reputation.lua
 -- Version: @project-version@
@@ -12,8 +12,13 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
-local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+---@type AscensionBars
+local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
+local dataText = addonTable.dataText
+
+
 
 --- Normalizes faction data from various Blizzard APIs
 -- @param factionId number The faction ID to query
@@ -71,7 +76,7 @@ function ascensionBars:getFactionData(factionId)
         if factionData then
             local reactionIndex = factionData.reaction or 0
             data.reaction = reactionIndex
-            data.levelName = GetText("FACTION_STANDING_LABEL" .. reactionIndex, UnitSex("player"))
+            data.levelName = _G["FACTION_STANDING_LABEL" .. reactionIndex] or reactionIndex
             data.currentValue = factionData.currentStanding - factionData.currentReactionThreshold
             data.maxValue = factionData.nextReactionThreshold - factionData.currentReactionThreshold
             data.isMaxLevel = (reactionIndex == 8)
@@ -101,8 +106,9 @@ function ascensionBars:getFactionData(factionId)
 end
 
 --- Scans for paragon rewards and updates character cache
+--- @self AscensionBars
 function ascensionBars:scanParagonRewards()
-    if not self.db or not self.db.global then return end
+    if not (self.db and self.db.global) then return end
     
     local characterKey = UnitName("player") .. "-" .. GetRealmName()
     self.db.global.paragonRewards = self.db.global.paragonRewards or {}
@@ -111,27 +117,30 @@ function ascensionBars:scanParagonRewards()
     local foundAny = false
     local numFactions = C_Reputation.GetNumFactions()
 
-    for i = 1, numFactions do
-        local factionData = C_Reputation.GetFactionDataByIndex(i)
-        if factionData and factionData.factionID then
-            if C_Reputation.IsFactionParagon(factionData.factionID) then
-                local _, _, _, hasReward = C_Reputation.GetFactionParagonInfo(factionData.factionID)
-                if hasReward then
-                    currentRewards[factionData.factionID] = factionData.name
-                    foundAny = true
+    if numFactions and numFactions > 0 then
+        for i = 1, numFactions do
+            local factionData = C_Reputation.GetFactionDataByIndex(i)
+            if factionData and factionData.factionID then
+                if C_Reputation.IsFactionParagon(factionData.factionID) then
+                    local _, _, _, hasReward = C_Reputation.GetFactionParagonInfo(factionData.factionID)
+                    if hasReward then
+                        currentRewards[factionData.factionID] = factionData.name
+                        foundAny = true
+                    end
                 end
             end
         end
-    end
 
-    if foundAny then
-        self.db.global.paragonRewards[characterKey] = currentRewards
-    else
-        self.db.global.paragonRewards[characterKey] = nil
+        if foundAny then
+            self.db.global.paragonRewards[characterKey] = currentRewards
+        else
+            self.db.global.paragonRewards[characterKey] = nil
+        end
     end
 end
 
 --- Renders the Reputation bar and Paragon alerts
+--- @self AscensionBars
 function ascensionBars:renderReputation()
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
@@ -187,11 +196,12 @@ function ascensionBars:renderReputation()
             alertText = hex .. factionStr .. suffix .. "|r"
             
             -- Set bar data to reward status
-            name, reaction, curVal, maxVal = currentPending[1].name, 9, 1, 1
+            name = currentPending[1] and currentPending[1].name or ""
+            reaction, curVal, maxVal = 9, 1, 1
             standingLabel, isMaxLevel, hasParagon = Locales["REWARD_PENDING_STATUS"], false, true
         else
-            local charName = string.upper(otherCharWithReward)
-            alertText = hex .. string.format(Locales["REWARD_ON_CHAR"], charName) .. "|r"
+            local charName = string.upper(tostring(otherCharWithReward or "Unknown"))
+            alertText = hex .. string.format(Locales["REWARD_ON_CHAR"] or "%s", charName) .. "|r"
         end
         
         self.paragonText:SetFont(self.fontToUse, profile.paragonTextSize or 18, "OUTLINE")
@@ -247,44 +257,56 @@ function ascensionBars:renderReputation()
         
         self:setupBar(self.rep, 0, max, cur, color)
         
-        local labelPart = string.format(Locales["REP_LABEL_FORMAT"], name, standingLabel)
-        local valuePart = ""
-
-        -- Dynamic Visibility logic
-        local showAbs = profile.showAbsoluteValues
-        local showPct = profile.showPercentage
-
-        if isMaxLevel and not hasParagon then
-            if showPct then
-                valuePart = string.format(Locales["REP_VALUE_FORMAT_PCT"], 100.0)
-            end
-        else
-            if showAbs and showPct then
-                valuePart = string.format(Locales["REP_VALUE_FORMAT_FULL"], 
-                    BreakUpLargeNumbers(cur), 
-                    BreakUpLargeNumbers(max), 
-                    percentage
-                )
-            elseif showAbs then
-                valuePart = string.format("%s / %s", BreakUpLargeNumbers(cur), BreakUpLargeNumbers(max))
-            elseif showPct then
-                valuePart = string.format(Locales["REP_VALUE_FORMAT_PCT"], percentage)
-            end
-        end
-
-        -- Construct final string
-        if valuePart ~= "" then
-            self.rep.text:SetText(labelPart .. " | " .. valuePart)
-        else
-            self.rep.text:SetText(labelPart)
-        end
-
-        local textColor = profile.textColor
-        if textColor then
-            self.rep.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
+        -- Store values for legend
+        self.rep.current = cur
+        self.rep.max = max
+        self.rep.percentage = percentage
+        self.rep.displayName = name
+        self.rep.standing = standingLabel
+        self.rep.color = color
+        
+        if dataText then
+            local result = dataText:formatReputation(name, standingLabel, cur, max, isMaxLevel, hasParagon)
+            self.rep.centerText:SetText(result)
+            self.rep.leftText:SetText("")
+            self.rep.rightText:SetText("")
         end
     elseif self.rep then
         self.rep.bar:Hide()
         self.rep.txFrame:Hide()
+    end
+end
+
+--- Displays the Reputation bar in a dummy state for configuration
+-- @param profile table The active DB profile
+-- @param bars table The bars configuration sub-table
+-- @param textColor table The RGB table for text
+function ascensionBars:configReputation(profile, bars, textColor)
+    local repObj = self.rep
+    if not repObj then return end
+    
+    local repConfig = bars["Rep"]
+    if repConfig and repConfig.enabled then
+        repObj.bar:Show()
+        repObj.txFrame:Show()
+        
+        -- Default Reputation Green: #00FF00
+        local repColor = profile.repBarColor or { r = 0, g = 1, b = 0, a = 1 }
+        self:setupBar(repObj, 0, 100, 50, repColor)
+        
+        -- Store config preview values for legend
+        self.rep.current = 1500
+        self.rep.max = 3000
+        self.rep.percentage = 50
+        self.rep.displayName = Locales["REPUTATION"] or "Reputation"
+        self.rep.standing = Locales["FRIENDLY"] or "Friendly"
+        self.rep.color = repColor
+        
+        if repObj.centerText then
+            repObj.centerText:SetText(Locales["REP_BAR_DATA"])
+        end
+    else
+        repObj.bar:Hide()
+        repObj.txFrame:Hide()
     end
 end

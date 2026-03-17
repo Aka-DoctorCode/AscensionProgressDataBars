@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Constants.lua
 -- Version: @project-version@
@@ -12,7 +12,9 @@
 -------------------------------------------------------------------------------
 
 local addonName, _ = ...
+---@type AscensionBars
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 
 -------------------------------------------------------------------------------
 -- Default profile
@@ -32,17 +34,21 @@ ascensionBars.defaults = {
         showOnMouseover = false,
         showPercentage = true,
         showAbsoluteValues = true,
+        useCompactFormat = false,
+        useDecimals = true,
         useClassColorXP = true,
         sparkEnabled = true,
+        usePerBlockHeights = false,
         barAnchor = "TOP",
         textColor = { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, -- #FFFFFF
-        textGroups = {
-            T1 = { detached = false, x = 0, y = -25 },
-            T2 = { detached = false, x = 0, y = -50 },
-            T3 = { detached = false, x = 0, y = -75 },
-        },
-        textLayoutMode = "SINGLE_LINE",
-        textFollowBar = true,
+        blockTextMode = "FOCUS",       -- "FOCUS" | "GRID" | "NONE"
+        dynamicGridGap = 2,
+        focusFadeEnabled = true,
+        focusDimAlpha = 0.4,
+        legendEnabled = false,
+        carouselEnabled = false,
+        carouselBatchDelay = 2,
+        carouselRotateInterval = 5,
         elementStyles = {
             ["AlertStylingHeader"] = {
                 contentPadding = 0,
@@ -51,16 +57,18 @@ ascensionBars.defaults = {
         bars = {
             ["XP"] = {
                 enabled = true,
-                block = "BOTTOM",
+                block = "TOP",
                 order = 1,
                 freeX = 0,
                 freeY = 0,
                 freeWidth = 500,
                 freeHeight = 6,
-                textX = 0,
-                textY = 0,
-                textBlock = "T1",
-                textOrder = 1
+                useCustomFont = false,
+                customFontPath = nil,
+                useCustomTextSize = false,
+                customTextSize = 14,
+                useCustomTextColor = false,
+                customTextColor = { r = 1, g = 1, b = 1, a = 1 }
             },
             ["Rep"] = {
                 enabled = true,
@@ -70,10 +78,12 @@ ascensionBars.defaults = {
                 freeY = -20,
                 freeWidth = 500,
                 freeHeight = 6,
-                textX = 0,
-                textY = 0,
-                textBlock = "T1",
-                textOrder = 2
+                useCustomFont = false,
+                customFontPath = nil,
+                useCustomTextSize = false,
+                customTextSize = 14,
+                useCustomTextColor = false,
+                customTextColor = { r = 1, g = 1, b = 1, a = 1 }
             },
             ["Honor"] = {
                 enabled = false,
@@ -83,23 +93,27 @@ ascensionBars.defaults = {
                 freeY = -40,
                 freeWidth = 500,
                 freeHeight = 6,
-                textX = 0,
-                textY = 0,
-                textBlock = "T1",
-                textOrder = 3
+                useCustomFont = false,
+                customFontPath = nil,
+                useCustomTextSize = false,
+                customTextSize = 14,
+                useCustomTextColor = false,
+                customTextColor = { r = 1, g = 1, b = 1, a = 1 }
             },
             ["HouseXp"] = {
                 enabled = false,
                 block = "TOP",
-                order = 3,
+                order = 2,
                 freeX = 0,
                 freeY = -60,
                 freeWidth = 500,
                 freeHeight = 6,
-                textX = 0,
-                textY = 0,
-                textBlock = "T1",
-                textOrder = 4
+                useCustomFont = false,
+                customFontPath = nil,
+                useCustomTextSize = false,
+                customTextSize = 14,
+                useCustomTextColor = false,
+                customTextColor = { r = 1, g = 1, b = 1, a = 1 }
             },
             ["Azerite"] = {
                 enabled = false,
@@ -109,10 +123,12 @@ ascensionBars.defaults = {
                 freeY = -80,
                 freeWidth = 500,
                 freeHeight = 6,
-                textX = 0,
-                textY = 0,
-                textBlock = "T1",
-                textOrder = 5
+                useCustomFont = false,
+                customFontPath = nil,
+                useCustomTextSize = false,
+                customTextSize = 14,
+                useCustomTextColor = false,
+                customTextColor = { r = 1, g = 1, b = 1, a = 1 }
             },
         },
         showRestedBar = true,

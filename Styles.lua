@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Styles.lua
 -- Version: @project-version@
@@ -12,7 +12,9 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 
 -------------------------------------------------------------------------------
 -- CONSTANTS & COLORS

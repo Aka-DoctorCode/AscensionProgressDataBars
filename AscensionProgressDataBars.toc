@@ -1,12 +1,12 @@
 ## Interface: 120001
-## Title: Ascension Bars
+## Title: Ascension Progress Data Bars
 ## Notes: Minimalist information bars with advanced customization.
 ## Author: AkaDoctorCode
 ## Category: Interface
 ## Version: @project-version@
-## SavedVariables: AscensionBarsDB
+## SavedVariables: AscensionProgressDataBarsDB
 ## RequiredDeps: AscensionSuit
-## IconTexture: Interface\AddOns\AscensionBars\Media\AkaDoctorCode.png
+## IconTexture: Interface\AddOns\AscensionProgressDataBars\Media\AkaDoctorCode.png
 ## X-Curse-Project-ID: 1401337
 ## X-Wago-ID: RNLk9EGo
 
@@ -17,12 +17,15 @@ Locales\ptBR.lua
 Locales\deDE.lua
 
 # Core
-AscensionBars.lua
+AscensionProgressDataBars.lua
+Bars\DataText.lua
 Bars\Experience.lua
 Bars\Reputation.lua
 Bars\Honor.lua
 Bars\Housing.lua
 Bars\Azerite.lua
+# Bars\Legend.lua
+# Bars\Carousel.lua
 Constants.lua
 Styles.lua
 

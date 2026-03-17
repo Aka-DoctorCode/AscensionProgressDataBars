@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: ConfigUtils.lua
 -- Version: @project-version@
@@ -15,6 +15,10 @@ local addonName, addonTable = ...
 
 -- Object-Oriented module for Config Utilities
 addonTable.configUtils = {}
+---@type AscensionBars
+local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
+local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local configUtils = addonTable.configUtils
 
 -- Extracts the correct block identifier safely

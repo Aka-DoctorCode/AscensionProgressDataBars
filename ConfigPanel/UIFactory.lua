@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: UIFactory.lua
 -- Version: @project-version@
@@ -12,13 +12,7 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
----@class AscensionBars : AceAddon
----@field colors table
----@field files table
----@field menuStyle table
----@field db { profile: table }
----@field registeredElements table
----@field activeTab number
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
 
@@ -374,7 +368,7 @@ function layoutFactory:createDropdown(args)
     local list = CreateFrame("Frame", nil, dropdown, "BackdropTemplate")
     list:SetPoint("TOPLEFT", dropdown, "BOTTOMLEFT", 0, -2)
     list:SetWidth(dropWidth)
-    list:SetFrameStrata("DIALOG")
+    list:SetFrameStrata("TOOLTIP")
     list:Hide()
     list:SetBackdrop({
         bgFile = files.bgFile,

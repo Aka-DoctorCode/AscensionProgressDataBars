@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: esES.lua
 -- Version: @project-version@
@@ -57,20 +57,31 @@ Locales["BAR_GAP"] = "Separación Global entre Barras"
 Locales["TOP_OFFSET"] = "Desplazamiento del Bloque Superior"
 Locales["BOTTOM_OFFSET"] = "Desplazamiento del Bloque Inferior"
 Locales["BLOCK_HEIGHT"] = "Altura del Bloque"
+Locales["USE_PER_BLOCK_HEIGHT"] = "Usar Altura por Bloque"
 Locales["USE_CUSTOM_HEIGHT"] = "Usar Altura Personalizada"
 Locales["CUSTOM_HEIGHT"] = "Altura Personalizada"
+Locales["USE_PER_GROUP_SIZE"] = "Usar Tamaño por Grupo"
+Locales["USE_PER_GROUP_COLOR"] = "Usar Color por Grupo"
+Locales["USE_CUSTOM_TEXT_SIZE"] = "Usar Tamaño de Texto Personalizado"
+Locales["USE_CUSTOM_TEXT_COLOR"] = "Usar Color de Texto Personalizado"
+Locales["GROUP_SIZE"] = "Tamaño de Texto del Grupo"
+Locales["GROUP_COLOR"] = "Color de Texto del Grupo"
+Locales["CUSTOM_TEXT_SIZE"] = "Tamaño de Texto Personalizado"
+Locales["CUSTOM_TEXT_COLOR"] = "Color de Texto Personalizado"
 Locales["TOP_GAP"] = "Separación del Bloque Superior"
 Locales["BOTTOM_GAP"] = "Separación del Bloque Inferior"
 Locales["BAR_MANAGEMENT"] = "Gestión de Barras"
 Locales["TOP_BLOCK"] = "Bloque Superior"
 Locales["BOTTOM_BLOCK"] = "Bloque Inferior"
 Locales["FREE_MODE"] = "Modo Libre"
+Locales["DIM_ALPHA"] = "Atenuación"
 
 -- Experience Bar
 Locales["EXPERIENCE"] = "Experiencia"
 Locales["XP_BAR_DATA"] = "Datos de Barra de Experiencia | 0/0 (0.0%)"
 Locales["XP_BAR_CONFIG_TEXT"] = "Experiencia: 75% (Descansado)"
 Locales["RESTED_XP"] = "Experiencia Descansada"
+Locales["RESTED_TEXT"] = "Descanso"
 Locales["LEVEL_TEXT"] = "Nivel %d"
 Locales["LEVEL_TEXT_ABS_PCT"] = "Nivel %d | %s / %s (%.1f%%)"
 Locales["LEVEL_TEXT_ABS"] = "Nivel %d | %s / %s"
@@ -116,7 +127,7 @@ Locales["HOUSE_LEVEL_PCT"]    = "%s Nivel %d | (%.1f%%)"
 Locales["HOUSE_LEVEL_SIMPLE"] = "%s Nivel %d"
 Locales["HOUSE_UPGRADES_AVAILABLE"] = "MEJORAS DE CASA DISPONIBLES PARA %s"
 
--- Appearance Tab
+-- Appearance Tab (some keys still present but not used in new UI – kept for compatibility)
 Locales["TEXT_AND_FONT"] = "Texto y Fuente"
 Locales["LAYOUT_MODE"] = "Modo de Diseño"
 Locales["ALL_IN_ONE_LINE"] = "Todo en una línea"
@@ -183,6 +194,23 @@ Locales["REWARD_ON_CHAR"] = "RECOMPENSA DISPONIBLE EN %s"
 Locales["PARAGON_TEXT_SIZE"] = "Tamaño de Texto de Alerta"
 Locales["PARAGON_TEXT_Y"] = "Desplazamiento Y de Alerta"
 Locales["PARAGON_ON_TOP"] = "Mostrar Alerta en la parte superior de la pantalla"
+
+-- Text Layout Tab (Updated)
+Locales["BLOCK_TEXT_MODE"] = "Comportamiento del texto"
+Locales["TEXT_VISIBILITY_MODE"] = "Modo de visibilidad del texto"
+Locales["FOCUS_MODE"] = "Mostrar al pasar el ratón"
+Locales["GRID_DYNAMIC"] = "Siempre visible"
+Locales["NONE"] = "Ninguno"
+Locales["BASE_TYPOGRAPHY"] = "Tipografía base"
+Locales["FONT_OUTLINE"] = "Contorno de fuente"
+Locales["VISUAL_DISPOSITION"] = "Opciones visuales"
+Locales["SHOW_RESTED"] = "Mostrar XP descansada"
+Locales["USE_COMPACT_FORMAT"] = "Formato compacto"
+Locales["EVENTS_VISIBILITY"] = "Eventos y visibilidad"
+Locales["ENABLE_CAROUSEL"] = "Activar carrusel de eventos"
+Locales["REST_OPACITY"] = "Opacidad de fondo"
+Locales["LATERAL_LEGEND"] = "Leyenda lateral"
+Locales["DYNAMIC_GRID_GAP"] = "Espaciado de cuadrícula"
 
 -- Config/Preview Strings
 Locales["CONFIG_FACTION_A_REWARD"] = "[CONFIG] RECOMPENSA FACCIÓN A"

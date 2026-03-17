@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Honor.lua
 -- Version: @project-version@
@@ -12,10 +12,14 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local dataText = addonTable.dataText
 
 --- Renders the Honor bar using standard unit APIs
+---@self AscensionBars
 function ascensionBars:renderHonor()
     if not self.db or not self.db.profile then return end
     
@@ -31,27 +35,13 @@ function ascensionBars:renderHonor()
                 return profile.honorColor or { r = 0.8, g = 0.2, b = 0.2, a = 1.0 } -- #CC3333
             end,
             function(current, max, percentage)
-                local honorLevel = UnitHonorLevel("player") or 0
-                -- Start with the Honor Level base text
-                local displayText = string.format(Locales["LEVEL_TEXT"], honorLevel)
-                
-                local showAbs = profile.showAbsoluteValues
-                local showPct = profile.showPercentage
-
-                -- Append data based on visibility toggles
-                if showAbs and showPct then
-                    displayText = string.format(Locales["HONOR_LEVEL_FORMAT"], honorLevel, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max), percentage)
-                elseif showAbs then
-                    -- You might need to add a "LEVEL_TEXT_ABS" equivalent if not in Locales, 
-                    -- but using a standard pattern for now:
-                    displayText = string.format("%s | %s / %s", displayText, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max))
-                elseif showPct then
-                    displayText = string.format("%s | %.1f%%", displayText, percentage)
-                end
-
-                return displayText
+                if not dataText then return { identity="", details="", percentage="" } end
+                return dataText:formatHonor(current, max, percentage)
             end
         )
+        -- Store additional legend info
+        honorObj.displayName = string.format(Locales["LEVEL_TEXT"] or "Level %d", UnitHonorLevel("player") or 0)
+
     elseif honorObj then
         if honorObj.bar then honorObj.bar:Hide() end
         if honorObj.txFrame then honorObj.txFrame:Hide() end
@@ -62,6 +52,7 @@ end
 -- @param profile table The active DB profile
 -- @param bars table The bars configuration sub-table
 -- @param textColor table The RGB table for text
+---@self AscensionBars
 function ascensionBars:configHonor(profile, bars, textColor)
     local honorObj = self.honor
     if not honorObj then return end
@@ -75,9 +66,15 @@ function ascensionBars:configHonor(profile, bars, textColor)
         local honorColor = profile.honorColor or { r = 0.8, g = 0.2, b = 0.2, a = 1.0 }
         self:setupBar(honorObj, 0, 100, 30, honorColor)
         
-        if honorObj.text then
-            honorObj.text:SetText(Locales["HONOR_BAR_DATA"])
-            honorObj.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
+        -- Store config preview values for legend
+        honorObj.current = 1500
+        honorObj.max = 3000
+        honorObj.percentage = 50
+        honorObj.displayName = string.format(Locales["LEVEL_TEXT"] or "Level %d", 45)
+        honorObj.color = honorColor
+        
+        if honorObj.centerText then
+            honorObj.centerText:SetText(Locales["HONOR_BAR_DATA"])
         end
     else
         if honorObj.bar then honorObj.bar:Hide() end

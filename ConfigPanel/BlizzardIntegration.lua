@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: BlizzardIntegration.lua
 -- Version: @project-version@
@@ -12,7 +12,9 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 local colors = ascensionBars.colors
@@ -42,7 +44,10 @@ local function buildBlizUI()
     openMenuButton:SetText("OPEN ASCENSION SETTINGS")
 
     openMenuButton:SetScript("OnClick", function()
-        local settingsPanel = _G.SettingsPanel
+        ---@class SettingsPanel : Frame
+        ---@field Close function
+        local settingsPanel = _G["SettingsPanel"]
+        ---@cast settingsPanel SettingsPanel
         if settingsPanel and settingsPanel:IsShown() then
             settingsPanel:Close()
         end
@@ -55,7 +60,11 @@ end
 blizzardPanel:SetScript("OnShow", buildBlizUI)
 
 local function registerBlizzardOptions()
-    local settings = _G.Settings
+    ---@class Settings
+    ---@field RegisterCanvasLayoutCategory function
+    ---@field RegisterAddOnCategory function
+    local settings = _G["Settings"]
+    ---@cast settings Settings
     if settings and settings.RegisterCanvasLayoutCategory then
         local category = settings.RegisterCanvasLayoutCategory(blizzardPanel, blizzardPanel.name)
         settings.RegisterAddOnCategory(category)

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Config.lua
 -- Version: @project-version@
@@ -13,9 +13,9 @@
 
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
----@
 local colors = ascensionBars.colors
 local files = ascensionBars.files
 local menuStyle = ascensionBars.menuStyle
@@ -25,8 +25,11 @@ local function createConfigFrame()
     if not layoutFactory then return end
     if ascensionBars.configFrame then return end
 
+    ---@cast ascensionBars AscensionBars
     ascensionBars.configFrame = CreateFrame("Frame", "AscensionBarsConfigFrame", _G.UIParent, "BackdropTemplate")
+    ---@class ConfigFrame : Frame, BackdropTemplate
     local configFrame = ascensionBars.configFrame
+    ---@cast configFrame ConfigFrame
     configFrame:SetSize(ascensionBars.normalWidth or 850, ascensionBars.normalHeight or 500)
     configFrame:SetPoint("CENTER")
     configFrame:SetMovable(true)
@@ -37,7 +40,7 @@ local function createConfigFrame()
     
     configFrame:SetResizable(true)
     configFrame:SetResizeBounds(400, 300)
-    configFrame:SetFrameStrata("HIGH")
+    configFrame:SetFrameStrata("TOOLTIP")
     
     configFrame:SetBackdrop({
         bgFile = files.bgFile,

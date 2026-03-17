@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: enUS.lua
 -- Version: @project-version@
@@ -57,20 +57,31 @@ Locales["BAR_GAP"] = "Global Gap Between Bars"
 Locales["TOP_OFFSET"] = "Top Block Offset"
 Locales["BOTTOM_OFFSET"] = "Bottom Block Offset"
 Locales["BLOCK_HEIGHT"] = "Block Bar Height"
+Locales["USE_PER_BLOCK_HEIGHT"] = "Use Per-Block Height"
 Locales["USE_CUSTOM_HEIGHT"] = "Use Custom Height"
 Locales["CUSTOM_HEIGHT"] = "Custom Height"
+Locales["USE_PER_GROUP_SIZE"] = "Use Per-Group Size"
+Locales["USE_PER_GROUP_COLOR"] = "Use Per-Group Color"
+Locales["USE_CUSTOM_TEXT_SIZE"] = "Use Custom Text Size"
+Locales["USE_CUSTOM_TEXT_COLOR"] = "Use Custom Text Color"
+Locales["GROUP_SIZE"] = "Group Text Size"
+Locales["GROUP_COLOR"] = "Group Text Color"
+Locales["CUSTOM_TEXT_SIZE"] = "Custom Text Size"
+Locales["CUSTOM_TEXT_COLOR"] = "Custom Text Color"
 Locales["TOP_GAP"] = "Top Block Gap"
 Locales["BOTTOM_GAP"] = "Bottom Block Gap"
 Locales["BAR_MANAGEMENT"] = "Bar Management"
 Locales["TOP_BLOCK"] = "Top Block"
 Locales["BOTTOM_BLOCK"] = "Bottom Block"
 Locales["FREE_MODE"] = "Free Mode"
+Locales["DIM_ALPHA"] = "Dim Alpha"
 
 -- Experience Bar
 Locales["EXPERIENCE"] = "Experience"
 Locales["XP_BAR_DATA"] = "Experience Bar Data | 0/0 (0.0%)"
 Locales["XP_BAR_CONFIG_TEXT"] = "Experience: 75% (Resting)"
 Locales["RESTED_XP"] = "Rested XP"
+Locales["RESTED_TEXT"] = "Rested"
 Locales["LEVEL_TEXT"] = "Level %d"
 Locales["LEVEL_TEXT_ABS_PCT"] = "Level %d | %s / %s (%.1f%%)"
 Locales["LEVEL_TEXT_ABS"] = "Level %d | %s / %s"
@@ -183,6 +194,23 @@ Locales["REWARD_ON_CHAR"] = "REWARD AVAILABLE ON %s"
 Locales["PARAGON_TEXT_SIZE"] = "Alert Text Size"
 Locales["PARAGON_TEXT_Y"] = "Alert Y Offset"
 Locales["PARAGON_ON_TOP"] = "Show Alert at Top of Screen"
+
+-- Text Layout Tab (Updated)
+Locales["BLOCK_TEXT_MODE"] = "Text Behavior"
+Locales["TEXT_VISIBILITY_MODE"] = "Text Visibility Mode"
+Locales["FOCUS_MODE"] = "Show on Hover"
+Locales["GRID_DYNAMIC"] = "Always Visible"
+Locales["NONE"] = "None"
+Locales["BASE_TYPOGRAPHY"] = "Base Typography"
+Locales["FONT_OUTLINE"] = "Font Outline"
+Locales["VISUAL_DISPOSITION"] = "Visual Options"
+Locales["SHOW_RESTED"] = "Show Rested XP"
+Locales["USE_COMPACT_FORMAT"] = "Compact Format"
+Locales["EVENTS_VISIBILITY"] = "Events & Visibility"
+Locales["ENABLE_CAROUSEL"] = "Enable Event Carousel"
+Locales["REST_OPACITY"] = "Background Opacity"
+Locales["LATERAL_LEGEND"] = "Lateral Legend"
+Locales["DYNAMIC_GRID_GAP"] = "Grid Gap"
 
 -- Config/Preview Strings
 Locales["CONFIG_FACTION_A_REWARD"] = "[CONFIG] FACTION A REWARD"

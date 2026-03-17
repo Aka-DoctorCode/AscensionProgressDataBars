@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Azerite.lua
 -- Version: @project-version@
@@ -12,11 +12,14 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
+---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
+---@cast ascensionBars AscensionBars
 local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local dataText = addonTable.dataText
 
 --- Renders the Azerite Power bar based on current item progression
---- Renders the Azerite Power bar based on current item progression
+---@self AscensionBars
 function ascensionBars:renderAzerite()
     if not self.db or not self.db.profile then return end
     
@@ -53,30 +56,17 @@ function ascensionBars:renderAzerite()
             end,
             -- Text Format Function
             function(current, max, percentage)
-                local azeriteLevel = 0
-                if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
-                    local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()
-                    if itemLoc and C_AzeriteItem.GetPowerLevel then
-                        azeriteLevel = C_AzeriteItem.GetPowerLevel(itemLoc) or 0
-                    end
-                end
-                
-                -- Dynamic visibility logic
-                local showAbs = profile.showAbsoluteValues
-                local showPct = profile.showPercentage
-                local text = string.format(Locales["AZERITE"] .. " " .. Locales["RANK_NUM"], azeriteLevel)
-
-                if showAbs and showPct then
-                    text = string.format(Locales["AZERITE_LEVEL_FORMAT"], azeriteLevel, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max), percentage)
-                elseif showAbs then
-                    text = string.format("%s | %s / %s", text, BreakUpLargeNumbers(current), BreakUpLargeNumbers(max))
-                elseif showPct then
-                    text = string.format("%s | %.1f%%", text, percentage)
-                end
-
-                return text
+                if not dataText then return { identity="", details="", percentage="" } end
+                return dataText:formatAzerite(current, max, percentage)
             end
         )
+                -- Store additional legend info
+        local azeriteLevel = 0
+        if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
+            local itemLocation = C_AzeriteItem.FindActiveAzeriteItem()
+            if itemLocation then azeriteLevel = C_AzeriteItem.GetPowerLevel(itemLocation) or 0 end
+        end
+        self.azerite.displayName = string.format((Locales["AZERITE"] or "Azerite") .. " Level %d", azeriteLevel)
     elseif self.azerite then
         self.azerite.bar:Hide()
         self.azerite.txFrame:Hide()
@@ -87,6 +77,7 @@ end
 -- @param profile table The active DB profile
 -- @param bars table The bars configuration sub-table
 -- @param textColor table The RGB table for text
+---@self AscensionBars
 function ascensionBars:configAzerite(profile, bars, textColor)
     local azeriteConfig = bars["Azerite"]
     if self.azerite and azeriteConfig and azeriteConfig.enabled then
@@ -94,10 +85,16 @@ function ascensionBars:configAzerite(profile, bars, textColor)
         self.azerite.txFrame:Show()
         
         local azeriteColor = profile.azeriteColor or { r = 0.9, g = 0.8, b = 0.5, a = 1.0 } -- #E5CC7F
-        self:setupBar(self.azerite, 0, 100, 80, azeriteColor)
+                self:setupBar(self.azerite, 0, 100, 80, azeriteColor)
         
-        self.azerite.text:SetText(Locales["AZERITE_BAR_DATA"])
-        self.azerite.text:SetTextColor(textColor.r or 1, textColor.g or 1, textColor.b or 1, 1)
+        -- Store config preview values for legend
+        self.azerite.current = 2500
+        self.azerite.max = 5000
+        self.azerite.percentage = 50
+        self.azerite.displayName = string.format((Locales["AZERITE"] or "Azerite") .. " Level %d", 30)
+        self.azerite.color = azeriteColor
+        
+        self.azerite.centerText:SetText(Locales["AZERITE_BAR_DATA"])
     elseif self.azerite then
         self.azerite.bar:Hide()
         self.azerite.txFrame:Hide()

@@ -1,5 +1,5 @@
 -------------------------------------------------------------------------------
--- Project: AscensionBars
+-- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: deDE.lua
 -- Version: @project-version@
@@ -56,20 +56,31 @@ Locales["BAR_GAP"] = "Globaler Abstand zwischen Leisten"
 Locales["TOP_OFFSET"] = "Oberer Block Versatz"
 Locales["BOTTOM_OFFSET"] = "Unterer Block Versatz"
 Locales["BLOCK_HEIGHT"] = "Block Leistenhöhe"
+Locales["USE_PER_BLOCK_HEIGHT"] = "Blockweise Höhe verwenden"
 Locales["USE_CUSTOM_HEIGHT"] = "Benutzerdefinierte Höhe verwenden"
 Locales["CUSTOM_HEIGHT"] = "Benutzerdefinierte Höhe"
+Locales["USE_PER_GROUP_SIZE"] = "Gruppenweise Größe verwenden"
+Locales["USE_PER_GROUP_COLOR"] = "Gruppenweise Farbe verwenden"
+Locales["USE_CUSTOM_TEXT_SIZE"] = "Benutzerdefinierte Textgröße verwenden"
+Locales["USE_CUSTOM_TEXT_COLOR"] = "Benutzerdefinierte Textfarbe verwenden"
+Locales["GROUP_SIZE"] = "Gruppen-Textgröße"
+Locales["GROUP_COLOR"] = "Gruppen-Textfarbe"
+Locales["CUSTOM_TEXT_SIZE"] = "Benutzerdefinierte Textgröße"
+Locales["CUSTOM_TEXT_COLOR"] = "Benutzerdefinierte Textfarbe"
 Locales["TOP_GAP"] = "Abstand Oberer Block"
 Locales["BOTTOM_GAP"] = "Abstand Unterer Block"
 Locales["BAR_MANAGEMENT"] = "Leistenverwaltung"
 Locales["TOP_BLOCK"] = "Oberer Block"
 Locales["BOTTOM_BLOCK"] = "Unterer Block"
 Locales["FREE_MODE"] = "Freier Modus"
+Locales["DIM_ALPHA"] = "Dämpfung"
 
 -- Experience Bar
 Locales["EXPERIENCE"] = "Erfahrung"
 Locales["XP_BAR_DATA"] = "Erfahrungsleistendaten | 0/0 (0.0%)"
 Locales["XP_BAR_CONFIG_TEXT"] = "Erfahrung: 75% (Ausgeruht)"
 Locales["RESTED_XP"] = "Erholt-Bonus"
+Locales["RESTED_TEXT"] = "Ausgeruht"
 Locales["LEVEL_TEXT"] = "Stufe %d"
 Locales["LEVEL_TEXT_ABS_PCT"] = "Stufe %d | %s / %s (%.1f%%)"
 Locales["LEVEL_TEXT_ABS"] = "Stufe %d | %s / %s"
@@ -115,7 +126,7 @@ Locales["HOUSE_LEVEL_PCT"]    = "%s Stufe %d | (%.1f%%)"
 Locales["HOUSE_LEVEL_SIMPLE"] = "%s Stufe %d"
 Locales["HOUSE_UPGRADES_AVAILABLE"] = "HAUSAUSBAU VERFÜGBAR FÜR %s"
 
--- Appearance Tab
+-- Appearance Tab (some keys still present but not used in new UI – kept for compatibility)
 Locales["TEXT_AND_FONT"] = "Text und Schriftart"
 Locales["LAYOUT_MODE"] = "Layout-Modus"
 Locales["ALL_IN_ONE_LINE"] = "Alles in einer Zeile"
@@ -182,6 +193,23 @@ Locales["REWARD_ON_CHAR"] = "BELOHNUNG VERFÜGBAR AUF %s"
 Locales["PARAGON_TEXT_SIZE"] = "Warnungstextgröße"
 Locales["PARAGON_TEXT_Y"] = "Warnung Versatz Y"
 Locales["PARAGON_ON_TOP"] = "Warnung am oberen Bildschirmrand anzeigen"
+
+-- Text Layout Tab (Updated)
+Locales["BLOCK_TEXT_MODE"] = "Textverhalten"
+Locales["TEXT_VISIBILITY_MODE"] = "Textsichtbarkeitsmodus"
+Locales["FOCUS_MODE"] = "Bei Mauszeiger anzeigen"
+Locales["GRID_DYNAMIC"] = "Immer sichtbar"
+Locales["NONE"] = "Keiner"
+Locales["BASE_TYPOGRAPHY"] = "Grundtypografie"
+Locales["FONT_OUTLINE"] = "Schriftkontur"
+Locales["VISUAL_DISPOSITION"] = "Visuelle Optionen"
+Locales["SHOW_RESTED"] = "Ausgeruhte XP anzeigen"
+Locales["USE_COMPACT_FORMAT"] = "Kompaktes Format"
+Locales["EVENTS_VISIBILITY"] = "Ereignisse & Sichtbarkeit"
+Locales["ENABLE_CAROUSEL"] = "Ereigniskarussell aktivieren"
+Locales["REST_OPACITY"] = "Hintergrundopazität"
+Locales["LATERAL_LEGEND"] = "Seitliche Legende"
+Locales["DYNAMIC_GRID_GAP"] = "Rasterabstand"
 
 -- Config/Preview Strings
 Locales["CONFIG_FACTION_A_REWARD"] = "[KONFIG] FRAKTION A BELOHNUNG"
