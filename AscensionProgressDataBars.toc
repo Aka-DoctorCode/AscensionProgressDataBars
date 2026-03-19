@@ -24,8 +24,8 @@ Bars\Reputation.lua
 Bars\Honor.lua
 Bars\Housing.lua
 Bars\Azerite.lua
-# Bars\Legend.lua
-# Bars\Carousel.lua
+Bars\Legend.lua
+Bars\Carousel.lua
 Constants.lua
 Styles.lua
 

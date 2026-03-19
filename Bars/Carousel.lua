@@ -4,6 +4,12 @@
 -- File: Bars/Carousel.lua
 -- Version: @project-version@
 -------------------------------------------------------------------------------
+-- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+--
+-- This software and its source code are the exclusive property of the author.
+-- No part of this file may be copied, modified, redistributed, or used in
+-- derivative works without express written permission.
+-------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
 ---@class AscensionBars
@@ -12,14 +18,13 @@ local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
--- Colores semánticos (igual que en la leyenda, pero podemos obtenerlos de las barras)
+-- Colores semánticos
 -------------------------------------------------------------------------------
 local function getBarColor(barKey)
     local barObj = ascensionBars[barKey]
     if barObj and barObj.color then
         return barObj.color
     end
-    -- Fallbacks
     if barKey == "xp" then return { r = 0.0, g = 0.4, b = 0.9 } end
     if barKey == "rep" then return { r = 0.0, g = 1.0, b = 0.0 } end
     if barKey == "honor" then return { r = 0.8, g = 0.2, b = 0.2 } end
@@ -31,9 +36,9 @@ end
 -------------------------------------------------------------------------------
 -- Estructuras de datos
 -------------------------------------------------------------------------------
-local batchData = {}               -- Acumulador: [categoría][subId] = { label, amount }
-local dynamicQueue = {}            -- Cola de mensajes dinámicos listos para mostrar
-local fixedMessages = {}           -- Lista de mensajes fijos activos
+local batchData = {}
+local dynamicQueue = {}
+local fixedMessages = {}
 local fixedIndex = 1
 local currentMessage = {
     text = "",
@@ -44,7 +49,6 @@ local currentMessage = {
 local isPaused = false
 local inCombat = false
 
--- Temporizadores
 local batchTimer = nil
 local displayTimer = nil
 local fixedRotationTimer = nil
@@ -85,9 +89,89 @@ end
 local function clearTimers()
     if displayTimer then displayTimer:Cancel() displayTimer = nil end
     if fixedRotationTimer then fixedRotationTimer:Cancel() fixedRotationTimer = nil end
-    -- No cancelamos batchTimer aquí porque lo gestionamos aparte
 end
 
+-- Declaración previa de funciones que se llamarán entre sí
+local startDisplayTimer
+local showNextFixed
+local showNextMessage
+
+-- Implementación de startDisplayTimer
+startDisplayTimer = function(duration)
+    if isPaused then return end
+    clearTimers()
+    local time = duration or (currentMessage.isDynamic and 5 or 7)
+    displayTimer = C_Timer.NewTimer(time, function()
+        if isPaused then return end
+        if currentMessage.isDynamic then
+            if #dynamicQueue > 0 then
+                local nextMsg = table.remove(dynamicQueue, 1)
+                currentMessage.isDynamic = true
+                currentMessage.text = nextMsg.text
+                setTextColor(nextMsg.color)
+                text:SetText(currentMessage.text)
+                startDisplayTimer(5)
+            else
+                showNextFixed()
+            end
+        else
+            showNextFixed()
+        end
+    end)
+end
+
+-- Implementación de showNextFixed
+showNextFixed = function()
+    if isPaused then return end
+    if #dynamicQueue > 0 then
+        local nextMsg = table.remove(dynamicQueue, 1)
+        currentMessage.isDynamic = true
+        currentMessage.text = nextMsg.text
+        setTextColor(nextMsg.color)
+        text:SetText(currentMessage.text)
+        startDisplayTimer(5)
+        return
+    end
+
+    if #fixedMessages == 0 then
+        text:SetText("")
+        currentMessage.text = ""
+        clearTimers()
+        return
+    end
+
+    fixedIndex = fixedIndex + 1
+    if fixedIndex > #fixedMessages then fixedIndex = 1 end
+    local msg = fixedMessages[fixedIndex]
+    currentMessage.isDynamic = false
+    currentMessage.text = msg.text
+    setTextColor(msg.color)
+    text:SetText(msg.text)
+    startDisplayTimer(7)
+end
+
+-- Implementación de showNextMessage
+showNextMessage = function()
+    if #dynamicQueue > 0 then
+        local msg = table.remove(dynamicQueue, 1)
+        currentMessage.isDynamic = true
+        currentMessage.text = msg.text
+        setTextColor(msg.color)
+        text:SetText(msg.text)
+        startDisplayTimer(5)
+    elseif #fixedMessages > 0 then
+        fixedIndex = 1
+        showNextFixed()
+    else
+        text:SetText("")
+        currentMessage.text = ""
+        clearTimers()
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Control de estado
+-------------------------------------------------------------------------------
 local function pauseAll()
     isPaused = true
     clearTimers()
@@ -100,7 +184,6 @@ local function resumeAll()
     else
         carousel:SetAlpha(1)
     end
-    -- Reanudar la rotación
     if currentMessage.text ~= "" then
         startDisplayTimer()
     else
@@ -108,38 +191,9 @@ local function resumeAll()
     end
 end
 
-local function startDisplayTimer(duration)
-    if isPaused then return end
-    clearTimers()
-    local time = duration or (currentMessage.isDynamic and 5 or 7)
-    displayTimer = C_Timer.NewTimer(time, function()
-        if isPaused then return end
-        -- Mensaje actual terminado
-        if currentMessage.isDynamic then
-            -- Mostrar siguiente dinámico si hay
-            if #dynamicQueue > 0 then
-                local nextMsg = table.remove(dynamicQueue, 1)
-                currentMessage.isDynamic = true
-                currentMessage.text = nextMsg.text
-                setTextColor(nextMsg.color)
-                text:SetText(currentMessage.text)
-                startDisplayTimer(5)
-            else
-                -- No más dinámicos, pasar a fijos
-                showNextFixed()
-            end
-        else
-            -- Mensaje fijo terminado, siguiente fijo
-            showNextFixed()
-        end
-    end)
-end
-
--- Procesa el lote acumulado y genera mensajes en la cola dinámica
 local function processBatch()
     batchTimer = nil
 
-    -- Convertir batchData en mensajes
     for category, subs in pairs(batchData) do
         for subId, data in pairs(subs) do
             local amount = data.amount
@@ -147,7 +201,7 @@ local function processBatch()
                 local label = data.label
                 local color
                 if category == "REP" then
-                    color = getBarColor("rep")  -- Usamos el color de la barra de reputación (podría ser por facción si quisiéramos)
+                    color = getBarColor("rep")
                 elseif category == "XP" then
                     color = getBarColor("xp")
                 elseif category == "HONOR" then
@@ -170,10 +224,8 @@ local function processBatch()
         end
     end
 
-    -- Limpiar batch
     batchData = {}
 
-    -- Si no hay mensaje actual, mostrar el primero de la cola
     if currentMessage.text == "" and #dynamicQueue > 0 then
         local first = table.remove(dynamicQueue, 1)
         currentMessage.isDynamic = true
@@ -182,10 +234,8 @@ local function processBatch()
         text:SetText(currentMessage.text)
         startDisplayTimer(5)
     end
-    -- Si ya hay mensaje actual, los mensajes ya están en cola y se mostrarán después
 end
 
--- Inicia o reinicia el temporizador de lote
 local function resetBatchTimer()
     if batchTimer then
         batchTimer:Cancel()
@@ -196,13 +246,12 @@ local function resetBatchTimer()
 end
 
 -------------------------------------------------------------------------------
--- API pública: pushCarouselEvent
+-- API pública
 -------------------------------------------------------------------------------
 function ascensionBars:pushCarouselEvent(category, subId, label, amount)
     local profile = self.db and self.db.profile
     if not profile or not profile.carouselEnabled or not amount or amount == 0 then return end
 
-    -- Inicializar acumulador si no existe
     if not batchData[category] then
         batchData[category] = {}
     end
@@ -211,97 +260,42 @@ function ascensionBars:pushCarouselEvent(category, subId, label, amount)
     end
     batchData[category][subId].amount = batchData[category][subId].amount + amount
 
-    -- Iniciar o reiniciar el temporizador de lote
     resetBatchTimer()
-
-    -- Si estamos en combate, ajustar opacidad (ya se hace en updateCarouselCombatState)
 end
 
--------------------------------------------------------------------------------
--- Mensajes fijos (Paragon, Housing)
--------------------------------------------------------------------------------
 function ascensionBars:updateFixedMessages()
     local profile = self.db and self.db.profile
     if not profile then return end
 
     fixedMessages = {}
 
-    -- Paragon reward pendiente
-    if self.paragonText and self.paragonText:GetText() ~= "" then
-        local rawText = self.paragonText:GetText():gsub("|c%x+", ""):gsub("|r", "")
-        table.insert(fixedMessages, {
-            text = rawText,
-            color = { r = 0.0, g = 1.0, b = 0.0 }, -- Verde puro
-            id = "PARAGON"
-        })
+    if self.paragonText then
+        local text = self.paragonText:GetText()
+        if text and text ~= "" then
+            local rawText = text:gsub("|c%x+", ""):gsub("|r", "")
+            table.insert(fixedMessages, {
+                text = rawText,
+                color = { r = 0.0, g = 1.0, b = 0.0 },
+                id = "PARAGON"
+            })
+        end
     end
 
-    -- House upgrade disponible
-    if self.houseRewardText and self.houseRewardText:GetText() ~= "" then
-        local rawText = self.houseRewardText:GetText():gsub("|c%x+", ""):gsub("|r", "")
-        table.insert(fixedMessages, {
-            text = rawText,
-            color = { r = 1.0, g = 0.5, b = 0.1 }, -- Ocre
-            id = "HOUSE"
-        })
+    if self.houseRewardText then
+        local text = self.houseRewardText:GetText()
+        if text and text ~= "" then
+            local rawText = text:gsub("|c%x+", ""):gsub("|r", "")
+            table.insert(fixedMessages, {
+                text = rawText,
+                color = { r = 1.0, g = 0.5, b = 0.1 },
+                id = "HOUSE"
+            })
+        end
     end
 
-    -- Si no hay mensaje actual y hay fijos, mostrar el primero
     if currentMessage.text == "" and #fixedMessages > 0 and #dynamicQueue == 0 then
         fixedIndex = 1
         showNextFixed()
-    end
-end
-
-local function showNextFixed()
-    if isPaused then return end
-    if #dynamicQueue > 0 then
-        -- Prioridad a dinámicos
-        local nextMsg = table.remove(dynamicQueue, 1)
-        currentMessage.isDynamic = true
-        currentMessage.text = nextMsg.text
-        setTextColor(nextMsg.color)
-        text:SetText(currentMessage.text)
-        startDisplayTimer(5)
-        return
-    end
-
-    if #fixedMessages == 0 then
-        text:SetText("")
-        currentMessage.text = ""
-        clearTimers()
-        return
-    end
-
-    -- Rotar
-    fixedIndex = fixedIndex + 1
-    if fixedIndex > #fixedMessages then fixedIndex = 1 end
-    local msg = fixedMessages[fixedIndex]
-    currentMessage.isDynamic = false
-    currentMessage.text = msg.text
-    setTextColor(msg.color)
-    text:SetText(msg.text)
-    startDisplayTimer(7)
-end
-
--------------------------------------------------------------------------------
--- Mostrar el siguiente mensaje (usado al reanudar)
--------------------------------------------------------------------------------
-local function showNextMessage()
-    if #dynamicQueue > 0 then
-        local msg = table.remove(dynamicQueue, 1)
-        currentMessage.isDynamic = true
-        currentMessage.text = msg.text
-        setTextColor(msg.color)
-        text:SetText(msg.text)
-        startDisplayTimer(5)
-    elseif #fixedMessages > 0 then
-        fixedIndex = 1
-        showNextFixed()
-    else
-        text:SetText("")
-        currentMessage.text = ""
-        clearTimers()
     end
 end
 

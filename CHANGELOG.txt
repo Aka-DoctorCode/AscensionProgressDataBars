@@ -1,14 +1,7 @@
-<h1>V37 - Rename to Ascension Progress Data Bars</h1>
+<h1>V38</h1>
 <ul>
-    <li>Bug fix: Menu was been opened in config mode withour the toggle been activated. This was not intended behavior</li>
-    <li>Bug fix: Housing addess was not been render correctly</li>
-    <li>Overhaul to string text logic</li>
-    <ul>
-        <li>Focus mode: the strings are invisible until you hover over the bar, which will make the bar string to be shown</li>
-        <li>Dynamic grid: all strings and bar are visible, but the gap between bars changes based on the size of the text</li>
-    </ul>
+    <li>Added: A movable tooltip where the strings are always visible</li>
     <li>Several UI/UX Improvements to the config menu to allocate the new options</li>
-    <li>Modularization of the code</li> 
 </ul>
 <br>
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>

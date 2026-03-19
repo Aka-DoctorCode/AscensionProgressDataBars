@@ -21,60 +21,75 @@ local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
+-- Función segura para Locales: Evita que AceLocale arroje errores "Missing entry"
+local function L(key, fallback)
+    local success, val = pcall(function() return locales[key] end)
+    if success and type(val) == "string" then
+        return val
+    end
+    return fallback or key
+end
+
 -- Object-Oriented module for the Text Layout Tab
 addonTable.textLayoutTab = {}
 local textLayoutTab = addonTable.textLayoutTab
 
 function textLayoutTab:build(panel)
     if not panel or not panel.content then return end
-    
+
     addonTable.configUtils:cleanupContent(panel.content)
-    
+
     local content = panel.content
     local profile = ascensionBars.db.profile
     if not profile then return end
 
+    -- Dimensiones base (Exactamente iguales a BarsLayout)
     local defaultAvailableSpace = (ascensionBars.normalWidth or 750) - (menuStyle.sidebarWidth or 150) - 30
     local colGap = 10
     local colWidth = (defaultAvailableSpace - colGap) / 2
     local col1X = 15
     local col2X = 15 + colWidth + colGap
 
-    local startY = -15
-    local maxColumnY = startY
+    local y = -15
+    
+    -- Usamos el mismo sistema de Layout centralizado que en BarsLayout
+    local mainLayout = addonTable.layoutModel:new(content, y)
 
     ---------------------------------------------------------------------------
-    -- COLUMN 1 (LEFT): Typography & Visual Disposition
+    -- SECTION 1: BASE TYPOGRAPHY
     ---------------------------------------------------------------------------
-    local leftLayout = addonTable.layoutModel:new(content, startY)
-    
-    -- Header 1: Base Typography
-    local header1 = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-    header1:SetPoint("TOPLEFT", col1X - 5, leftLayout.y)
-    header1:SetWidth(colWidth)
-    header1:SetJustifyH("CENTER")
-    header1:SetText(locales["BASE_TYPOGRAPHY"])
-    local fontPath, _, outline = header1:GetFont()
-    header1:SetFont(fontPath, 20, outline)
-    header1:SetTextColor(0.64, 0.21, 0.93)
-    
-    leftLayout.y = leftLayout.y - 30
+    mainLayout:header("TypographyHeader", L("BASE_TYPOGRAPHY", "Base Typography"))
+    local startY = mainLayout.y
 
-    leftLayout:slider("FontSizeSlider", locales["FONT_SIZE"], 8, 32, 1,
+    -- Column 1 (Left)
+    mainLayout:slider("FontSizeSlider", L("FONT_SIZE", "Font Size"), 8, 32, 1,
         function() return profile.textSize end,
-        function(v) profile.textSize = v; ascensionBars:updateDisplay() end, colWidth - 20, col1X)
+        function(v)
+            profile.textSize = v; ascensionBars:updateDisplay()
+        end, colWidth - 20, col1X)
 
-    leftLayout:dropdown("FontOutlineDropdown", locales["FONT_OUTLINE"],
+    mainLayout:dropdown("FontOutlineDropdown", L("FONT_OUTLINE", "Font Outline"),
         {
-            { label = locales["NONE"], value = "NONE" },
-            { label = "OUTLINE", value = "OUTLINE" },
-            { label = "THICKOUTLINE", value = "THICKOUTLINE" }
+            { label = L("NONE", "None"), value = "NONE" },
+            { label = "OUTLINE",       value = "OUTLINE" },
+            { label = "THICKOUTLINE",  value = "THICKOUTLINE" }
         },
         function() return profile.fontOutline or "OUTLINE" end,
-        function(v) profile.fontOutline = v; ascensionBars:updateDisplay() end,
-        colWidth - 20, col1X)
+        function(v)
+            profile.fontOutline = v; ascensionBars:updateDisplay()
+        end, colWidth - 20, col1X)
 
-    leftLayout:colorPicker("GlobalTextColorPicker", locales["GLOBAL_TEXT_COLOR"],
+    local afterCol1Y = mainLayout.y
+
+    -- Column 2 (Right)
+    mainLayout.y = startY -- Regresamos la 'Y' arriba para la segunda columna
+    mainLayout:slider("GlobalYOffsetSlider", L("GLOBAL_OFFSET", "Global Y Offset"), -100, 100, 1,
+        function() return profile.textYOffset or 0 end,
+        function(v)
+            profile.textYOffset = v; ascensionBars:updateDisplay()
+        end, colWidth - 20, col2X)
+
+    mainLayout:colorPicker("GlobalTextColorPicker", L("GLOBAL_TEXT_COLOR", "Global Text Color"),
         function()
             local c = profile.textColor
             if not c then return 1, 1, 1, 1 end
@@ -85,115 +100,116 @@ function textLayoutTab:build(panel)
             local c = profile.textColor
             c.r, c.g, c.b, c.a = r, g, b, a
             ascensionBars:updateDisplay()
-        end, col1X + 11, true)
-        
-    leftLayout.y = leftLayout.y - 15
+        end, col2X + 11, true)
 
-    -- Header 2: Visual Disposition
-    local header2 = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-    header2:SetPoint("TOPLEFT", col1X - 5, leftLayout.y)
-    header2:SetWidth(colWidth)
-    header2:SetJustifyH("CENTER")
-    header2:SetText(locales["VISUAL_DISPOSITION"])
-    header2:SetFont(fontPath, 20, outline)
-    header2:SetTextColor(0.64, 0.21, 0.93)
-    
-    leftLayout.y = leftLayout.y - 30
+    -- Sincronizamos la Y usando el punto más bajo de ambas columnas
+    mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
-    -- leftLayout:checkbox("ShowRestedXPToggle", locales["SHOW_RESTED"], nil,
-    --     function() return profile.showRestedBar end,
-    --     function(v) profile.showRestedBar = v; ascensionBars:updateDisplay() end, col1X)
+    ---------------------------------------------------------------------------
+    -- SECTION 2: VISUAL OPTIONS
+    ---------------------------------------------------------------------------
+    mainLayout:header("VisualOptionsHeader", L("VISUAL_OPTIONS", "Visual Options"))
+    startY = mainLayout.y
 
-    leftLayout:checkbox("UseCompactFormatToggle", locales["USE_COMPACT_FORMAT"], nil,
+    -- Column 1 (Left)
+    mainLayout:checkbox("ShowAbsoluteValuesToggle", L("SHOW_ABSOLUTE_VALUES", "Show Absolute Values"), nil,
+        function() return profile.showAbsoluteValues end,
+        function(v)
+            profile.showAbsoluteValues = v; ascensionBars:updateDisplay()
+        end, col1X)
+
+    afterCol1Y = mainLayout.y
+
+    -- Column 2 (Right)
+    mainLayout.y = startY
+    mainLayout:checkbox("UseCompactFormatToggle", L("USE_COMPACT_FORMAT", "Use Compact Format"), nil,
         function() return profile.useCompactFormat end,
-        function(v) profile.useCompactFormat = v; ascensionBars:updateDisplay() end, col1X)
-        
-    -- leftLayout:checkbox("ShowAbsoluteValuesToggle", locales["SHOW_ABSOLUTE_VALUES"], nil,
-    --     function() return profile.showAbsoluteValues end,
-    --     function(v) profile.showAbsoluteValues = v; ascensionBars:updateDisplay() end, col1X)
+        function(v)
+            profile.useCompactFormat = v; ascensionBars:updateDisplay()
+        end, col2X)
 
-    -- leftLayout:checkbox("ShowPercentageToggle", locales["SHOW_PERCENTAGE"], nil,
-    --     function() return profile.showPercentage end,
-    --     function(v) profile.showPercentage = v; ascensionBars:updateDisplay() end, col1X)
+    mainLayout:checkbox("ShowPercentageToggle", L("SHOW_PERCENTAGE", "Show Percentage"), nil,
+        function() return profile.showPercentage end,
+        function(v)
+            profile.showPercentage = v; ascensionBars:updateDisplay()
+        end, col2X)
 
-    if leftLayout.y < maxColumnY then maxColumnY = leftLayout.y end
+    mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
     ---------------------------------------------------------------------------
-    -- COLUMN 2 (RIGHT): Block Mode & Events
+    -- SECTION 3: BLOCK TEXT MODE
     ---------------------------------------------------------------------------
-    local rightLayout = addonTable.layoutModel:new(content, startY)
-    
-    -- Header 3: Block Text Mode
-    local header3 = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-    header3:SetPoint("TOPLEFT", col2X - 5, rightLayout.y)
-    header3:SetWidth(colWidth)
-    header3:SetJustifyH("CENTER")
-    header3:SetText(locales["BLOCK_TEXT_MODE"])
-    header3:SetFont(fontPath, 20, outline)
-    header3:SetTextColor(0.64, 0.21, 0.93)
-    
-    rightLayout.y = rightLayout.y - 30
+    mainLayout:header("BlockModeHeader", L("BLOCK_TEXT_MODE", "Block Text Mode"))
+    startY = mainLayout.y
 
-        rightLayout:dropdown("TextVisibilityMode", locales["TEXT_VISIBILITY_MODE"] or "Modo de visibilidad",
+    -- Column 1 (Left)
+    mainLayout:dropdown("TextVisibilityMode", L("TEXT_VISIBILITY_MODE", "Text Visibility Mode"),
         {
-            { label = locales["FOCUS_MODE"], value = "FOCUS" },
-            { label = locales["GRID_DYNAMIC"], value = "GRID" },
-            -- { label = locales["NONE"], value = "NONE" }
+            { label = L("FOCUS_MODE", "Focus Mode"),   value = "FOCUS" },
+            { label = L("GRID_DYNAMIC", "Dynamic Grid"), value = "GRID" },
+            { label = L("NONE", "None"),         value = "NONE" }
         },
         function() return profile.blockTextMode or "FOCUS" end,
-        function(v) 
+        function(v)
             profile.blockTextMode = v
             ascensionBars:updateDisplay()
             if panel.updateLayout then panel:updateLayout() end
-        end,
-        colWidth - 20, col2X)
+        end, colWidth - 20, col1X)
 
+    afterCol1Y = mainLayout.y
+
+    -- Column 2 (Right)
+    mainLayout.y = startY
     if profile.blockTextMode == "FOCUS" then
-        rightLayout:slider("FocusDimAlphaSlider", locales["DIM_ALPHA"] or "Atenuación", 0, 100, 5,
+        mainLayout:slider("FocusDimAlphaSlider", L("DIM_ALPHA", "Dim Alpha"), 0, 100, 5,
             function() return (profile.focusDimAlpha or 0.2) * 100 end,
-            function(v) 
+            function(v)
                 profile.focusDimAlpha = v / 100
                 ascensionBars:updateDisplay()
             end, colWidth - 20, col2X)
     elseif profile.blockTextMode == "GRID" then
-        rightLayout:slider("DynamicGridGapSlider", locales["DYNAMIC_GRID_GAP"] or "Espaciado de cuadrícula", 0, 50, 1,
+        mainLayout:slider("DynamicGridGapSlider", L("DYNAMIC_GRID_GAP", "Dynamic Grid Gap"), 0, 50, 1,
             function() return profile.dynamicGridGap or 2 end,
             function(v)
                 profile.dynamicGridGap = v
                 ascensionBars:updateDisplay()
             end, colWidth - 20, col2X)
     end
-    
-    -- Spacing before next header
-    rightLayout.y = rightLayout.y - 20
 
-    -- -- Header 4: Events & Visibility
-    -- local header4 = content:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-    -- header4:SetPoint("TOPLEFT", col2X - 5, rightLayout.y)
-    -- header4:SetWidth(colWidth)
-    -- header4:SetJustifyH("CENTER")
-    -- header4:SetText(locales["EVENTS_VISIBILITY"])
-    -- header4:SetFont(fontPath, 20, outline)
-    -- header4:SetTextColor(0.64, 0.21, 0.93)
-    
-    -- rightLayout.y = rightLayout.y - 30
+    mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
-    -- rightLayout:checkbox("EnableCarouselToggle", locales["ENABLE_CAROUSEL"], nil,
-    --     function() return profile.carouselEnabled end,
-    --     function(v) profile.carouselEnabled = v; ascensionBars:updateDisplay() end, col2X)
-        
-    -- rightLayout:checkbox("LegendEnabledToggle", locales["LATERAL_LEGEND"], nil,
-    --     function() return profile.legendEnabled end,
-    --     function(v) profile.legendEnabled = v; ascensionBars:updateDisplay() end, col2X)
-        
-    -- rightLayout:slider("BackgroundAlphaSlider", locales["REST_OPACITY"], 0, 100, 5,
-    --     function() return (profile.backgroundAlpha or 0.5) * 100 end,
-    --     function(v) 
-    --         profile.backgroundAlpha = v / 100 
-    --         ascensionBars:updateDisplay() 
-    --     end, colWidth - 20, col2X)
+    ---------------------------------------------------------------------------
+    -- SECTION 4: EVENTS & VISIBILITY
+    ---------------------------------------------------------------------------
+    mainLayout:header("VisibilityHeader", L("EVENTS_VISIBILITY", "Events & Visibility"))
+    startY = mainLayout.y
 
-    -- if rightLayout.y < maxColumnY then maxColumnY = rightLayout.y end
+    -- Column 1 (Left)
+    mainLayout:checkbox("EnableCarouselToggle", L("ENABLE_CAROUSEL", "Enable Carousel"), nil,
+        function() return profile.carouselEnabled end,
+        function(v)
+            profile.carouselEnabled = v; ascensionBars:updateDisplay()
+        end, col1X)
 
-    -- content:SetHeight(math.abs(maxColumnY) + 20)
+    mainLayout:checkbox("LegendEnabledToggle", L("LATERAL_LEGEND", "Lateral Legend"), nil,
+        function() return profile.legendEnabled end,
+        function(v)
+            profile.legendEnabled = v; ascensionBars:updateDisplay()
+        end, col1X)
+
+    afterCol1Y = mainLayout.y
+
+    -- Column 2 (Right)
+    mainLayout.y = startY
+    mainLayout:slider("BackgroundAlphaSlider", L("REST_OPACITY", "Rest Opacity"), 0, 100, 5,
+        function() return (profile.backgroundAlpha or 0.5) * 100 end,
+        function(v)
+            profile.backgroundAlpha = v / 100
+            ascensionBars:updateDisplay()
+        end, colWidth - 20, col2X)
+
+    mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
+
+    -- Set exact scrollframe bounds
+    content:SetHeight(math.abs(mainLayout.y) + 20)
 end

@@ -59,6 +59,12 @@ function behaviorTab:build(panel)
     -- Data Display Section
     layout:header("DataDisplayHeader", locales["DATA_DISPLAY"])
     
+    layout:checkbox("ShowRestedXPToggle", locales["SHOW_RESTED"], nil,
+        function() return profile.showRestedBar end,
+        function(v)
+            profile.showRestedBar = v; ascensionBars:updateDisplay()
+        end)
+
     layout:checkbox("ShowPercentageCheckbox", locales["SHOW_PERCENTAGE"], nil,
         function() return profile.showPercentage end,
         function(v)

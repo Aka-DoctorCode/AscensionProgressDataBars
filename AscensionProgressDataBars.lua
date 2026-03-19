@@ -163,17 +163,17 @@ end
 -------------------------------------------------------------------------------
 
 function ascensionBars:createFrames()
-    -- Only keep textHolder for paragon alert backward compatibility
+    -- Base container for text elements
     self.textHolder = CreateFrame("Frame", "AscensionBars_TextHolderT1", UIParent)
-    self.textHolder:SetFrameStrata("TOOLTIP")
+    self.textHolder:SetFrameStrata("HIGH")
     self.textHolder:SetClipsChildren(false)
     self.textHolder:SetHeight(20)
     self.textHolder:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-
+    
     if not self.hoverFrame then
         self.hoverFrame = CreateFrame("Frame", "AscensionBars_HoverFrame", UIParent)
         self.hoverFrame:SetAllPoints(UIParent)
-        self.hoverFrame:SetFrameStrata("TOOLTIP")
+        self.hoverFrame:SetFrameStrata("BACKGROUND")
         self.hoverFrame:EnableMouse(false)
     end
 
@@ -192,7 +192,7 @@ end
 
 function ascensionBars:createBar(name)
     local bar = CreateFrame("StatusBar", name, UIParent)
-    bar:SetFrameStrata("TOOLTIP")
+    bar:SetFrameStrata("MEDIUM")
     bar:EnableMouse(true)
     
     -- Extract the barKey from the name for tracking
@@ -237,8 +237,8 @@ function ascensionBars:createBar(name)
 
     -- Legacy text frame (kept, now acts as container for texts to avoid clipping)
     local txFrame = CreateFrame("Frame", nil, UIParent)
-    -- Must be TOOLTIP and higher frame level than the bar to appear on top
-    txFrame:SetFrameStrata("TOOLTIP")
+    -- Higher frame level than the bar to appear on top
+    txFrame:SetFrameStrata("HIGH")
     txFrame:SetFrameLevel(bar:GetFrameLevel() + 5)
     txFrame:SetAllPoints(bar)
     txFrame:Hide()
@@ -388,16 +388,20 @@ function ascensionBars:applyTextStyles()
                 finalColor = barConfig.customTextColor or finalColor
             end
             
-            local function applyStyle(fontString)
+            local function applyStyle(fontString, anchor, xOff)
                 if fontString then
                     fontString:SetFont(finalFont, finalSize, outline)
                     fontString:SetTextColor(finalColor.r or 1, finalColor.g or 1, finalColor.b or 1, finalColor.a or 1)
+                    
+                    local yOff = profile.textYOffset or 0
+                    fontString:ClearAllPoints()
+                    fontString:SetPoint(anchor, obj.bar, anchor, xOff, yOff)
                 end
             end
 
-            applyStyle(obj.leftText)
-            applyStyle(obj.centerText)
-            applyStyle(obj.rightText)
+            applyStyle(obj.leftText, "LEFT", 10)
+            applyStyle(obj.centerText, "CENTER", 0)
+            applyStyle(obj.rightText, "RIGHT", -10)
         end
     end
 end
@@ -432,8 +436,6 @@ function ascensionBars:updateDisplay(force)
 
     self:updateLayout(shouldHideXP)
     self:updateVisibility()
-    if self.updateLegend then self:updateLegend() end
-    if self.updateCarouselVisibility then self:updateCarouselVisibility() end
 
     -- CONFIGURATION MODE LOGIC
     if isConfig then
@@ -446,6 +448,10 @@ function ascensionBars:updateDisplay(force)
         if self.configHouseXp then self:configHouseXp(profile, bars, textColor) end
         if self.configAzerite then self:configAzerite(profile, bars, textColor) end
         
+        -- Actualizamos la leyenda DESPUÉS de calcular los valores dummy de configuración
+        if self.updateLegend then self:updateLegend() end
+        if self.updateCarouselVisibility then self:updateCarouselVisibility() end
+
         -- Always update anchors in config mode to reflect position changes
         return -- We return here because config modules handle their own internal rendering
     end
@@ -457,6 +463,10 @@ function ascensionBars:updateDisplay(force)
     if self.renderHouseXp then self:renderHouseXp() end
     if self.renderAzerite then self:renderAzerite() end
     
+    -- >>> MOVEMOS LA LEYENDA AQUÍ AL FINAL <<<
+    -- Actualizamos la leyenda DESPUÉS de que las barras hayan calculado sus nuevos datos
+    if self.updateLegend then self:updateLegend() end
+    if self.updateCarouselVisibility then self:updateCarouselVisibility() end
 end
 
 function ascensionBars:updateLayout(shouldHideXP)
@@ -657,16 +667,24 @@ end
 function ascensionBars:OnInitialize()
     local db = LibStub("AceDB-3.0"):New("AscensionProgressDataBarsDB", self.defaults, true)
     
-    -- Migration / Cleanup of old text system variables
-    if db.profile then
-        if db.profile.textGroups then db.profile.textGroups = nil end
-        if db.profile.usePerGroupSize ~= nil then db.profile.usePerGroupSize = nil end
-        if db.profile.usePerGroupColor ~= nil then db.profile.usePerGroupColor = nil end
-        if db.profile.textLayoutMode ~= nil then db.profile.textLayoutMode = nil end
-        if db.profile.textFollowBar ~= nil then db.profile.textFollowBar = nil end
+    self.db = db
+
+    -- Secure migration: Hook to profile shared/reset to ensure DB is fully loaded
+    self.db.RegisterCallback(self, "OnProfileChanged", "refreshConfig")
+    self.db.RegisterCallback(self, "OnProfileCopied", "refreshConfig")
+    self.db.RegisterCallback(self, "OnProfileReset", "refreshConfig")
+
+    local function migrateOldSettings()
+        if not db.profile then return end
+        local p = db.profile
+        if p.textGroups then p.textGroups = nil end
+        if p.usePerGroupSize ~= nil then p.usePerGroupSize = nil end
+        if p.usePerGroupColor ~= nil then p.usePerGroupColor = nil end
+        if p.textLayoutMode ~= nil then p.textLayoutMode = nil end
+        if p.textFollowBar ~= nil then p.textFollowBar = nil end
         
-        if db.profile.bars then
-            for k, v in pairs(db.profile.bars) do
+        if p.bars then
+            for _, v in pairs(p.bars) do
                 if v.textBlock then v.textBlock = nil end
                 if v.textOrder then v.textOrder = nil end
                 if v.textX then v.textX = nil end
@@ -675,7 +693,8 @@ function ascensionBars:OnInitialize()
         end
     end
     
-    self.db = db
+    migrateOldSettings()
+    
     self.state = {
         cachedPendingParagons = {},
         cachedClassColor = nil,

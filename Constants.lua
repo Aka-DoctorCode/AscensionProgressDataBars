@@ -28,6 +28,7 @@ ascensionBars.defaults = {
         barGap = 2,
         globalBarHeight = 6,
         textGap = 13.5,
+        textYOffset = -12,
         fontOutline = "OUTLINE",
         hideInCombat = false,
         hideAtMaxLevel = true,

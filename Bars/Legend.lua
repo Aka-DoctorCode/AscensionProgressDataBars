@@ -1,55 +1,79 @@
+
 -------------------------------------------------------------------------------
 -- Project: AscensionProgressDataBars
 -- Author: Aka-DoctorCode
 -- File: Legend.lua
 -- Version: @project-version@
 -------------------------------------------------------------------------------
+-- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+--
+-- This software and its source code are the exclusive property of the author.
+-- No part of this file may be copied, modified, redistributed, or used in
+-- derivative works without express written permission.
+-------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
 ---@class AscensionBars
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
-local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
--- LEGEND MODULE (Frameless, Smart, Interactive)
+-- LEGEND MODULE (Estructura Compacta y Alineada)
 -------------------------------------------------------------------------------
 
 local legend = CreateFrame("Frame", "AscensionBars_Legend", UIParent)
-legend:SetSize(200, 100)
-legend:SetPoint("RIGHT", UIParent, "RIGHT", -20, 0)
+legend:SetSize(130, 50)
 legend:SetMovable(true)
 legend:EnableMouse(true)
 legend:SetFrameStrata("TOOLTIP")
 legend:SetClipsChildren(false)
 
--- Sombra proyectada (efecto vidrio)
+legend:SetPoint("RIGHT", UIParent, "RIGHT", -20, 0)
+
+legend:RegisterForDrag("LeftButton")
+legend:SetScript("OnDragStart", function(self) self:StartMoving() end)
+legend:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+
 local shadow = legend:CreateTexture(nil, "BACKGROUND")
-shadow:SetPoint("TOPLEFT", -5, 5)
-shadow:SetPoint("BOTTOMRIGHT", 5, -5)
-shadow:SetColorTexture(0, 0, 0, 0.3)
-shadow:SetDrawLayer("BACKGROUND", -1)
+shadow:SetPoint("TOPLEFT", legend, "TOPLEFT", -2, 2)
+shadow:SetPoint("BOTTOMRIGHT", legend, "BOTTOMRIGHT", 2, -2)
+shadow:SetColorTexture(0, 0, 0, 0.4)
 
--- Sin fondo ni borde
--- legend:SetBackdrop(nil)
+legend.lines = {}
 
-legend.lines = {}  -- tabla de líneas { left, right, barObj }
+local PADDING = 0
+local EDGE_MARGIN = 0
+local ROW_HEIGHT = 28
+local INTERNAL_GAP = -24
 
-local lineHeight = 20
-local padding = 8
+local function UpdateAlphas()
+    local isOver = legend:IsMouseOver()
+    legend:SetAlpha(isOver and 1.0 or 0.6)
+end
 
--- Actualización de la leyenda
+legend:SetScript("OnEnter", UpdateAlphas)
+legend:SetScript("OnLeave", UpdateAlphas)
+
+-- Función auxiliar para aplicar OUTLINE de forma segura
+local function ApplyOutline(fontString)
+    if not fontString then return end
+    local f, s = fontString:GetFont()
+    if f and f ~= "" and s and s > 0 then
+        fontString:SetFont(f, s, "OUTLINE")
+    end
+end
+
 function ascensionBars:updateLegend()
     local profile = self.db and self.db.profile
-    if not profile then return end
-    if not profile.legendEnabled then
+    if not profile or not profile.legendEnabled then
         legend:Hide()
         return
     end
 
     legend:Show()
 
-    local bars = {
+    local activeBars = {}
+    local barsToCheck = {
         { obj = self.xp,      key = "XP" },
         { obj = self.rep,     key = "Rep" },
         { obj = self.honor,   key = "Honor" },
@@ -57,117 +81,111 @@ function ascensionBars:updateLegend()
         { obj = self.azerite, key = "Azerite" }
     }
 
-    local lineIndex = 1
-    for _, entry in ipairs(bars) do
-        local barObj = entry.obj
-        if barObj and barObj.bar and barObj.bar:IsShown() then
-            -- Obtener o crear la línea
-            local line = legend.lines[lineIndex]
-            if not line then
-                line = {}
-                line.frame = CreateFrame("Frame", nil, legend)
-                line.frame:SetSize(legend:GetWidth(), lineHeight)
-                line.frame:SetPoint("TOPLEFT", 0, -(lineIndex-1)*lineHeight - padding)
-
-                line.left = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-                line.left:SetPoint("LEFT", 4, 0)
-                line.left:SetJustifyH("LEFT")
-
-                line.right = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-                line.right:SetPoint("RIGHT", -4, 0)
-                line.right:SetJustifyH("RIGHT")
-
-                -- Hover en la línea
-                line.frame:EnableMouse(true)
-                line.frame:SetScript("OnEnter", function()
-                    -- Cambiar el texto derecho a valores absolutos
-                    if line.barObj then
-                        local current = line.barObj.current or 0
-                        local max = line.barObj.max or 1
-                        local formatted = string.format("%s / %s",
-                            dataText:FormatValue(current, profile),
-                            dataText:FormatValue(max, profile))
-                        line.right:SetText(formatted)
-                    end
-                end)
-                line.frame:SetScript("OnLeave", function()
-                    -- Volver al porcentaje
-                    if line.barObj then
-                        line.right:SetText(string.format("%.1f%%", line.barObj.percentage or 0))
-                    end
-                end)
-
-                table.insert(legend.lines, line)
-            end
-
-            line.barObj = barObj
-
-            -- Texto izquierdo: nombre con color de la barra
-            local leftText
-            if entry.key == "XP" then
-                leftText = barObj.displayName or "XP"
-            elseif entry.key == "Rep" then
-                leftText = barObj.displayName or "Rep"
-                if barObj.standing then
-                    leftText = leftText .. " (" .. barObj.standing .. ")"
-                end
-            elseif entry.key == "Honor" then
-                leftText = barObj.displayName or "Honor"
-            elseif entry.key == "HouseXp" then
-                leftText = barObj.displayName or "House"
-            elseif entry.key == "Azerite" then
-                leftText = barObj.displayName or "Azerite"
-            end
-
-            local color = barObj.color or { r=1, g=1, b=1 }
-            line.left:SetText(leftText)
-            line.left:SetTextColor(color.r, color.g, color.b)
-
-            -- Texto derecho: porcentaje por defecto
-            line.right:SetText(string.format("%.1f%%", barObj.percentage or 0))
-            line.right:SetTextColor(0.9, 0.9, 0.9)  -- blanco grisáceo
-
-            line.frame:Show()
-            lineIndex = lineIndex + 1
+    for _, entry in ipairs(barsToCheck) do
+        if entry.obj and entry.obj.bar and entry.obj.bar:IsShown() then
+            table.insert(activeBars, entry)
         end
     end
 
-    -- Ocultar líneas sobrantes
+    table.sort(activeBars, function(a, b)
+        local aY = a.obj.bar:GetBottom() or 0
+        local bY = b.obj.bar:GetBottom() or 0
+        return aY > bY
+    end)
+
+    local lineIndex = 1
+    for _, entry in ipairs(activeBars) do
+        local barObj = entry.obj
+        local line = legend.lines[lineIndex]
+
+        if not line then
+            line = {}
+            line.frame = CreateFrame("Frame", nil, legend)
+            line.frame:SetHeight(ROW_HEIGHT)
+            
+            -- TEXTO IZQUIERDA ARRIBA: Nombre
+            line.name = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            line.name:SetPoint("TOPLEFT", line.frame, "TOPLEFT", EDGE_MARGIN, -2)
+            line.name:SetJustifyH("LEFT")
+            ApplyOutline(line.name)
+
+            -- TEXTO IZQUIERDA ABAJO: Sub-texto (Standing de reputación)
+            line.subName = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            line.subName:SetPoint("BOTTOMLEFT", line.frame, "BOTTOMLEFT", EDGE_MARGIN, 2)
+            line.subName:SetJustifyH("LEFT")
+            ApplyOutline(line.subName)
+
+            -- TEXTO DERECHA ARRIBA: Porcentaje
+            line.pct = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            line.pct:SetPoint("TOPRIGHT", line.frame, "TOPRIGHT", -EDGE_MARGIN, -2)
+            line.pct:SetJustifyH("RIGHT")
+            ApplyOutline(line.pct)
+
+            -- TEXTO DERECHA ABAJO: Valores absolutos
+            line.abs = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            line.abs:SetPoint("BOTTOMRIGHT", line.frame, "BOTTOMRIGHT", -EDGE_MARGIN, 2)
+            line.abs:SetJustifyH("RIGHT")
+            line.abs:SetTextColor(0.8, 0.8, 0.8)
+            ApplyOutline(line.abs)
+
+            table.insert(legend.lines, line)
+        end
+
+        line.frame:ClearAllPoints()
+        line.frame:SetPoint("TOPLEFT", legend, "TOPLEFT", 0, -((lineIndex - 1) * ROW_HEIGHT) - PADDING)
+        line.frame:SetPoint("RIGHT", legend, "RIGHT", 0, 0)
+
+        local displayName = barObj.displayName or entry.key
+        local subNameText = ""
+
+        if entry.key == "Rep" and barObj.standing then
+            subNameText = barObj.standing
+        end
+
+        line.name:SetText(displayName)
+        line.subName:SetText(subNameText)
+        
+        local c = barObj.color or {}
+        local r = type(c.r) == "number" and c.r or 1
+        local g = type(c.g) == "number" and c.g or 1
+        local b = type(c.b) == "number" and c.b or 1
+        
+        line.name:SetTextColor(r, g, b)
+        line.subName:SetTextColor(r * 0.85, g * 0.85, b * 0.85)
+
+        line.pct:SetText(string.format("%.1f%%", type(barObj.percentage) == "number" and barObj.percentage or 0))
+        
+        local currentText = dataText:FormatValue(barObj.current or 0, profile)
+        local maxText = dataText:FormatValue(barObj.max or 1, profile)
+        line.abs:SetText(string.format("%s / %s", currentText or "0", maxText or "1"))
+
+        local rightSideWidth = math.max(line.pct:GetStringWidth() or 0, line.abs:GetStringWidth() or 0)
+        local leftSideWidth = math.max(line.name:GetStringWidth() or 0, line.subName:GetStringWidth() or 0)
+        line.currentWidth = leftSideWidth + INTERNAL_GAP + rightSideWidth + (EDGE_MARGIN * 2)
+
+        line.frame:Show()
+        lineIndex = lineIndex + 1
+    end
+
     for i = lineIndex, #legend.lines do
         legend.lines[i].frame:Hide()
     end
 
-    -- Ajustar altura del marco
-    local totalHeight = padding * 2 + (lineIndex - 1) * lineHeight
-    legend:SetHeight(totalHeight)
-
-    -- Opacidad base 60%, 100% al hacer hover
-    legend:SetAlpha(0.6)
-end
-
--- Hover en la leyenda completa
-legend:SetScript("OnEnter", function()
-    legend:SetAlpha(1.0)
-    if ascensionBars.state then
-        ascensionBars.state.legendHovered = true
-        ascensionBars:updateVisibility()
+    if lineIndex == 1 then
+        legend:Hide()
+        return
     end
-end)
 
-legend:SetScript("OnLeave", function()
-    legend:SetAlpha(0.6)
-    if ascensionBars.state then
-        ascensionBars.state.legendHovered = false
-        ascensionBars:updateVisibility()
-    end
-end)
-
--- Actualización cuando cambia el ancho del marco (por si el usuario redimensiona)
-legend:SetScript("OnSizeChanged", function(self, width, height)
-    if width and width > 0 then
-        local numLines = #legend.lines
-        for i, line in ipairs(legend.lines) do
-            line.frame:SetWidth(width)
+    local maxRequiredWidth = 0
+    for i = 1, lineIndex - 1 do
+        if legend.lines[i].currentWidth > maxRequiredWidth then
+            maxRequiredWidth = legend.lines[i].currentWidth
         end
     end
-end)
+
+    local finalWidth = math.max(130, maxRequiredWidth)
+    local finalHeight = ((lineIndex - 1) * ROW_HEIGHT) + (PADDING * 2)
+
+    legend:SetSize(finalWidth, finalHeight)
+    UpdateAlphas()
+end

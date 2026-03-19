@@ -28,6 +28,9 @@ function ascensionBars:renderHonor()
     local honorObj = self.honor
 
     if honorObj and bars and bars["Honor"] and bars["Honor"].enabled then
+        -- 1. Obtenemos el nivel de honor aquí afuera para poder usarlo en ambas partes
+        local honorLevel = UnitHonorLevel("player") or 0
+        
         self:updateStandardBar(honorObj, "Honor",
             function() return UnitHonor("player") or 0 end,
             function() return UnitHonorMax("player") or 100 end,
@@ -35,12 +38,23 @@ function ascensionBars:renderHonor()
                 return profile.honorColor or { r = 0.8, g = 0.2, b = 0.2, a = 1.0 } -- #CC3333
             end,
             function(current, max, percentage)
-                if not dataText then return { identity="", details="", percentage="" } end
-                return dataText:formatHonor(current, max, percentage)
+                if not dataText then return "" end
+                
+                local baseText = dataText:formatHonor(current, max, percentage)
+                local levelString = string.format(Locales["LEVEL_TEXT"] or "Level %d", honorLevel)
+                
+                if type(baseText) == "string" then
+                    if not string.find(baseText, levelString) then
+                        return string.format("%s | %s", levelString, baseText)
+                    end
+                    return baseText
+                end
+                
+                return levelString
             end
         )
-        -- Store additional legend info
-        honorObj.displayName = string.format(Locales["LEVEL_TEXT"] or "Level %d", UnitHonorLevel("player") or 0)
+        -- 2. Corregido Locales (con L mayúscula) y usamos la variable honorLevel que ahora está en scope
+        honorObj.displayName = string.format(Locales["HONOR_LEVEL_SIMPLE"] or "Honor Level %d", honorLevel)
 
     elseif honorObj then
         if honorObj.bar then honorObj.bar:Hide() end
@@ -74,7 +88,10 @@ function ascensionBars:configHonor(profile, bars, textColor)
         honorObj.color = honorColor
         
         if honorObj.centerText then
-            honorObj.centerText:SetText(Locales["HONOR_BAR_DATA"])
+            -- Actualizamos la vista previa para que muestre el mismo formato concatenado
+            local baseText = Locales["HONOR_BAR_DATA"] or "Honor"
+            local levelString = string.format(Locales["LEVEL_TEXT"] or "Level %d", 45)
+            honorObj.centerText:SetText(levelString .. " | " .. baseText)
         end
     else
         if honorObj.bar then honorObj.bar:Hide() end
