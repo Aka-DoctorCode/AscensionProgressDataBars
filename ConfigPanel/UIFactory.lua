@@ -233,6 +233,83 @@ function layoutFactory:createSlider(args)
     return slider, nextY
 end
 
+function layoutFactory:createStepper(args)
+    local elementID, parent, text, minVal, maxVal = args.elementID, args.parent, args.text, args.minVal, args.maxVal
+    local step, getter, setter = args.step or 1, args.getter, args.setter
+    local width, yOffset, xOffset = args.width or 120, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Stepper"
+    
+    local style = getStyle(elementID)
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
+
+    local val = getter() or minVal
+
+    -- Label text
+    local labelString = parent:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    labelString:SetPoint("TOPLEFT", actualX, yOffset)
+    labelString:SetText(text)
+    labelString:SetTextColor(unpack(colors.textDim))
+
+    -- Helper function to update value
+    local function updateValue(editBox, inputValue)
+        local numericValue = tonumber(inputValue)
+        if numericValue then
+            numericValue = math.max(minVal, math.min(maxVal, numericValue))
+            editBox:SetText(tostring(math.floor(numericValue * 100) / 100))
+            setter(numericValue)
+        else
+            -- revert to old value
+            editBox:SetText(tostring(math.floor(getter() * 100) / 100))
+        end
+    end
+
+    local btnSize = menuStyle.editBoxHeight or 28
+
+    local controlsFrame = CreateFrame("Frame", nil, parent)
+    -- Align frame directly below the label
+    controlsFrame:SetPoint("TOPLEFT", labelString, "BOTTOMLEFT", 0, -8)
+    controlsFrame:SetSize(width, btnSize)
+
+    -- Edit Box (Centered in its space)
+    local editBox = CreateFrame("EditBox", nil, controlsFrame, "InputBoxTemplate")
+    editBox:SetSize(btnSize + 20, btnSize + 10)
+    editBox:SetPoint("CENTER", controlsFrame, "CENTER", 0, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetJustifyH("CENTER")
+    editBox:SetFontObject(menuStyle.labelFont)
+    editBox:SetText(tostring(math.floor(val * 100) / 100))
+
+    editBox:SetScript("OnEnterPressed", function(self)
+        updateValue(self, self:GetText())
+        self:ClearFocus()
+    end)
+
+    -- Minus Button
+    local btnMinus = CreateFrame("Button", nil, controlsFrame, "UIPanelButtonTemplate")
+    btnMinus:SetSize(btnSize, btnSize)
+    btnMinus:SetText("-")
+    local minusFont = btnMinus:GetFontString()
+    if minusFont then minusFont:SetFontObject(menuStyle.labelFont) end
+    btnMinus:SetPoint("RIGHT", editBox, "LEFT", -8, 0)
+    btnMinus:SetScript("OnClick", function() updateValue(editBox, getter() - step) end)
+
+    -- Plus Button
+    local btnPlus = CreateFrame("Button", nil, controlsFrame, "UIPanelButtonTemplate")
+    btnPlus:SetSize(btnSize, btnSize)
+    btnPlus:SetText("+")
+    local plusFont = btnPlus:GetFontString()
+    if plusFont then plusFont:SetFontObject(menuStyle.labelFont) end
+    btnPlus:SetPoint("LEFT", editBox, "RIGHT", 8, 0)
+    btnPlus:SetScript("OnClick", function() updateValue(editBox, getter() + step) end)
+
+    local labelHeight = labelString:GetHeight() or 14
+    local totalDescent = labelHeight + 8 + btnSize + 16
+
+    return controlsFrame, yOffset - totalDescent
+end
+
 function layoutFactory:createColorPicker(args)
     local elementID, parent, text, getter = args.elementID, args.parent, args.text, args.getter
     local setter, yOffset, xOffset, hasAlpha = args.setter, args.yOffset, args.xOffset, args.hasAlpha
@@ -617,6 +694,15 @@ end
 
 function layoutModel:slider(elementID, text, minVal, maxVal, step, getter, setter, width, xOffset)
     local s, newY = layoutFactory:createSlider({
+        elementID = elementID, parent = self.parent, text = text, minVal = minVal, maxVal = maxVal, step = step,
+        getter = getter, setter = setter, width = width, yOffset = self.y, xOffset = xOffset
+    })
+    self.y = newY
+    return s
+end
+
+function layoutModel:stepper(elementID, text, minVal, maxVal, step, getter, setter, width, xOffset)
+    local s, newY = layoutFactory:createStepper({
         elementID = elementID, parent = self.parent, text = text, minVal = minVal, maxVal = maxVal, step = step,
         getter = getter, setter = setter, width = width, yOffset = self.y, xOffset = xOffset
     })

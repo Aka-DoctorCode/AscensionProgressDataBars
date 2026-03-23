@@ -71,59 +71,87 @@ end
 -- Formatting Functions
 -------------------------------------------------------------------------------
 
-function dataText:formatExperience()
-    if not ascensionBars.db or not ascensionBars.db.profile then
-        return ""
+local function BuildValueString(dataTextObj, current, max, percentage, profile, isMaxLevel)
+    local hasAbs = profile.showAbsoluteValues
+    local hasPct = profile.showPercentage
+    
+    -- Si ambas están apagadas, devolvemos un string vacío (sin el separador " | ")
+    if not hasAbs and not hasPct then return "" end 
+
+    local absText = ""
+    local pctText = ""
+
+    if isMaxLevel then
+        absText = hasAbs and "Max" or ""
+        pctText = hasPct and "100.0%" or ""
+    else
+        absText = hasAbs and string.format("%s / %s", dataTextObj:FormatValue(current, profile), dataTextObj:FormatValue(max, profile)) or ""
+        pctText = hasPct and string.format("(%.1f%%)", percentage or 0) or ""
     end
+
+    local combinedText = ""
+    if hasAbs and hasPct then
+        combinedText = isMaxLevel and string.format("%s (%s)", absText, pctText) or string.format("%s %s", absText, pctText)
+    elseif hasAbs then
+        combinedText = absText
+    else
+        combinedText = pctText
+    end
+
+    -- Devolvemos el texto con el separador pegado al inicio
+    return string.format(" | %s", combinedText)
+end
+
+function dataText:formatExperience()
+    if not ascensionBars.db or not ascensionBars.db.profile then return "" end
     local profile = ascensionBars.db.profile
     local isConfig = ascensionBars.state and ascensionBars.state.isConfigMode
+    
     local currentXP = isConfig and 7500 or (UnitXP("player") or 0)
     local maxXP = isConfig and 10000 or (UnitXPMax("player") or 1)
     local levelValue = isConfig and 60 or UnitLevel("player")
     local restedXP = isConfig and 2500 or (GetXPExhaustion() or 0)
     local calculatedPercentage = (currentXP / maxXP) * 100
+    
     local levelText = string.format(Locales["LEVEL_TEXT"] or "Level %d", levelValue)
-    local mainPart = string.format("%s | %s / %s (%.1f%%)", levelText, self:FormatValue(currentXP, profile), self:FormatValue(maxXP, profile), calculatedPercentage)
+    local valueString = BuildValueString(self, currentXP, maxXP, calculatedPercentage, profile, false)
+    
+    -- Ahora concatenamos directamente sin poner el " | " fijo
+    local mainPart = levelText .. valueString
+    
     if restedXP > 0 then
         local restedPercentage = (restedXP / maxXP) * 100
-        local restedStr = string.format(" | Rested: %s (%.1f%%)", self:FormatValue(restedXP, profile), restedPercentage)
+        local restedVal = BuildValueString(self, restedXP, maxXP, restedPercentage, profile, false)
+        local restedStr = string.format(" | Rested%s", restedVal) -- Ajustado para concatenar bien
         return mainPart .. restedStr
     end
     return mainPart
 end
 
 function dataText:formatReputation(name, standingLabel, curVal, maxVal, isMaxLevel, hasParagon)
-    if not ascensionBars.db or not ascensionBars.db.profile then
-        return ""
-    end
+    if not ascensionBars.db or not ascensionBars.db.profile then return "" end
     local profile = ascensionBars.db.profile
     local isConfig = ascensionBars.state and ascensionBars.state.isConfigMode
+    
     local factionName = (isConfig or not name) and (Locales["REPUTATION"] or "Reputation") or name
     local standingText = standingLabel
-    if isConfig then 
-        standingText = Locales["FRIENDLY"] or "Friendly" 
-    end
-    -- If we have a custom standing label (like "Reward Pending"), use it over generic "Paragon"
-    if hasParagon and not standingLabel then 
-        standingText = Locales["PARAGON"] or "Paragon" 
-    end
+    if isConfig then standingText = Locales["FRIENDLY"] or "Friendly" end
+    if hasParagon and not standingLabel then standingText = Locales["PARAGON"] or "Paragon" end
     if not standingText then standingText = "Neutral" end
+    
     local currentValue = isConfig and 1500 or math.max(0, curVal or 0)
     local maxValue = isConfig and 3000 or math.max(1, maxVal or 1)
     local identity = string.format("%s - %s", factionName, standingText)
-    if isMaxLevel and not hasParagon then
-        return string.format("%s | 100.0%%", identity)
-    else
-        local percentage = (currentValue / maxValue) * 100
-        local details = string.format("%s / %s (%.1f%%)", self:FormatValue(currentValue, profile), self:FormatValue(maxValue, profile), percentage)
-        return string.format("%s | %s", identity, details)
-    end
+    
+    local isTrulyMaxed = isMaxLevel and not hasParagon
+    local percentage = (currentValue / maxValue) * 100
+    local valueString = BuildValueString(self, currentValue, maxValue, percentage, profile, isTrulyMaxed)
+    
+    return identity .. valueString
 end
 
 function dataText:formatHonor(current, max, percentage)
-    if not ascensionBars.db or not ascensionBars.db.profile then
-        return ""
-    end
+    if not ascensionBars.db or not ascensionBars.db.profile then return "" end
     local profile = ascensionBars.db.profile
     local isConfig = ascensionBars.state and ascensionBars.state.isConfigMode
     
@@ -132,43 +160,47 @@ function dataText:formatHonor(current, max, percentage)
     local maxValue = isConfig and 3000 or (max or 100)
     local calculatedPercentage = isConfig and 50.0 or (percentage or 0)
     
-    -- AQUÍ ESTÁ EL CAMBIO: Usamos HONOR_LEVEL_SIMPLE en lugar de LEVEL_TEXT
     local levelText = string.format(Locales["HONOR_LEVEL_SIMPLE"] or "Honor Level %d", honorLevel)
+    local valueString = BuildValueString(self, currentValue, maxValue, calculatedPercentage, profile, false)
     
-    return string.format("%s | %s / %s (%.1f%%)", levelText, self:FormatValue(currentValue, profile), self:FormatValue(maxValue, profile), calculatedPercentage)
+    return levelText .. valueString
 end
 
-
 function dataText:formatHousing(addressString, currentLevel, currentFavor, maxFavor)
-    if not ascensionBars.db or not ascensionBars.db.profile then
-        return ""
-    end
+    if not ascensionBars.db or not ascensionBars.db.profile then return "" end
     local profile = ascensionBars.db.profile
     local isConfig = ascensionBars.state and ascensionBars.state.isConfigMode
+    
     local address = isConfig and "My Neighborhood" or (addressString or Locales["HOUSE_XP"] or "House")
     local levelValue = isConfig and 3 or (currentLevel or 0)
     local currentValue = isConfig and 750 or (currentFavor or 0)
     local maxValue = isConfig and 1000 or (maxFavor or 1)
     if maxValue <= 0 then maxValue = 1 end
     local calculatedPercentage = (currentValue / maxValue) * 100
+    
     local levelText = string.format("%s " .. (Locales["LEVEL_TEXT"] or "Level %d"), address, levelValue)
-    return string.format("%s | %s / %s (%.1f%%)", levelText, self:FormatValue(currentValue, profile), self:FormatValue(maxValue, profile), calculatedPercentage)
+    local valueString = BuildValueString(self, currentValue, maxValue, calculatedPercentage, profile, false)
+    
+    return levelText .. valueString
 end
 
 function dataText:formatAzerite(current, max, percentage)
-    if not ascensionBars.db or not ascensionBars.db.profile then
-        return ""
-    end
+    if not ascensionBars.db or not ascensionBars.db.profile then return "" end
     local profile = ascensionBars.db.profile
     local isConfig = ascensionBars.state and ascensionBars.state.isConfigMode
+    
     local azeriteLevel = isConfig and 30 or 0
     if not isConfig and C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
         local itemLocation = C_AzeriteItem.FindActiveAzeriteItem()
         if itemLocation then azeriteLevel = C_AzeriteItem.GetPowerLevel(itemLocation) or 0 end
     end
+    
     local currentValue = isConfig and 2500 or (current or 0)
     local maxValue = isConfig and 5000 or (max or 100)
     local calculatedPercentage = isConfig and 50.0 or (percentage or 0)
+    
     local levelText = string.format((Locales["AZERITE"] or "Azerite") .. " Level %d", azeriteLevel)
-    return string.format("%s | %s / %s (%.1f%%)", levelText, self:FormatValue(currentValue, profile), self:FormatValue(maxValue, profile), calculatedPercentage)
+    local valueString = BuildValueString(self, currentValue, maxValue, calculatedPercentage, profile, false)
+    
+    return levelText .. valueString
 end

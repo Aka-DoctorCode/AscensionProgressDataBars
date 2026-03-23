@@ -55,6 +55,24 @@ ascensionBars.defaults = {
                 contentPadding = 0,
             },
         },
+        customGrids = {
+            TOP = {
+                enabled = false,
+                numRows = 1,
+                colsPerRow = { 1 },
+                assignments = {
+                    [1] = { [1] = "none" }
+                }
+            },
+            BOTTOM = {
+                enabled = false,
+                numRows = 1,
+                colsPerRow = { 1 },
+                assignments = {
+                    [1] = { [1] = "none" }
+                }
+            }
+        },
         bars = {
             ["XP"] = {
                 enabled = true,
@@ -167,6 +185,9 @@ ascensionBars.defaults = {
             lastTrackedGuid = "",
             houses = {},
         },
+        carouselXOffset = 0,
+        carouselYOffset = -50,
+        carouselBgAlpha = 0.4,
     },
     global = {
         paragonRewards = {},

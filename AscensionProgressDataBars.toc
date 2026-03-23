@@ -20,6 +20,7 @@ Locales\deDE.lua
 AscensionProgressDataBars.lua
 Bars\DataText.lua
 Bars\Experience.lua
+Bars\ParagonManager.lua
 Bars\Reputation.lua
 Bars\Honor.lua
 Bars\Housing.lua
@@ -38,4 +39,5 @@ ConfigPanel/Behavior.lua
 ConfigPanel/Colors.lua
 ConfigPanel/ParagonAlerts.lua
 ConfigPanel/BlizzardIntegration.lua
+ConfigPanel/Profiles.lua
 Config.lua

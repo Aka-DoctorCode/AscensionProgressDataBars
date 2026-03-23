@@ -11,6 +11,7 @@
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
 
+
 local addonName, addonTable = ...
 ---@class AscensionBars
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
@@ -54,15 +55,21 @@ local displayTimer = nil
 local fixedRotationTimer = nil
 
 -------------------------------------------------------------------------------
--- Marco del carrusel
+-- Marco del carrusel con fondo y posición configurable
 -------------------------------------------------------------------------------
 local carousel = CreateFrame("Frame", "AscensionBars_Carousel", UIParent)
 carousel:SetSize(500, 30)
-carousel:SetPoint("BOTTOM", UIParent, "BOTTOM", 0, 80)
 carousel:SetFrameStrata("TOOLTIP")
 carousel:EnableMouse(true)
 carousel:SetClipsChildren(false)
 
+-- Fondo (sombra expandida) similar a la leyenda
+local shadow = carousel:CreateTexture(nil, "BACKGROUND")
+shadow:SetPoint("TOPLEFT", carousel, "TOPLEFT", -2, 2)
+shadow:SetPoint("BOTTOMRIGHT", carousel, "BOTTOMRIGHT", 2, -2)
+shadow:SetColorTexture(0, 0, 0, 0.4)  -- alpha se actualizará después
+
+-- Texto
 local text = carousel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 text:SetAllPoints()
 text:SetJustifyH("CENTER")
@@ -326,7 +333,7 @@ function ascensionBars:updateCarouselCombatState(combat)
 end
 
 -------------------------------------------------------------------------------
--- Inicialización y visibilidad
+-- Inicialización y visibilidad (con posición configurable)
 -------------------------------------------------------------------------------
 function ascensionBars:initCarousel()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
@@ -340,6 +347,17 @@ function ascensionBars:updateCarouselVisibility()
     if not profile then return end
 
     if profile.carouselEnabled then
+        -- Aplicar posición desde el perfil (anclado a TOP)
+        carousel:ClearAllPoints()
+        carousel:SetPoint("TOP", UIParent, "TOP",
+            profile.carouselXOffset or 0,
+            profile.carouselYOffset or -50)   -- valor por defecto: -50
+
+        -- Aplicar alpha del fondo
+        local bgAlpha = profile.carouselBgAlpha
+        if bgAlpha == nil then bgAlpha = 0.4 end
+        shadow:SetColorTexture(0, 0, 0, bgAlpha)
+
         carousel:Show()
         self:updateFixedMessages()
     else
@@ -352,3 +370,4 @@ end
 
 ascensionBars:initCarousel()
 addonTable.carousel = carousel
+

@@ -111,7 +111,8 @@ function createConfigFrame()
         locales["TAB_TEXT_LAYOUT"],
         locales["TAB_BEHAVIOR"],
         locales["TAB_COLORS"],
-        locales["TAB_PARAGON_ALERTS"]
+        locales["TAB_PARAGON_ALERTS"],
+        locales["TAB_PROFILES"]
     }
     
     local buildFuncs = {
@@ -119,7 +120,8 @@ function createConfigFrame()
         function(panel) if addonTable.textLayoutTab then addonTable.textLayoutTab:build(panel) end end,
         function(panel) if addonTable.behaviorTab then addonTable.behaviorTab:build(panel) end end,
         function(panel) if addonTable.colorsTab then addonTable.colorsTab:build(panel) end end,
-        function(panel) if addonTable.paragonAlertsTab then addonTable.paragonAlertsTab:build(panel) end end
+        function(panel) if addonTable.paragonAlertsTab then addonTable.paragonAlertsTab:build(panel) end end,
+        function(panel) if addonTable.profilesTab then addonTable.profilesTab:build(panel) end end
     }
 
     ascensionBars.configTabs = layoutFactory:createTabbedInterface(configFrame, tabNames, buildFuncs, 1)

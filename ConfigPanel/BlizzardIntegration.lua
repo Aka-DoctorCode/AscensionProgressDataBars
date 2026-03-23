@@ -21,7 +21,7 @@ local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
 local blizzardPanel = CreateFrame("Frame", "AscensionBars_BlizPanel", UIParent)
-blizzardPanel.name = locales["ADDON_NAME"] or addonName
+blizzardPanel.name = "Ascension Progress DataBars"
 blizzardPanel:Hide()
 
 local function buildBlizUI()

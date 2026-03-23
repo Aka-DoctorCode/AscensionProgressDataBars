@@ -12,17 +12,17 @@
 -------------------------------------------------------------------------------
 
 local _, addonTable = ...
-local Locales = LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true) or
-    LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enGB")
+local Locales = _G.LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true) or
+    _G.LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enGB")
 
 if not Locales then return end
 
 -- General Configuration
-Locales["ADDON_NAME"] = "Ascension Bars"
+Locales["ADDON_NAME"] = "Ascension Progress Data Bars"
 Locales["CONFIG_MODE"] = "Config Mode"
 Locales["CONFIG_MODE_DESC"] = "Show dummy bars to visualize changes in real-time."
 Locales["FACTION_STANDINGS_RESET"] = "Reset Defaults"
-Locales["EMPTY"] = "(Empty)"
+Locales["EMPTY"] = "Empty"
 Locales["AND"] = " AND "
 Locales["CONFIG_MODULE_MISSING"] = "AscensionBars: Configuration module not found."
 Locales["TOGGLE_CONFIG_WINDOW"] = "Toggle Config Window"
@@ -33,6 +33,7 @@ Locales["TAB_TEXT_LAYOUT"] = "Text Layout"
 Locales["TAB_BEHAVIOR"] = "Behavior"
 Locales["TAB_COLORS"] = "Colors"
 Locales["TAB_PARAGON_ALERTS"] = "Alerts"
+Locales["TAB_PROFILES"] = "Profiles"
 
 -- UI Controls & Labels
 Locales["ENABLE"] = "Enable"
@@ -75,6 +76,10 @@ Locales["TOP_BLOCK"] = "Top Block"
 Locales["BOTTOM_BLOCK"] = "Bottom Block"
 Locales["FREE_MODE"] = "Free Mode"
 Locales["DIM_ALPHA"] = "Dim Alpha"
+Locales["CAROUSEL_OPTIONS"] = "Carousel Options"
+Locales["CAROUSEL_X_OFFSET"] = "X Offset"
+Locales["CAROUSEL_Y_OFFSET"] = "Y Offset"
+Locales["CAROUSEL_BG_ALPHA"] = "Background Alpha"
 
 -- Experience Bar
 Locales["EXPERIENCE"] = "Experience"
@@ -196,7 +201,7 @@ Locales["PARAGON_TEXT_SIZE"] = "Alert Text Size"
 Locales["PARAGON_TEXT_Y"] = "Alert Y Offset"
 Locales["PARAGON_ON_TOP"] = "Show Alert at Top of Screen"
 
--- Text Layout Tab (Updated)
+-- Text Layout Tab
 Locales["BLOCK_TEXT_MODE"] = "Text Behavior"
 Locales["TEXT_VISIBILITY_MODE"] = "Text Visibility Mode"
 Locales["FOCUS_MODE"] = "Show on Hover"
@@ -207,13 +212,57 @@ Locales["FONT_OUTLINE"] = "Font Outline"
 Locales["VISUAL_OPTIONS"] = "Visual Options"
 Locales["SHOW_RESTED"] = "Show Rested XP"
 Locales["USE_COMPACT_FORMAT"] = "Compact Format"
-Locales["EVENTS_VISIBILITY"] = "Events & Visibility"
+Locales["EVENTS_VISIBILITY"] = "Visibility"
 Locales["ENABLE_CAROUSEL"] = "Enable Event Carousel"
-Locales["REST_OPACITY"] = "Background Opacity"
-Locales["LATERAL_LEGEND"] = "Lateral Legend"
+Locales["LATERAL_LEGEND"] = "Enable Lateral Legend"
 Locales["DYNAMIC_GRID_GAP"] = "Grid Gap"
+Locales["LEGEND_OPTIONS"] = "Legend Options"
+Locales["LEGEND_TEXT_SIZE"] = "Legend Text Size"
+Locales["LEGEND_BG_ALPHA"] = "Background Alpha"
+Locales["LEGEND_FONT_OUTLINE"] = "Legend Font Outline"
 
 -- Config/Preview Strings
 Locales["CONFIG_FACTION_A_REWARD"] = "[CONFIG] FACTION A REWARD"
 Locales["CONFIG_FACTION_B_REWARD"] = "[CONFIG] FACTION B REWARD"
 Locales["CONFIG_MULTIPLE_REWARDS"] = "[CONFIG] MULTIPLE REWARDS PENDING!"
+
+-- Custom Grid Mode
+Locales["CUSTOM_GRID_ENABLE"] = "Enable Custom Grid Layout"
+Locales["CUSTOM_GRID_DESC"] = "Activate to build a custom multi-column layout. When enabled, the standard bar order is ignored and bars are placed in the exact row and column you assign them to."
+Locales["GRID_OPTIONS"] = "Grid Configuration"
+Locales["GRID_ROWS"] = "Total Rows"
+Locales["GRID_COLS_FOR_ROW"] = "Cols for Row %d"
+Locales["GRID_CELL"] = "Row %d - Col %d"
+
+-- Grid Layout Presets
+Locales["GRID_PRESET"] = "Layout Preset"
+Locales["PRESET_CUSTOM"] = "Custom"
+Locales["PRESET_2X1"] = "2x1 (2 Rows, 1 Col)"
+Locales["PRESET_2X2"] = "2x2 (2 Rows, 2 Cols)"
+Locales["PRESET_3X2"] = "3x2 (3 Rows, 2 Cols)"
+Locales["ASSIGN_BAR"] = "Assign Bar"
+
+-- Profiles Tab
+Locales["PROFILES"] = "Profiles"
+Locales["PROFILE_DESC_1"] = "You can change the active database profile, so you can have different settings for every character."
+Locales["PROFILE_DESC_2"] = "Reset the current profile back to its default values."
+Locales["RESET_PROFILE"] = "Reset Profile"
+Locales["CURRENT_PROFILE"] = "Current Profile:"
+Locales["PROFILE_DESC_3"] = "Create a new profile or choose an existing one."
+Locales["NEW"] = "New Profile"
+Locales["EXISTING_PROFILES"] = "Existing Profiles"
+Locales["COPY_PROFILE_DESC"] = "Copy settings from another profile into the current one."
+Locales["COPY_FROM"] = "Copy From"
+Locales["DELETE_PROFILE_DESC"] = "Delete unused profiles to save space."
+Locales["DELETE_PROFILE"] = "Delete a Profile"
+Locales["DELETE_PROFILE_CONFIRM"] = "Delete profile '%s'?"
+Locales["ACCEPT"] = "Accept"
+Locales["CANCEL"] = "Cancel"
+Locales["YES"] = "Yes"
+Locales["NO"] = "No"
+Locales["IMPORT_PROFILE"] = "Import Profile"
+Locales["EXPORT_PROFILE"] = "Export Profile"
+Locales["IMPORT_EXPORT_DESC"] = "Share your configuration with others."
+Locales["CLOSE"] = "Close"
+Locales["IMPORT"] = "Import"
+Locales["RESET_CONFIRM"] = "Are you sure you want to reset the profile '%s' to defaults?"

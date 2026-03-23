@@ -16,12 +16,9 @@ local addonName, addonTable = ...
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
 local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
-
--- Shared utilities mapped from the main table
 local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
--- Función segura para Locales: Evita que AceLocale arroje errores "Missing entry"
 local function L(key, fallback)
     local success, val = pcall(function() return locales[key] end)
     if success and type(val) == "string" then
@@ -43,7 +40,6 @@ function textLayoutTab:build(panel)
     local profile = ascensionBars.db.profile
     if not profile then return end
 
-    -- Dimensiones base (Exactamente iguales a BarsLayout)
     local defaultAvailableSpace = (ascensionBars.normalWidth or 750) - (menuStyle.sidebarWidth or 150) - 30
     local colGap = 10
     local colWidth = (defaultAvailableSpace - colGap) / 2
@@ -51,8 +47,7 @@ function textLayoutTab:build(panel)
     local col2X = 15 + colWidth + colGap
 
     local y = -15
-    
-    -- Usamos el mismo sistema de Layout centralizado que en BarsLayout
+
     local mainLayout = addonTable.layoutModel:new(content, y)
 
     ---------------------------------------------------------------------------
@@ -82,7 +77,7 @@ function textLayoutTab:build(panel)
     local afterCol1Y = mainLayout.y
 
     -- Column 2 (Right)
-    mainLayout.y = startY -- Regresamos la 'Y' arriba para la segunda columna
+    mainLayout.y = startY
     mainLayout:slider("GlobalYOffsetSlider", L("GLOBAL_OFFSET", "Global Y Offset"), -100, 100, 1,
         function() return profile.textYOffset or 0 end,
         function(v)
@@ -106,38 +101,7 @@ function textLayoutTab:build(panel)
     mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
     ---------------------------------------------------------------------------
-    -- SECTION 2: VISUAL OPTIONS
-    ---------------------------------------------------------------------------
-    mainLayout:header("VisualOptionsHeader", L("VISUAL_OPTIONS", "Visual Options"))
-    startY = mainLayout.y
-
-    -- Column 1 (Left)
-    mainLayout:checkbox("ShowAbsoluteValuesToggle", L("SHOW_ABSOLUTE_VALUES", "Show Absolute Values"), nil,
-        function() return profile.showAbsoluteValues end,
-        function(v)
-            profile.showAbsoluteValues = v; ascensionBars:updateDisplay()
-        end, col1X)
-
-    afterCol1Y = mainLayout.y
-
-    -- Column 2 (Right)
-    mainLayout.y = startY
-    mainLayout:checkbox("UseCompactFormatToggle", L("USE_COMPACT_FORMAT", "Use Compact Format"), nil,
-        function() return profile.useCompactFormat end,
-        function(v)
-            profile.useCompactFormat = v; ascensionBars:updateDisplay()
-        end, col2X)
-
-    mainLayout:checkbox("ShowPercentageToggle", L("SHOW_PERCENTAGE", "Show Percentage"), nil,
-        function() return profile.showPercentage end,
-        function(v)
-            profile.showPercentage = v; ascensionBars:updateDisplay()
-        end, col2X)
-
-    mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
-
-    ---------------------------------------------------------------------------
-    -- SECTION 3: BLOCK TEXT MODE
+    -- SECTION 2: BLOCK TEXT MODE
     ---------------------------------------------------------------------------
     mainLayout:header("BlockModeHeader", L("BLOCK_TEXT_MODE", "Block Text Mode"))
     startY = mainLayout.y
@@ -153,6 +117,7 @@ function textLayoutTab:build(panel)
         function(v)
             profile.blockTextMode = v
             ascensionBars:updateDisplay()
+            -- Force UI refresh to show/hide context options
             if panel.updateLayout then panel:updateLayout() end
         end, colWidth - 20, col1X)
 
@@ -179,37 +144,120 @@ function textLayoutTab:build(panel)
     mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
     ---------------------------------------------------------------------------
-    -- SECTION 4: EVENTS & VISIBILITY
+    -- SECTION 3: EVENTS & VISIBILITY
     ---------------------------------------------------------------------------
     mainLayout:header("VisibilityHeader", L("EVENTS_VISIBILITY", "Events & Visibility"))
     startY = mainLayout.y
-
-    -- Column 1 (Left)
-    mainLayout:checkbox("EnableCarouselToggle", L("ENABLE_CAROUSEL", "Enable Carousel"), nil,
-        function() return profile.carouselEnabled end,
-        function(v)
-            profile.carouselEnabled = v; ascensionBars:updateDisplay()
-        end, col1X)
+    -- <li>Add: (HALF COMPLETE) A carrousel to display all the gains the bars have gotten over the past seconds </li>
+    -- -- Column 1 (Left)
+    -- mainLayout:checkbox("EnableCarouselToggle", L("ENABLE_CAROUSEL", "Enable Carousel"), nil,
+    --     function() return profile.carouselEnabled end,
+    --     function(v)
+    --         profile.carouselEnabled = v
+    --         ascensionBars:updateDisplay()
+    --         if panel.updateLayout then panel:updateLayout() end
+    --     end, col1X)
 
     mainLayout:checkbox("LegendEnabledToggle", L("LATERAL_LEGEND", "Lateral Legend"), nil,
         function() return profile.legendEnabled end,
         function(v)
-            profile.legendEnabled = v; ascensionBars:updateDisplay()
+            profile.legendEnabled = v
+            ascensionBars:updateDisplay()
+            if panel.updateLayout then panel:updateLayout() end
         end, col1X)
 
     afterCol1Y = mainLayout.y
 
-    -- Column 2 (Right)
-    mainLayout.y = startY
-    mainLayout:slider("BackgroundAlphaSlider", L("REST_OPACITY", "Rest Opacity"), 0, 100, 5,
-        function() return (profile.backgroundAlpha or 0.5) * 100 end,
-        function(v)
-            profile.backgroundAlpha = v / 100
-            ascensionBars:updateDisplay()
-        end, colWidth - 20, col2X)
-
     mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
 
-    -- Set exact scrollframe bounds
-    content:SetHeight(math.abs(mainLayout.y) + 20)
+    ---------------------------------------------------------------------------
+    -- SECTION 4: CAROUSEL OPTIONS
+    ---------------------------------------------------------------------------
+    if profile.carouselEnabled then
+        mainLayout:header("CarouselOptionsHeader", L("CAROUSEL_OPTIONS", "Carousel Options"))
+        startY = mainLayout.y
+
+        -- Column 1 (Left): X Offset & Background Alpha
+        mainLayout:slider("CarouselXOffsetSlider", L("CAROUSEL_X_OFFSET", "X Offset"), -1000, 1000, 5,
+            function() return profile.carouselXOffset or 0 end,
+            function(v)
+                profile.carouselXOffset = v
+                ascensionBars:updateCarouselVisibility()
+            end, colWidth - 20, col1X)
+
+        mainLayout.y = mainLayout.y - 10
+
+        mainLayout:slider("CarouselBgAlphaSlider", L("CAROUSEL_BG_ALPHA", "Background Alpha"), 0, 100, 5,
+            function() 
+                local alpha = profile.carouselBgAlpha
+                if alpha == nil then alpha = 0.4 end
+                return alpha * 100 
+            end,
+            function(v)
+                profile.carouselBgAlpha = v / 100
+                ascensionBars:updateCarouselVisibility()
+            end, colWidth - 20, col1X)
+
+        afterCol1Y = mainLayout.y
+
+        -- Column 2 (Right): Y Offset
+        mainLayout.y = startY
+        mainLayout:slider("CarouselYOffsetSlider", L("CAROUSEL_Y_OFFSET", "Y Offset"), -1000, 1000, 5,
+            function() return profile.carouselYOffset or 80 end,
+            function(v)
+                profile.carouselYOffset = v
+                ascensionBars:updateCarouselVisibility()
+            end, colWidth - 20, col2X)
+
+        mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
+    end
+
+    ---------------------------------------------------------------------------
+    -- SECTION 5: LEGEND OPTIONS
+    ---------------------------------------------------------------------------
+    if profile.legendEnabled then
+        mainLayout:header("LegendOptionsHeader", L("LEGEND_OPTIONS", "Legend Options"))
+        startY = mainLayout.y
+
+        -- Column 1 (Left): Text Size & Outline
+        mainLayout:slider("LegendTextSizeSlider", L("LEGEND_TEXT_SIZE", "Legend Text Size"), 8, 32, 1,
+            function() return profile.legendTextSize or 12 end,
+            function(v)
+                profile.legendTextSize = v
+                ascensionBars:updateLegend()
+            end, colWidth - 20, col1X)
+
+        mainLayout.y = mainLayout.y - 10 
+
+        mainLayout:dropdown("LegendFontOutlineDropdown", L("LEGEND_FONT_OUTLINE", "Legend Font Outline"),
+            {
+                { label = L("NONE", "None"), value = "NONE" },
+                { label = "OUTLINE",       value = "OUTLINE" },
+                { label = "THICKOUTLINE",  value = "THICKOUTLINE" }
+            },
+            function() return profile.legendFontOutline or "OUTLINE" end,
+            function(v)
+                profile.legendFontOutline = v
+                ascensionBars:updateLegend()
+            end, colWidth - 20, col1X)
+
+        afterCol1Y = mainLayout.y
+
+        -- Column 2 (Right): Background Alpha
+        mainLayout.y = startY
+        mainLayout:slider("LegendBgAlphaSlider", L("LEGEND_BG_ALPHA", "Background Alpha"), 0, 100, 5,
+            function() 
+                local alpha = profile.legendBgAlpha
+                if alpha == nil then alpha = 0.4 end
+                return alpha * 100 
+            end,
+            function(v)
+                profile.legendBgAlpha = v / 100
+                ascensionBars:updateLegend()
+            end, colWidth - 20, col2X)
+
+        mainLayout.y = math.min(afterCol1Y, mainLayout.y) - 15
+    end
+
+    content:SetHeight(math.abs(mainLayout.y) + 60)
 end

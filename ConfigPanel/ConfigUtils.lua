@@ -71,3 +71,18 @@ function configUtils:cleanupContent(contentPanel)
         if region.Hide then region:Hide() end
     end
 end
+
+-- Sets a standard GameTooltip for a given UI frame
+function configUtils:setTooltip(frame, text)
+    if not frame or not text then return end
+    
+    frame:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(text, 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    
+    frame:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+end

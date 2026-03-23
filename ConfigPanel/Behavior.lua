@@ -78,6 +78,12 @@ function behaviorTab:build(panel)
             profile.showAbsoluteValues = v
             ascensionBars:updateDisplay()
         end)
+
+    layout:checkbox("UseCompactFormatToggle", locales["USE_COMPACT_FORMAT"], nil,
+        function() return profile.useCompactFormat end,
+        function(v)
+            profile.useCompactFormat = v; ascensionBars:updateDisplay()
+        end)
         
     layout:checkbox("ShowSparkCheckbox", locales["SHOW_SPARK"], nil,
         function() return profile.sparkEnabled end,

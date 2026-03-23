@@ -18,7 +18,7 @@ local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
--- LEGEND MODULE (Estructura Compacta y Alineada)
+-- LEGEND MODULE (Estructura Elástica y Dinámica)
 -------------------------------------------------------------------------------
 
 local legend = CreateFrame("Frame", "AscensionBars_Legend", UIParent)
@@ -26,7 +26,7 @@ legend:SetSize(130, 50)
 legend:SetMovable(true)
 legend:EnableMouse(true)
 legend:SetFrameStrata("TOOLTIP")
-legend:SetClipsChildren(false)
+legend:SetClipsChildren(true) 
 
 legend:SetPoint("RIGHT", UIParent, "RIGHT", -20, 0)
 
@@ -37,30 +37,22 @@ legend:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
 local shadow = legend:CreateTexture(nil, "BACKGROUND")
 shadow:SetPoint("TOPLEFT", legend, "TOPLEFT", -2, 2)
 shadow:SetPoint("BOTTOMRIGHT", legend, "BOTTOMRIGHT", 2, -2)
-shadow:SetColorTexture(0, 0, 0, 0.4)
 
 legend.lines = {}
 
-local PADDING = 0
-local EDGE_MARGIN = 0
-local ROW_HEIGHT = 28
-local INTERNAL_GAP = -24
+-- ESPACIOS DE SEGURIDAD MUY REDUCIDOS
+local PADDING = 2
+local EDGE_MARGIN = 2
+local INTERNAL_GAP = 5 -- Reducido para compactar horizontalmente
 
-local function UpdateAlphas()
-    local isOver = legend:IsMouseOver()
-    legend:SetAlpha(isOver and 1.0 or 0.6)
-end
-
-legend:SetScript("OnEnter", UpdateAlphas)
-legend:SetScript("OnLeave", UpdateAlphas)
-
--- Función auxiliar para aplicar OUTLINE de forma segura
-local function ApplyOutline(fontString)
+-- Función para aplicar fuente, tamaño y contorno dinámico
+local function ApplyFontAndOutline(fontString, size, outline)
     if not fontString then return end
-    local f, s = fontString:GetFont()
-    if f and f ~= "" and s and s > 0 then
-        fontString:SetFont(f, s, "OUTLINE")
-    end
+    local f = fontString:GetFont()
+    if not f or f == "" then f = STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF" end
+    -- Si el perfil dice "NONE", le pasamos una cadena vacía a la API de WoW
+    local finalOutline = (outline == "NONE") and "" or outline
+    fontString:SetFont(f, size, finalOutline)
 end
 
 function ascensionBars:updateLegend()
@@ -71,6 +63,17 @@ function ascensionBars:updateLegend()
     end
 
     legend:Show()
+
+    local bgAlpha = profile.legendBgAlpha
+    if bgAlpha == nil then bgAlpha = 0.4 end
+    shadow:SetColorTexture(0, 0, 0, bgAlpha)
+
+    local textSize = profile.legendTextSize or 12
+    local subTextSize = math.max(8, textSize - 2)
+    local outlineMode = profile.legendFontOutline or "OUTLINE"
+    
+    -- COMPACTACIÓN VERTICAL: Reducimos el espacio extra de 12 a 4
+    local dynamicRowHeight = textSize + subTextSize + 4
 
     local activeBars = {}
     local barsToCheck = {
@@ -101,43 +104,34 @@ function ascensionBars:updateLegend()
         if not line then
             line = {}
             line.frame = CreateFrame("Frame", nil, legend)
-            line.frame:SetHeight(ROW_HEIGHT)
             
-            -- TEXTO IZQUIERDA ARRIBA: Nombre
             line.name = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            line.name:SetPoint("TOPLEFT", line.frame, "TOPLEFT", EDGE_MARGIN, -2)
             line.name:SetJustifyH("LEFT")
-            ApplyOutline(line.name)
 
-            -- TEXTO IZQUIERDA ABAJO: Sub-texto (Standing de reputación)
             line.subName = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            line.subName:SetPoint("BOTTOMLEFT", line.frame, "BOTTOMLEFT", EDGE_MARGIN, 2)
             line.subName:SetJustifyH("LEFT")
-            ApplyOutline(line.subName)
 
-            -- TEXTO DERECHA ARRIBA: Porcentaje
             line.pct = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            line.pct:SetPoint("TOPRIGHT", line.frame, "TOPRIGHT", -EDGE_MARGIN, -2)
             line.pct:SetJustifyH("RIGHT")
-            ApplyOutline(line.pct)
 
-            -- TEXTO DERECHA ABAJO: Valores absolutos
             line.abs = line.frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            line.abs:SetPoint("BOTTOMRIGHT", line.frame, "BOTTOMRIGHT", -EDGE_MARGIN, 2)
             line.abs:SetJustifyH("RIGHT")
-            line.abs:SetTextColor(0.8, 0.8, 0.8)
-            ApplyOutline(line.abs)
 
             table.insert(legend.lines, line)
         end
 
+        ApplyFontAndOutline(line.name, textSize, outlineMode)
+        ApplyFontAndOutline(line.subName, subTextSize, outlineMode)
+        ApplyFontAndOutline(line.pct, subTextSize, outlineMode)
+        ApplyFontAndOutline(line.abs, subTextSize, outlineMode)
+
+        line.frame:SetHeight(dynamicRowHeight)
         line.frame:ClearAllPoints()
-        line.frame:SetPoint("TOPLEFT", legend, "TOPLEFT", 0, -((lineIndex - 1) * ROW_HEIGHT) - PADDING)
+        line.frame:SetPoint("TOPLEFT", legend, "TOPLEFT", 0, -((lineIndex - 1) * dynamicRowHeight) - PADDING)
         line.frame:SetPoint("RIGHT", legend, "RIGHT", 0, 0)
 
         local displayName = barObj.displayName or entry.key
         local subNameText = ""
-
         if entry.key == "Rep" and barObj.standing then
             subNameText = barObj.standing
         end
@@ -146,22 +140,50 @@ function ascensionBars:updateLegend()
         line.subName:SetText(subNameText)
         
         local c = barObj.color or {}
-        local r = type(c.r) == "number" and c.r or 1
-        local g = type(c.g) == "number" and c.g or 1
-        local b = type(c.b) == "number" and c.b or 1
-        
+        local r, g, b = c.r or 1, c.g or 1, c.b or 1
         line.name:SetTextColor(r, g, b)
         line.subName:SetTextColor(r * 0.85, g * 0.85, b * 0.85)
 
-        line.pct:SetText(string.format("%.1f%%", type(barObj.percentage) == "number" and barObj.percentage or 0))
-        
-        local currentText = dataText:FormatValue(barObj.current or 0, profile)
-        local maxText = dataText:FormatValue(barObj.max or 1, profile)
-        line.abs:SetText(string.format("%s / %s", currentText or "0", maxText or "1"))
+        local hasAbs = profile.showAbsoluteValues
+        local hasPct = profile.showPercentage
+        if not hasAbs and not hasPct then hasPct = true end
 
-        local rightSideWidth = math.max(line.pct:GetStringWidth() or 0, line.abs:GetStringWidth() or 0)
+        local pctTextStr = string.format("%.1f%%", type(barObj.percentage) == "number" and barObj.percentage or 0)
+        local absTextStr = string.format("%s / %s", dataText:FormatValue(barObj.current or 0, profile) or "0", dataText:FormatValue(barObj.max or 1, profile) or "1")
+
+        line.pct:Hide(); line.abs:Hide()
+        line.name:ClearAllPoints(); line.subName:ClearAllPoints()
+        line.pct:ClearAllPoints(); line.abs:ClearAllPoints()
+
+        -- COMPACTACIÓN VERTICAL: Textos más juntos
+        line.name:SetPoint("TOPLEFT", line.frame, "TOPLEFT", EDGE_MARGIN, -1)
+        line.subName:SetPoint("BOTTOMLEFT", line.frame, "BOTTOMLEFT", EDGE_MARGIN, 1)
+
+        if hasPct and hasAbs then
+            line.pct:SetText(pctTextStr)
+            line.pct:SetPoint("TOPRIGHT", line.frame, "TOPRIGHT", -EDGE_MARGIN, -1)
+            line.pct:Show()
+            
+            line.abs:SetText(absTextStr)
+            line.abs:SetPoint("BOTTOMRIGHT", line.frame, "BOTTOMRIGHT", -EDGE_MARGIN, 1)
+            line.abs:Show()
+        elseif hasPct and not hasAbs then
+            line.pct:SetText(pctTextStr)
+            line.pct:SetPoint("RIGHT", line.frame, "RIGHT", -EDGE_MARGIN, 0)
+            line.pct:Show()
+        elseif hasAbs and not hasPct then
+            line.abs:SetText(absTextStr)
+            line.abs:SetPoint("RIGHT", line.frame, "RIGHT", -EDGE_MARGIN, 0)
+            line.abs:Show()
+        end
+
+        -- Calculamos el ancho (+4 para compensar el outline si existe)
+        local rightSideWidth = math.max(line.pct:IsShown() and line.pct:GetStringWidth() or 0, line.abs:IsShown() and line.abs:GetStringWidth() or 0)
         local leftSideWidth = math.max(line.name:GetStringWidth() or 0, line.subName:GetStringWidth() or 0)
-        line.currentWidth = leftSideWidth + INTERNAL_GAP + rightSideWidth + (EDGE_MARGIN * 2)
+        local currentGap = rightSideWidth > 0 and INTERNAL_GAP or 0
+        
+        local outlineBuffer = (outlineMode == "NONE") and 0 or 4
+        line.currentWidth = leftSideWidth + currentGap + rightSideWidth + (EDGE_MARGIN * 2) + outlineBuffer
 
         line.frame:Show()
         lineIndex = lineIndex + 1
@@ -184,8 +206,8 @@ function ascensionBars:updateLegend()
     end
 
     local finalWidth = math.max(130, maxRequiredWidth)
-    local finalHeight = ((lineIndex - 1) * ROW_HEIGHT) + (PADDING * 2)
+    local finalHeight = ((lineIndex - 1) * dynamicRowHeight) + (PADDING * 2)
 
     legend:SetSize(finalWidth, finalHeight)
-    UpdateAlphas()
+    legend:SetAlpha(1.0)
 end

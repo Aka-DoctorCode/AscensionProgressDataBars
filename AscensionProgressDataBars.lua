@@ -4,7 +4,7 @@
 -- File: AscensionProgressDataBars.lua
 -- Version: @project-version@
 -------------------------------------------------------------------------------
--- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+-- Copyright (c) 2025-2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
 -- No part of this file may be copied, modified, redistributed, or used in
@@ -16,6 +16,7 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 
 ---@class AscensionBars
 ---@field db { profile: table, global: table, ResetProfile: function }
+---@field activeBars table
 ---@field xp table
 ---@field rep table
 ---@field honor table
@@ -51,6 +52,7 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 ---@field getClassColor function
 ---@field refreshHousingFavor function
 ---@field scanParagonRewards function
+---@field notifyParagonRewardsAvailable function
 ---@field setupTextHolders function
 ---@field acquireTexture function
 ---@field updateStandardBar function
@@ -63,6 +65,9 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 ---@field RegisterEvent function
 ---@field UnregisterEvent function
 ---@field UnregisterAllEvents function
+---@field NewModule function
+---@field IterateModules function
+---@field GetModule function
 ---@field configExperience function
 ---@field configReputation function
 ---@field configHonor function
@@ -80,7 +85,6 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 ---@field applyTextStyles function
 ---@field handleOnUpdate function
 ---@field toggleConfig function
----@field onUpdateFaction function
 ---@field onPlayerEnteringWorld function
 ---@field onCombatStart function
 ---@field onCombatEnd function
@@ -89,6 +93,11 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 ---@field createFrames function
 ---@field createBar function
 ---@field updateSpark function
+---@field pushCarouselEvent function
+---@field updateLegend function
+---@field updateCarouselVisibility function
+---@field startCarousel function
+
 ---@class DataTextResult
 ---@field identity string
 ---@field details string
@@ -101,14 +110,12 @@ local ascensionBars = LibStub("AceAddon-3.0"):NewAddon(addonName, "AceEvent-3.0"
 addonTable.main = ascensionBars
 
 local texturePool = {}
-local lastUpdate = 0
+local lastUpdate  = 0
 
 -------------------------------------------------------------------------------
 -- UTILITIES
 -------------------------------------------------------------------------------
 
---- Retrieves the current player's maximum level for the expansion
--- @return number The max level
 function ascensionBars:getPlayerMaxLevel()
     if _G.GetMaxLevelForLatestExpansion then
         local maxLevel = _G.GetMaxLevelForLatestExpansion()
@@ -117,11 +124,9 @@ function ascensionBars:getPlayerMaxLevel()
     return 80
 end
 
---- Gets the class color with caching to avoid repeated API calls
--- @return table RGB color table
 function ascensionBars:getClassColor()
-    if not self.state then return { r = 1, g = 1, b = 1, a = 1 } end
-    
+    if not self.state then return { r = 1, g = 1, b = 1, a = 1 } end -- #FFFFFF
+
     if not self.state.cachedClassColor then
         local _, classFilename = UnitClass("player")
         if classFilename then
@@ -131,12 +136,11 @@ function ascensionBars:getClassColor()
                 return self.state.cachedClassColor
             end
         end
-        self.state.cachedClassColor = { r = 1, g = 1, b = 1, a = 1 }
+        self.state.cachedClassColor = { r = 1, g = 1, b = 1, a = 1 } -- #FFFFFF
     end
     return self.state.cachedClassColor
 end
 
---- Hides default Blizzard status bars to prevent UI overlap
 function ascensionBars:hideBlizzardFrames()
     local framesToHide = { _G["StatusTrackingBarManager"], _G["UIWidgetPowerBarContainerFrame"] }
     for _, frame in pairs(framesToHide) do
@@ -149,12 +153,9 @@ function ascensionBars:hideBlizzardFrames()
     end
 end
 
---- Formats the experience string (delegates to DataText module)
-function ascensionBars:formatXP(rested)
+function ascensionBars:formatXP()
     local dt = addonTable.dataText
-    if dt then
-        return dt:combine(dt:formatExperience())
-    end
+    if dt then return dt:combine(dt:formatExperience()) end
     return ""
 end
 
@@ -163,13 +164,12 @@ end
 -------------------------------------------------------------------------------
 
 function ascensionBars:createFrames()
-    -- Base container for text elements
     self.textHolder = CreateFrame("Frame", "AscensionBars_TextHolderT1", UIParent)
     self.textHolder:SetFrameStrata("HIGH")
     self.textHolder:SetClipsChildren(false)
     self.textHolder:SetHeight(20)
     self.textHolder:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    
+
     if not self.hoverFrame then
         self.hoverFrame = CreateFrame("Frame", "AscensionBars_HoverFrame", UIParent)
         self.hoverFrame:SetAllPoints(UIParent)
@@ -177,13 +177,27 @@ function ascensionBars:createFrames()
         self.hoverFrame:EnableMouse(false)
     end
 
-    self.xp = self:createBar("AscensionXPBar_XP")
-    self.rep = self:createBar("AscensionXPBar_Rep")
-    self.honor = self:createBar("AscensionXPBar_Honor")
-    self.houseXp = self:createBar("AscensionXPBar_HouseXp")
-    self.azerite = self:createBar("AscensionXPBar_Azerite")
+    local barDefs = {
+        { key = "XP",      name = "AscensionXPBar_XP"      },
+        { key = "Rep",     name = "AscensionXPBar_Rep"     },
+        { key = "Honor",   name = "AscensionXPBar_Honor"   },
+        { key = "HouseXp", name = "AscensionXPBar_HouseXp" },
+        { key = "Azerite", name = "AscensionXPBar_Azerite" },
+    }
 
-    if self.honor then self.honor.bar:Hide() end
+    self.activeBars = {}
+    for _, def in ipairs(barDefs) do
+        self.activeBars[def.key] = self:createBar(def.name)
+    end
+
+    -- Backward-compat aliases consumed by bar modules
+    self.xp      = self.activeBars["XP"]
+    self.rep     = self.activeBars["Rep"]
+    self.honor   = self.activeBars["Honor"]
+    self.houseXp = self.activeBars["HouseXp"]
+    self.azerite = self.activeBars["Azerite"]
+
+    if self.honor   then self.honor.bar:Hide()   end
     if self.houseXp then self.houseXp.bar:Hide() end
     if self.azerite then self.azerite.bar:Hide() end
 
@@ -194,26 +208,25 @@ function ascensionBars:createBar(name)
     local bar = CreateFrame("StatusBar", name, UIParent)
     bar:SetFrameStrata("MEDIUM")
     bar:EnableMouse(true)
-    
-    -- Extract the barKey from the name for tracking
+
     local barKey = string.match(name, "AscensionXPBar_(.+)")
-    
+
     bar:SetScript("OnEnter", function()
         if self.state then
-            self.state.isHovering = true
+            self.state.isHovering  = true
             self.state.hoveredBarKey = barKey
             self:updateVisibility()
         end
     end)
-    
+
     bar:SetScript("OnLeave", function()
         if self.state then
-            self.state.isHovering = false
+            self.state.isHovering  = false
             self.state.hoveredBarKey = nil
             self:updateVisibility()
         end
     end)
-    
+
     bar:SetStatusBarTexture(self.constants.TEXTURE_BAR)
     bar:SetClipsChildren(true)
 
@@ -221,66 +234,66 @@ function ascensionBars:createBar(name)
     if background then
         background:SetAllPoints()
         background:SetTexture(self.constants.TEXTURE_BAR)
-        
         local bgAlpha = (self.db and self.db.profile and self.db.profile.backgroundAlpha) or 0.5
         background:SetVertexColor(0, 0, 0, bgAlpha) -- #000000
         background:SetDrawLayer("BACKGROUND", -1)
     end
 
-    local spark = bar:CreateTexture(nil, "ARTWORK")
-    spark:SetTexture(self.constants.TEXTURE_SPARK)
-    -- MODIFIED: Increased size from 6x6 to 12x24 for better visibility
-    spark:SetSize(200, 24) 
-    spark:SetBlendMode("ADD")
+    -- Spark outer glow bloom layer
+    local sparkGlow = bar:CreateTexture(nil, "ARTWORK", nil, 1)
+    sparkGlow:SetTexture(self.constants.TEXTURE_SPARK)
+    sparkGlow:SetBlendMode("ADD")
+    sparkGlow:SetVertexColor(1, 1, 1, 0.9) -- #FFFFFF
+    sparkGlow:Hide()
+
+    -- Spark inner hard-edge core line
+    local sparkCore = bar:CreateTexture(nil, "ARTWORK", nil, 2)
+    sparkCore:SetTexture(self.constants.TEXTURE_BAR)
+    sparkCore:SetBlendMode("ADD")
+    sparkCore:SetVertexColor(1, 1, 1, 1) -- #FFFFFF
+    sparkCore:Hide()
 
     local restedOverlay = (name == "AscensionXPBar_XP") and bar:CreateTexture(nil, "ARTWORK") or nil
 
-    -- Legacy text frame (kept, now acts as container for texts to avoid clipping)
     local txFrame = CreateFrame("Frame", nil, UIParent)
-    -- Higher frame level than the bar to appear on top
     txFrame:SetFrameStrata("HIGH")
     txFrame:SetFrameLevel(bar:GetFrameLevel() + 5)
     txFrame:SetAllPoints(bar)
     txFrame:Hide()
 
-    local leftText = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
+    local leftText   = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
     local centerText = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    local rightText = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-
-    local text = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
-    text:SetAllPoints() -- Legacy text
+    local rightText  = txFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 
     return {
-        bar = bar,
-        spark = spark,
-        leftText = leftText,
-        centerText = centerText,
-        rightText = rightText,
-        txFrame = txFrame,
-        text = text,
+        bar           = bar,
+        sparkGlow     = sparkGlow,
+        sparkCore     = sparkCore,
+        leftText      = leftText,
+        centerText    = centerText,
+        rightText     = rightText,
+        txFrame       = txFrame,
         restedOverlay = restedOverlay,
-        background = background
+        background    = background,
     }
 end
 
 function ascensionBars:acquireTexture(parent)
     if not parent then return nil end
-    
     for i = 1, #texturePool do
         if not texturePool[i]:IsShown() and texturePool[i]:GetParent() == parent then
             texturePool[i]:Show()
             return texturePool[i]
         end
     end
-    
     local texture = parent:CreateTexture(nil, "BACKGROUND")
     table.insert(texturePool, texture)
     return texture
 end
 
 function ascensionBars:cleanupTextures()
-    for i = 1, #texturePool do 
-        if texturePool[i] then texturePool[i]:Hide() end 
+    for i = 1, #texturePool do
+        if texturePool[i] then texturePool[i]:Hide() end
     end
 end
 
@@ -289,20 +302,40 @@ end
 -------------------------------------------------------------------------------
 
 function ascensionBars:updateSpark(bar, minVal, maxVal, currentVal)
+    local hasGlow = bar and bar.sparkGlow
+    local hasCore = bar and bar.sparkCore
+
     if not (self.db and self.db.profile and self.db.profile.sparkEnabled) then
-        if bar and bar.spark then bar.spark:Hide() end
+        if hasGlow then bar.sparkGlow:Hide() end
+        if hasCore then bar.sparkCore:Hide() end
         return
     end
-    
+
+    if not hasGlow or not hasCore then return end
+
+    local barWidth  = bar.bar:GetWidth()
+    local barHeight = bar.bar:GetHeight()
     local percentage = (maxVal > minVal) and (currentVal - minVal) / (maxVal - minVal) or 0
-    bar.spark:SetPoint("CENTER", bar.bar, "LEFT", bar.bar:GetWidth() * percentage, 0)
-    bar.spark:Show()
+    local xPos = barWidth * percentage
+
+    -- Core: 2px wide, exact bar height — the sharp bright edge
+    bar.sparkCore:SetSize(2, barHeight)
+    bar.sparkCore:ClearAllPoints()
+    bar.sparkCore:SetPoint("CENTER", bar.bar, "LEFT", xPos, 0)
+    bar.sparkCore:Show()
+
+    -- Glow: wide soft bloom, at least 3x bar height for visible bleed effect
+    local glowHeight = math.max(barHeight * 3, 18)
+    local glowWidth  = math.max(glowHeight * 4, 75)
+    bar.sparkGlow:SetSize(glowWidth, glowHeight)
+    bar.sparkGlow:ClearAllPoints()
+    bar.sparkGlow:SetPoint("CENTER", bar.bar, "LEFT", xPos, 0)
+    bar.sparkGlow:Show()
 end
 
 function ascensionBars:setupBar(bar, minVal, maxVal, currentVal, color)
     if not bar or not bar.bar then return end
     if maxVal <= minVal then maxVal = minVal + 1 end
-    
     bar.bar:SetMinMaxValues(minVal, maxVal)
     bar.bar:SetValue(currentVal)
     bar.bar:SetStatusBarColor(color.r, color.g, color.b, color.a or 1)
@@ -311,97 +344,78 @@ end
 
 function ascensionBars:updateStandardBar(barObj, barKey, currentFunc, maxFunc, colorFunc, textFunc)
     if not self.db or not barObj then return end
-    
     local profile = self.db.profile
     if not profile or not profile.bars then return end
-    
+
     local config = profile.bars[barKey]
     if not config or not config.enabled then
-        barObj.bar:Hide()
-        barObj.txFrame:Hide()
+        if barObj.bar    then barObj.bar:Hide()    end
+        if barObj.txFrame then barObj.txFrame:Hide() end
         return
     end
-    
-    barObj.bar:Show()
-    barObj.txFrame:Show()
-    
+
+    if barObj.bar     then barObj.bar:Show()    end
+    if barObj.txFrame then barObj.txFrame:Show() end
+
     local current = currentFunc()
-    local maxVal = maxFunc()
+    local maxVal  = maxFunc()
     if maxVal == 0 then maxVal = 1 end
-    
+
     local color = colorFunc()
     self:setupBar(barObj, 0, maxVal, current, color)
-    
-    -- Store basic values for legend (displayName se asigna después en cada barra)
-    barObj.current = current
-    barObj.max = maxVal
+
+    barObj.current    = current
+    barObj.max        = maxVal
     barObj.percentage = (current / maxVal) * 100
-    barObj.color = color
-    
-    local str = textFunc(current, maxVal, (current / maxVal) * 100)  -- ahora retorna string
-    barObj.centerText:SetText(str)
-    barObj.leftText:SetText("")
-    barObj.rightText:SetText("")
+    barObj.color      = color
+
+    local str = textFunc(current, maxVal, (current / maxVal) * 100)
+    if barObj.centerText then barObj.centerText:SetText(str) end
+    if barObj.leftText   then barObj.leftText:SetText("")   end
+    if barObj.rightText  then barObj.rightText:SetText("")  end
 end
 
 -------------------------------------------------------------------------------
--- DISPLAY FUNCTIONS
+-- DISPLAY PIPELINE
 -------------------------------------------------------------------------------
 
 function ascensionBars:applyTextStyles()
     if not self.db or not self.db.profile then return end
-    
+
     local profile = self.db.profile
-    local font = profile.fontPath or [[Fonts\FRIZQT__.TTF]]
+    local font    = profile.fontPath or [[Fonts\FRIZQT__.TTF]]
     local outline = profile.fontOutline or "OUTLINE"
-    
-    local barList = {
-        { obj = self.xp,      key = "XP" },
-        { obj = self.rep,     key = "Rep" },
-        { obj = self.honor,   key = "Honor" },
-        { obj = self.houseXp, key = "HouseXp" },
-        { obj = self.azerite, key = "Azerite" }
-    }
-    
-    for _, entry in ipairs(barList) do
-        local obj = entry.obj
-        local barKey = entry.key
-        
+
+    for barKey, obj in pairs(self.activeBars or {}) do
         if obj then
-            local barConfig = profile.bars and profile.bars[barKey]
-            
-            -- 1. Determine Font
-            local finalFont = font
+            local barConfig  = profile.bars and profile.bars[barKey]
+            local finalFont  = font
             if barConfig and barConfig.useCustomFont then
                 finalFont = barConfig.customFontPath or finalFont
             end
 
-            -- 2. Determine Text Size
             local finalSize = profile.textSize or 14
             if barConfig and barConfig.useCustomTextSize then
                 finalSize = barConfig.customTextSize or finalSize
             end
-            
-            -- 3. Determine Text Color
-            local finalColor = profile.textColor or { r = 1, g = 1, b = 1, a = 1 }
+
+            local finalColor = profile.textColor or { r = 1, g = 1, b = 1, a = 1 } -- #FFFFFF
             if barConfig and barConfig.useCustomTextColor then
                 finalColor = barConfig.customTextColor or finalColor
             end
-            
+
             local function applyStyle(fontString, anchor, xOff)
-                if fontString then
-                    fontString:SetFont(finalFont, finalSize, outline)
-                    fontString:SetTextColor(finalColor.r or 1, finalColor.g or 1, finalColor.b or 1, finalColor.a or 1)
-                    
-                    local yOff = profile.textYOffset or 0
-                    fontString:ClearAllPoints()
-                    fontString:SetPoint(anchor, obj.bar, anchor, xOff, yOff)
-                end
+                if not fontString then return end
+                fontString:SetFont(finalFont, finalSize, outline)
+                fontString:SetTextColor(finalColor.r or 1, finalColor.g or 1, finalColor.b or 1, finalColor.a or 1)
+                local yOff = profile.textYOffset or 0
+                fontString:ClearAllPoints()
+                fontString:SetPoint(anchor, obj.bar, anchor, xOff, yOff)
             end
 
-            applyStyle(obj.leftText, "LEFT", 10)
-            applyStyle(obj.centerText, "CENTER", 0)
-            applyStyle(obj.rightText, "RIGHT", -10)
+            applyStyle(obj.leftText,   "LEFT",    10)
+            applyStyle(obj.centerText, "CENTER",   0)
+            applyStyle(obj.rightText,  "RIGHT",  -10)
         end
     end
 end
@@ -422,179 +436,225 @@ function ascensionBars:updateDisplay(force)
 
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
-    local bars = profile and profile.bars or nil
+    local bars    = profile and profile.bars or nil
     if not bars then return end
 
     self:applyTextStyles()
 
-    local maxLevel = self:getPlayerMaxLevel() or 1
-    local curLevel = UnitLevel("player") or 0
-    local isConfig = self.state and self.state.isConfigMode
-    
-    -- If in config mode, we force shouldHideXP to false so the bar layout is calculated
-    local shouldHideXP = (curLevel >= maxLevel) and profile and profile.hideAtMaxLevel and not isConfig
+    local maxLevel   = self:getPlayerMaxLevel() or 1
+    local curLevel   = UnitLevel("player") or 0
+    local isConfig   = self.state and self.state.isConfigMode
+    local shouldHideXP = (curLevel >= maxLevel) and profile.hideAtMaxLevel and not isConfig
 
     self:updateLayout(shouldHideXP)
     self:updateVisibility()
 
-    -- CONFIGURATION MODE LOGIC
-    if isConfig then
-        local textColor = profile.textColor or { r = 1, g = 1, b = 1, a = 1 }
-        
-        -- Call dedicated config functions for each module
-        if self.configExperience then self:configExperience(profile, bars, textColor) end
-        if self.configReputation then self:configReputation(profile, bars, textColor) end
-        if self.configHonor then self:configHonor(profile, bars, textColor) end
-        if self.configHouseXp then self:configHouseXp(profile, bars, textColor) end
-        if self.configAzerite then self:configAzerite(profile, bars, textColor) end
-        
-        -- Actualizamos la leyenda DESPUÉS de calcular los valores dummy de configuración
-        if self.updateLegend then self:updateLegend() end
-        if self.updateCarouselVisibility then self:updateCarouselVisibility() end
-
-        -- Always update anchors in config mode to reflect position changes
-        return -- We return here because config modules handle their own internal rendering
+    -- Dispatch to every registered module's UpdateRender method
+    for _, module in self:IterateModules() do
+        if module:IsEnabled() and module.UpdateRender then
+            module:UpdateRender(isConfig, shouldHideXP)
+        end
     end
 
-    -- NORMAL MODE LOGIC
-    if self.renderExperience then self:renderExperience(shouldHideXP) end
-    if self.renderReputation then self:renderReputation() end
-    if self.renderHonor then self:renderHonor() end
-    if self.renderHouseXp then self:renderHouseXp() end
-    if self.renderAzerite then self:renderAzerite() end
-    
-    -- >>> MOVEMOS LA LEYENDA AQUÍ AL FINAL <<<
-    -- Actualizamos la leyenda DESPUÉS de que las barras hayan calculado sus nuevos datos
-    if self.updateLegend then self:updateLegend() end
+    if self.updateLegend             then self:updateLegend()             end
     if self.updateCarouselVisibility then self:updateCarouselVisibility() end
 end
 
 function ascensionBars:updateLayout(shouldHideXP)
     if not self.db or not self.db.profile then return end
     local profile = self.db.profile
-    local bars = profile and profile.bars or nil
+    local bars    = profile and profile.bars or nil
     if not bars then return end
 
-    -- 1. Block Organization
     local blocks = { TOP = {}, BOTTOM = {}, FREE = {} }
-    local barList = {
-        { obj = self.xp,      key = "XP" },
-        { obj = self.rep,     key = "Rep" },
-        { obj = self.honor,   key = "Honor" },
-        { obj = self.houseXp, key = "HouseXp" },
-        { obj = self.azerite, key = "Azerite" }
-    }
 
-    for _, entry in ipairs(barList) do
-        local config = bars[entry.key]
-        if config and config.enabled and not (entry.key == "XP" and shouldHideXP) then
-            table.insert(blocks[config.block or "TOP"], entry)
-            entry.obj.txFrame:Show()
+    for barKey, entry in pairs(self.activeBars or {}) do
+        local config = bars[barKey]
+        if config and config.enabled and not (barKey == "XP" and shouldHideXP) then
+            table.insert(blocks[config.block or "TOP"], { obj = entry, key = barKey })
+            if entry.txFrame then entry.txFrame:Show() end
         else
-            if entry.obj.bar then entry.obj.bar:Hide() end
-            entry.obj.txFrame:Hide()
+            if entry.bar     then entry.bar:Hide()     end
+            if entry.txFrame then entry.txFrame:Hide() end
         end
     end
 
-    -- 2. Internal helper to calculate the dynamic height of each bar
     local function getBarHeight(entry)
-        local config = bars and bars[entry.key] or nil
-        if not config then return profile and profile.globalBarHeight or 6 end
+        local config = bars[entry.key]
+        if not config then return profile.globalBarHeight or 6 end
         local block = config.block or "TOP"
-        
-        -- Priority: 1. FREE Mode (freeHeight) | 2. Custom Height | 3. Block Height (if enabled) | 4. Global Height
         if block == "FREE" then return config.freeHeight or 15 end
         if config.useCustomHeight then return config.customHeight or 10 end
-        
         if profile.usePerBlockHeights and profile.blockHeights and profile.blockHeights[block] then
             return profile.blockHeights[block]
         end
-        
-        return profile and profile.globalBarHeight or 6
+        return profile.globalBarHeight or 6
     end
 
-    -- 3. Sorting by priority 'order'
     local sortFn = function(a, b)
         return (bars[a.key].order or 0) < (bars[b.key].order or 0)
     end
-    table.sort(blocks.TOP, sortFn)
+    table.sort(blocks.TOP,    sortFn)
     table.sort(blocks.BOTTOM, sortFn)
 
     ---------------------------------------------------------------------------
-    -- LAYOUT: TOP BLOCKS
-    ---------------------------------------------------------------------------
-    local topOffset = profile.usePerBlockOffsets and (profile.topOffset or 0) or (profile.yOffset or 0)
-    local baseTopGap = profile.usePerBlockGaps and (profile.topBarGap or 2) or (profile.barGap or 1)
-    local blockMode = profile.blockTextMode or "FOCUS"
+    local barAnchor = profile.barAnchor or "TOP"
+    local screenW   = UIParent:GetWidth() or 1024
 
-    for i, entry in ipairs(blocks.TOP) do
-        entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetHeight(getBarHeight(entry))
+    local function layoutBlock(block, blockName, startAnchor, anchorFrame, direction)
+        local prevBar = nil
         
-        if i == 1 then
-            entry.obj.bar:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, topOffset)
-            entry.obj.bar:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", 0, topOffset)
+        local initialYOffset
+        if blockName == "TOP" then
+            initialYOffset = profile.usePerBlockOffsets and (profile.topOffset or 0) or (profile.yOffset or -2)
         else
-            local prev = blocks.TOP[i - 1]
-            local gap = baseTopGap
-            if blockMode == "GRID" then
-                local conf = bars[prev.key]
-                local textSize = conf and conf.useCustomTextSize and conf.customTextSize or profile.textSize or 14
-                gap = textSize + (profile.dynamicGridGap or 2)
-            end
-            entry.obj.bar:SetPoint("TOPLEFT", prev.obj.bar, "BOTTOMLEFT", 0, -gap)
-            entry.obj.bar:SetPoint("TOPRIGHT", prev.obj.bar, "BOTTOMRIGHT", 0, -gap)
+            -- Bottom offset from the slider is positive (0 to +500).
+            -- Global yOffset from the slider is negative (0 to -500).
+            -- We always need a positive value here to push UP from the bottom edge of UIParent.
+            initialYOffset = profile.usePerBlockOffsets and (profile.bottomOffset or 0) or math.abs(profile.yOffset or -2)
         end
-        entry.obj.bar:Show()
+        
+        local gap = profile.usePerBlockGaps and (blockName == "TOP" and (profile.topBarGap or 0) or (profile.bottomBarGap or 0)) or (profile.barGap or 2)
+        
+        for i, entry in ipairs(block) do
+            local obj    = entry.obj
+            local height = getBarHeight(entry)
+            obj.bar:SetHeight(height)
+            obj.bar:ClearAllPoints()
+
+            if entry.key == "XP" and shouldHideXP then
+                obj.bar:Hide()
+            end
+
+            if prevBar then
+                local gapDirection = (blockName == "TOP") and -gap or gap
+                obj.bar:SetPoint(startAnchor, prevBar, direction, 0, gapDirection)
+                obj.bar:SetWidth(screenW)
+            else
+                obj.bar:SetPoint(startAnchor, anchorFrame, startAnchor, 0, initialYOffset)
+                obj.bar:SetWidth(screenW)
+            end
+
+            if entry.txFrame then
+                obj.txFrame:SetAllPoints(obj.bar)
+            end
+
+            obj.bar:Show()
+            prevBar = obj.bar
+        end
     end
 
-    ---------------------------------------------------------------------------
-    -- LAYOUT: BOTTOM BLOCKS
-    ---------------------------------------------------------------------------
-    local botOffset = profile.usePerBlockOffsets and (profile.bottomOffset or 0) or math.abs(profile.yOffset or 0)
-    local baseBotGap = profile.usePerBlockGaps and (profile.bottomBarGap or 2) or (profile.barGap or 1)
-
-    for i, entry in ipairs(blocks.BOTTOM) do
-        entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetHeight(getBarHeight(entry))
+    local function layoutGridBlock(block, blockName, startAnchor, anchorFrame, direction)
+        local grid = profile.customGrids and profile.customGrids[blockName]
+        if not grid or not grid.enabled then return false end
         
-        if i == 1 then
-            entry.obj.bar:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, botOffset)
-            entry.obj.bar:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, botOffset)
+        local initialYOffset
+        if blockName == "TOP" then
+            initialYOffset = profile.usePerBlockOffsets and (profile.topOffset or 0) or (profile.yOffset or -2)
         else
-            local prev = blocks.BOTTOM[i - 1]
-            local gap = baseBotGap
-            if blockMode == "GRID" then
-                local conf = bars[prev.key]
-                local textSize = conf and conf.useCustomTextSize and conf.customTextSize or profile.textSize or 14
-                gap = textSize + (profile.dynamicGridGap or 2)
-            end
-            entry.obj.bar:SetPoint("BOTTOMLEFT", prev.obj.bar, "TOPLEFT", 0, gap)
-            entry.obj.bar:SetPoint("BOTTOMRIGHT", prev.obj.bar, "TOPRIGHT", 0, gap)
+            initialYOffset = profile.usePerBlockOffsets and (profile.bottomOffset or 0) or math.abs(profile.yOffset or -2)
         end
-        entry.obj.bar:Show()
+        local gap = profile.usePerBlockGaps and (blockName == "TOP" and (profile.topBarGap or 0) or (profile.bottomBarGap or 0)) or (profile.barGap or 2)
+        local gapDirection = (blockName == "TOP") and -gap or gap
+        
+        local availableBars = {}
+        for _, entry in ipairs(block) do availableBars[entry.key] = entry end
+        
+        local prevRowBar = nil
+        
+        for r = 1, grid.numRows or 1 do
+            local cols = (grid.colsPerRow and grid.colsPerRow[r]) or 1
+            local cellWidth = (screenW - ((cols - 1) * gap)) / cols
+            local prevColBar = nil
+            local firstBarInRow = nil
+            
+            for c = 1, cols do
+                local assignedKey = grid.assignments and grid.assignments[r] and grid.assignments[r][c]
+                local entry = assignedKey and availableBars[assignedKey]
+                
+                if entry then
+                    local obj = entry.obj
+                    local height = getBarHeight(entry)
+                    obj.bar:SetHeight(height)
+                    obj.bar:SetWidth(cellWidth)
+                    obj.bar:ClearAllPoints()
+                    
+                    if entry.key == "XP" and shouldHideXP then
+                        obj.bar:Hide()
+                    else
+                        if c == 1 then
+                            if r == 1 then
+                                obj.bar:SetPoint(startAnchor, anchorFrame, startAnchor, 0, initialYOffset)
+                            else
+                                if prevRowBar then
+                                    obj.bar:SetPoint(startAnchor, prevRowBar, direction, 0, gapDirection)
+                                else
+                                    obj.bar:SetPoint(startAnchor, anchorFrame, startAnchor, 0, initialYOffset)
+                                end
+                            end
+                            firstBarInRow = obj.bar
+                            prevRowBar = obj.bar
+                        else
+                            if prevColBar then
+                                obj.bar:SetPoint("LEFT", prevColBar, "RIGHT", gap, 0)
+                            end
+                        end
+                        
+                        if entry.txFrame then obj.txFrame:SetAllPoints(obj.bar) end
+                        obj.bar:Show()
+                        prevColBar = obj.bar
+                    end
+                    availableBars[assignedKey] = nil
+                end
+            end
+            if firstBarInRow then prevRowBar = firstBarInRow end
+        end
+        
+        for key, entry in pairs(availableBars) do
+            entry.obj.bar:Hide()
+            if entry.obj.txFrame then entry.obj.txFrame:Hide() end
+        end
+        return true
     end
 
-    ---------------------------------------------------------------------------
-    -- LAYOUT: FREE BLOCKS
-    ---------------------------------------------------------------------------
+    local function renderBlock(blockData, blockName, startAnchor, anchorFrame, direction)
+        local gridOpts = profile.customGrids and profile.customGrids[blockName]
+        if gridOpts and gridOpts.enabled then
+            layoutGridBlock(blockData, blockName, startAnchor, anchorFrame, direction)
+        else
+            layoutBlock(blockData, blockName, startAnchor, anchorFrame, direction)
+        end
+    end
+
+    if barAnchor == "TOP" then
+        renderBlock(blocks.TOP,    "TOP",    "TOPLEFT",    UIParent, "BOTTOMLEFT")
+        renderBlock(blocks.BOTTOM, "BOTTOM", "BOTTOMLEFT", UIParent, "TOPLEFT")
+    else
+        renderBlock(blocks.BOTTOM, "BOTTOM", "BOTTOMLEFT", UIParent, "TOPLEFT")
+        renderBlock(blocks.TOP,    "TOP",    "TOPLEFT",    UIParent, "BOTTOMLEFT")
+    end
+
     for _, entry in ipairs(blocks.FREE) do
+        local obj    = entry.obj
         local config = bars[entry.key]
-        entry.obj.bar:ClearAllPoints()
-        entry.obj.bar:SetSize(config.freeWidth or 500, config.freeHeight or 15)
-        entry.obj.bar:SetPoint("CENTER", UIParent, "CENTER", config.freeX or 0, config.freeY or 0)
-        entry.obj.bar:Show()
+        if config then
+            obj.bar:ClearAllPoints()
+            obj.bar:SetPoint("CENTER", UIParent, "CENTER", config.freeX or 0, config.freeY or 0)
+            obj.bar:SetWidth(config.freeWidth or screenW)
+            obj.bar:SetHeight(getBarHeight(entry))
+            if obj.txFrame then obj.txFrame:SetAllPoints(obj.bar) end
+            obj.bar:Show()
+        end
     end
 end
 
 function ascensionBars:updateVisibility()
     if not self.db or not self.db.profile or not self.state then return end
-    local profile = self.db.profile
-    local blockMode = profile.blockTextMode or "FOCUS"
-    local isConfig = self.state.isConfigMode
+    local profile      = self.db.profile
+    local blockMode    = profile.blockTextMode or "FOCUS"
+    local isConfig     = self.state.isConfigMode
     local legendHovered = self.state.legendHovered
 
-    -- Alpha base (opacidad máxima según combate y "show on mouseover")
     local baseAlpha = 1
     if not legendHovered and not isConfig then
         if profile.hideInCombat and self.state.inCombat then
@@ -604,43 +664,27 @@ function ascensionBars:updateVisibility()
         end
     end
 
-    -- Factor de atenuación para barras no hovereadas en modo FOCUS
     local dimAlpha = profile.focusDimAlpha or 0.4
 
-    local bars = {
-        { obj = self.xp,      key = "XP" },
-        { obj = self.rep,     key = "Rep" },
-        { obj = self.honor,   key = "Honor" },
-        { obj = self.houseXp, key = "HouseXp" },
-        { obj = self.azerite, key = "Azerite" }
-    }
+    for key, barObj in pairs(self.activeBars or {}) do
+        local barConfig = profile.bars and profile.bars[key]
+        if barObj and barObj.bar and barConfig and barConfig.enabled then
+            local barAlpha    = baseAlpha
+            local centerAlpha = 0
 
-    for _, entry in ipairs(bars) do
-        local barObj = entry.obj
-        local key = entry.key
-        local config = profile.bars and profile.bars[key]
-
-        if barObj and barObj.bar and config and config.enabled then
-            local barAlpha = baseAlpha
-            local centerAlpha = 0  -- texto oculto por defecto
-
-                        if blockMode == "FOCUS" then
+            if blockMode == "FOCUS" then
                 if self.state.hoveredBarKey == nil then
-                    -- Sin hover: todas las barras visibles al 100%, textos ocultos
-                    barAlpha = baseAlpha
+                    barAlpha    = baseAlpha
                     centerAlpha = 0
                 elseif self.state.hoveredBarKey == key then
-                    -- Barra hovereada: visible al 100% y con texto
-                    barAlpha = baseAlpha
+                    barAlpha    = baseAlpha
                     centerAlpha = baseAlpha
                 else
-                    -- Otras barras: atenuadas, sin texto
-                    barAlpha = baseAlpha * dimAlpha
+                    barAlpha    = baseAlpha * dimAlpha
                     centerAlpha = 0
                 end
             else
-                -- Modo GRID o NONE: siempre visibles con texto
-                barAlpha = baseAlpha
+                barAlpha    = baseAlpha
                 centerAlpha = baseAlpha
             end
 
@@ -649,62 +693,64 @@ function ascensionBars:updateVisibility()
                 barObj.bar:Show()
             end
 
-            -- Textos laterales siempre ocultos
-            if barObj.leftText then barObj.leftText:SetAlpha(0) end
-            if barObj.rightText then barObj.rightText:SetAlpha(0) end
-            if barObj.centerText then barObj.centerText:SetAlpha(centerAlpha) end
-
-            if barObj.txFrame then barObj.txFrame:SetAlpha(barAlpha) end
+            if barObj.leftText   then barObj.leftText:SetAlpha(0)             end
+            if barObj.rightText  then barObj.rightText:SetAlpha(0)            end
+            if barObj.centerText then barObj.centerText:SetAlpha(centerAlpha)  end
+            if barObj.txFrame    then barObj.txFrame:SetAlpha(barAlpha)       end
         end
     end
+
     if self.textHolder then self.textHolder:SetAlpha(baseAlpha) end
 end
 
 -------------------------------------------------------------------------------
--- INITIALIZATION & EVENT HANDLERS
+-- INITIALIZATION
 -------------------------------------------------------------------------------
 
 function ascensionBars:OnInitialize()
     local db = LibStub("AceDB-3.0"):New("AscensionProgressDataBarsDB", self.defaults, true)
-    
     self.db = db
 
-    -- Secure migration: Hook to profile shared/reset to ensure DB is fully loaded
     self.db.RegisterCallback(self, "OnProfileChanged", "refreshConfig")
-    self.db.RegisterCallback(self, "OnProfileCopied", "refreshConfig")
-    self.db.RegisterCallback(self, "OnProfileReset", "refreshConfig")
+    self.db.RegisterCallback(self, "OnProfileCopied",  "refreshConfig")
+    self.db.RegisterCallback(self, "OnProfileReset",   "refreshConfig")
 
     local function migrateOldSettings()
         if not db.profile then return end
         local p = db.profile
-        if p.textGroups then p.textGroups = nil end
-        if p.usePerGroupSize ~= nil then p.usePerGroupSize = nil end
+        if p.textGroups       then p.textGroups       = nil end
+        if p.usePerGroupSize  ~= nil then p.usePerGroupSize  = nil end
         if p.usePerGroupColor ~= nil then p.usePerGroupColor = nil end
-        if p.textLayoutMode ~= nil then p.textLayoutMode = nil end
-        if p.textFollowBar ~= nil then p.textFollowBar = nil end
-        
+        if p.textLayoutMode   ~= nil then p.textLayoutMode   = nil end
+        if p.textFollowBar    ~= nil then p.textFollowBar    = nil end
         if p.bars then
             for _, v in pairs(p.bars) do
                 if v.textBlock then v.textBlock = nil end
                 if v.textOrder then v.textOrder = nil end
-                if v.textX then v.textX = nil end
-                if v.textY then v.textY = nil end
+                if v.textX     then v.textX     = nil end
+                if v.textY     then v.textY     = nil end
             end
         end
     end
-    
+
     migrateOldSettings()
-    
+
     self.state = {
-        cachedPendingParagons = {},
+        isConfigMode     = false,
+        isHovering       = false,
+        inCombat         = false,
+        updatePending    = false,
+        hoveredBarKey    = nil,
+        legendHovered    = false,
         cachedClassColor = nil,
-        isConfigMode = false,
-        inCombat = false,
-        isHovering = false,
-        updatePending = false,
-        legendHovered = false,
+        lastXP           = 0,
+        lastXPMax        = 0,
+        lastHonor        = 0,
+        lastReputation   = {},
+        lastAzeriteXP    = 0,
+        lastHouseFavor   = {},
     }
-    
+
     local defaultFont = [[Fonts\FRIZQT__.TTF]]
     if _G.GameFontNormal and _G.GameFontNormal.GetFont then
         self.fontToUse = _G.GameFontNormal:GetFont() or defaultFont
@@ -712,48 +758,40 @@ function ascensionBars:OnInitialize()
         self.fontToUse = defaultFont
     end
 
-    local toggleConfig = function()
+    local function toggleConfig()
         self:toggleConfig()
     end
-    
     self:RegisterChatCommand("ascensionBars", toggleConfig)
     self:RegisterChatCommand("ab", toggleConfig)
-    
+
     self:createFrames()
 end
 
 function ascensionBars:OnEnable()
-    self.state.isConfigMode = false
-    self.state.isHovering = false
-    self.state.inCombat = false
+    self.state.isConfigMode  = false
+    self.state.isHovering    = false
+    self.state.inCombat      = false
     self.state.cachedClassColor = nil
 
-    local events = {
-        ["PLAYER_XP_UPDATE"] = "updateDisplay",
-        ["UPDATE_EXHAUSTION"] = "updateDisplay",
-        ["PLAYER_LEVEL_UP"] = "updateDisplay",
-        ["UPDATE_FACTION"] = "onUpdateFaction",
+    -- Core-level global events only — bar-specific events are owned by each module
+    local coreEvents = {
         ["PLAYER_ENTERING_WORLD"] = "onPlayerEnteringWorld",
         ["PLAYER_REGEN_DISABLED"] = "onCombatStart",
-        ["PLAYER_REGEN_ENABLED"] = "onCombatEnd",
-        ["QUEST_TURNED_IN"] = "onQuestTurnIn",
-        ["HONOR_XP_UPDATE"] = "updateDisplay",
-        ["HONOR_LEVEL_UPDATE"] = "updateDisplay",
-        ["AZERITE_ITEM_EXPERIENCE_CHANGED"] = "updateDisplay",
-        ["HOUSE_LEVEL_FAVOR_UPDATED"] = "onHouseFavorUpdated",
-        ["CVAR_UPDATE"] = "onCVarUpdate",
-        ["NEIGHBORHOOD_NAME_UPDATED"] = "updateDisplay"
+        ["PLAYER_REGEN_ENABLED"]  = "onCombatEnd",
+        ["QUEST_TURNED_IN"]       = "onQuestTurnIn",
+        ["NEIGHBORHOOD_NAME_UPDATED"]  = "updateDisplay",
+        ["CVAR_UPDATE"]           = "onCVarUpdate",
     }
 
-    if addonTable.dataText and addonTable.dataText.initBarText then
-        for _, bar in ipairs({self.xp, self.rep, self.honor, self.houseXp, self.azerite}) do
-            if bar then addonTable.dataText:initBarText(bar) end
+    for event, method in pairs(coreEvents) do
+        if self[method] then
+            self:RegisterEvent(event, method)
         end
     end
 
-    for event, method in pairs(events) do
-        if self[method] then
-            self:RegisterEvent(event, method)
+    if addonTable.dataText and addonTable.dataText.initBarText then
+        for _, bar in pairs(self.activeBars or {}) do
+            if bar then addonTable.dataText:initBarText(bar) end
         end
     end
 
@@ -762,7 +800,7 @@ function ascensionBars:OnEnable()
             self:updateDisplay()
         end)
     end
-    
+
     if C_Housing and C_Housing.SetTrackedHouseGuid then
         hooksecurefunc(C_Housing, "SetTrackedHouseGuid", function()
             C_Timer.After(0.15, function()
@@ -772,20 +810,32 @@ function ascensionBars:OnEnable()
         end)
     end
 
-    if self.refreshHousingFavor then self:refreshHousingFavor() end
+    if self.refreshHousingFavor  then self:refreshHousingFavor()  end
+    if self.scanParagonRewards   then self:scanParagonRewards()    end
     self:hideBlizzardFrames()
-    if self.scanParagonRewards then self:scanParagonRewards() end
     self:updateDisplay(true)
 end
 
-function ascensionBars:onUpdateFaction()
-    if self.scanParagonRewards then self:scanParagonRewards() end
-    self:updateDisplay()
-end
+-------------------------------------------------------------------------------
+-- CORE EVENT HANDLERS
+-------------------------------------------------------------------------------
 
 function ascensionBars:onPlayerEnteringWorld()
-    if self.scanParagonRewards then self:scanParagonRewards() end
+    if self.scanParagonRewards  then self:scanParagonRewards()  end
     if self.refreshHousingFavor then self:refreshHousingFavor() end
+
+    if not self.state then return end
+    self.state.lastXP     = UnitXP("player")   or 0
+    self.state.lastXPMax  = UnitXPMax("player") or 0
+    self.state.lastHonor  = UnitHonor("player") or 0
+
+    if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
+        local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()
+        if itemLoc and C_AzeriteItem.GetAzeriteItemXPInfo then
+            self.state.lastAzeriteXP = C_AzeriteItem.GetAzeriteItemXPInfo(itemLoc) or 0
+        end
+    end
+
     self:updateDisplay(true)
 end
 
@@ -819,25 +869,23 @@ end
 
 function ascensionBars:OnDisable()
     self:cleanupTextures()
-    local bars = { self.xp, self.rep, self.honor, self.houseXp, self.azerite }
-    for _, bar in ipairs(bars) do
-        if bar and bar.bar then bar.bar:Hide() end
+    for _, barObj in pairs(self.activeBars or {}) do
+        if barObj and barObj.bar then barObj.bar:Hide() end
     end
     if self.textHolder then self.textHolder:Hide() end
 end
 
+function ascensionBars:refreshConfig()
+    self:updateDisplay(true)
+end
+
 function ascensionBars:toggleConfig()
-    if not self.configFrame then 
-        self:refreshConfigUI() 
+    if not self.configFrame then
+        self:refreshConfigUI()
     end
-    
     if self.configFrame then
         local isOpening = not self.configFrame:IsShown()
-        
-        -- Toggle visibility
         self.configFrame:SetShown(isOpening)
-        
-        -- If we just closed the menu, ensure config mode is disabled to restore normal bar behavior
         if not isOpening then
             self.state.isConfigMode = false
             self:updateDisplay(true)
