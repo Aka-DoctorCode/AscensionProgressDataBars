@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 
 -------------------------------------------------------------------------------
 -- DataText Module Definition

@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local core = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast core AscensionBars
-local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
@@ -235,28 +235,25 @@ function HousingModule:renderLive()
         end
         
         if currentFavor >= maxFavor and currentLevel < maxLevel then
-            if not self.core.houseRewardText then
-                self.core.houseRewardText = self.core.textHolder:CreateFontString(nil, "OVERLAY")
-            end
-            
-            local activeFont = self.core.fontToUse or [[Fonts\FRIZQT__.TTF]]
-            self.core.houseRewardText:SetFont(activeFont, profile.paragonTextSize or 14, "OUTLINE")
-            
-            local rewardColor = profile.houseRewardTextColor or color
-            local hex = string.format("|cff%02x%02x%02x",
-                math.floor((rewardColor.r or 1) * 255),
-                math.floor((rewardColor.g or 0.5) * 255),
-                math.floor((rewardColor.b or 0.1) * 255))
+            if self.core.houseRewardText then
+                local activeFont = self.core.fontToUse or [[Fonts\FRIZQT__.TTF]]
+                local pSize = profile.houseRewardTextSize or 18
+                self.core.houseRewardText:SetFont(activeFont, pSize, "OUTLINE")
+                
+                local rewardColor = profile.houseRewardTextColor or { r = 1, g = 0.5, b = 0.1, a = 1.0 }
+                local hex = string.format("|cff%02x%02x%02x",
+                    math.floor((rewardColor.r or 1) * 255),
+                    math.floor((rewardColor.g or 0.5) * 255),
+                    math.floor((rewardColor.b or 0.1) * 255))
 
-            self.core.houseRewardText:SetText(hex .. string.format(Locales["HOUSE_UPGRADES_AVAILABLE"], string.upper(addressString)) .. "|r")
-            self.core.houseRewardText:Show()
-            
-            local offset = profile.houseRewardTextYOffset or -40
-            self.core.houseRewardText:ClearAllPoints()
-            if profile.barAnchor == "BOTTOM" then
-                self.core.houseRewardText:SetPoint("BOTTOM", self.core.textHolder, "TOP", 0, -offset)
-            else
-                self.core.houseRewardText:SetPoint("TOP", self.core.textHolder, "BOTTOM", 0, offset)
+                self.core.houseRewardText:SetText(hex .. string.format(Locales["HOUSE_UPGRADES_AVAILABLE"], string.upper(addressString)) .. "|r")
+                self.core.houseRewardText:Show()
+                
+                local pX = profile.houseRewardXOffset or 0
+                local pY = profile.houseRewardTextYOffset or -60
+                
+                self.core.houseRewardText:ClearAllPoints()
+                self.core.houseRewardText:SetPoint("TOP", UIParent, "TOP", pX, pY)
             end
         else
             if self.core.houseRewardText then self.core.houseRewardText:Hide() end

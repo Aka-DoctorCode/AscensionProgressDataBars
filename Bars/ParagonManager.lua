@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 
 -------------------------------------------------------------------------------
 -- PARAGON MANAGER
@@ -37,6 +37,7 @@ function ascensionBars:scanParagonRewards()
     self.db.global.paragonRewards = self.db.global.paragonRewards or {}
 
     local currentRewards = {}
+    local pendingList = {} -- Para el renderizado local
     local foundAny = false
     local numFactions = C_Reputation.GetNumFactions()
 
@@ -48,6 +49,7 @@ function ascensionBars:scanParagonRewards()
                     local _, _, _, hasReward = C_Reputation.GetFactionParagonInfo(factionData.factionID)
                     if hasReward then
                         currentRewards[factionData.factionID] = factionData.name
+                        table.insert(pendingList, { name = factionData.name })
                         foundAny = true
                     end
                 end
@@ -61,7 +63,74 @@ function ascensionBars:scanParagonRewards()
             self.db.global.paragonRewards[characterKey] = nil
         end
     end
+
+    -- Actualizamos el renderizador persistente (estilo AscensionBars)
+    self:renderParagonText(pendingList)
 end
+
+--- Renderiza el texto persistente de recompensas Paragon (exactamente como en AscensionBars)
+function ascensionBars:renderParagonText(pending)
+    if not self.paragonText then return end
+    
+    local profile = self.db.profile
+    if not profile then return end
+
+    if pending and #pending > 0 then
+        local pColor = profile.paragonPendingColor or { r = 0, g = 0.8, b = 1 }
+        local hex = string.format("|cff%02x%02x%02x",
+            math.floor((pColor.r or 0) * 255),
+            math.floor((pColor.g or 0.8) * 255),
+            math.floor((pColor.b or 1) * 255)
+        )
+
+        local textContent = ""
+        local split = profile.splitParagonText
+        if split then
+            local lines = {}
+            for _, info in ipairs(pending) do
+                table.insert(lines, hex .. string.upper(info.name) .. (Locales["REWARD_PENDING_SINGLE"] or " REWARD PENDING!") .. "|r")
+            end
+            textContent = table.concat(lines, "\n")
+        else
+            local names = {}
+            for _, info in ipairs(pending) do
+                table.insert(names, string.upper(info.name))
+            end
+            
+            local factionStr = ""
+            if #names == 1 then
+                factionStr = names[1]
+            elseif #names == 2 then
+                factionStr = names[1] .. (Locales["AND"] or " AND ") .. names[2]
+            else
+                local last = table.remove(names)
+                factionStr = table.concat(names, ", ") .. (Locales["AND"] or " AND ") .. last
+            end
+
+            local suffix = (#pending > 1) and (Locales["REWARD_PENDING_PLURAL"] or " REWARDS PENDING!") or (Locales["REWARD_PENDING_SINGLE"] or " REWARD PENDING!")
+            textContent = hex .. factionStr .. suffix .. "|r"
+        end
+
+        local pSize = profile.paragonTextSize or 18
+        self.paragonText:SetFont(self.fontToUse or [[Fonts\FRIZQT__.TTF]], pSize, "OUTLINE")
+        self.paragonText:SetText(textContent)
+        self.paragonText:Show()
+
+        -- Posicionamiento configurable (Screen Top Center, con offsets de usuario)
+        local pX = profile.paragonXOffset or 0
+        local pY = profile.paragonYOffset or -100
+        self.paragonText:ClearAllPoints()
+        self.paragonText:SetPoint("TOP", UIParent, "TOP", pX, pY)
+    else
+        self.paragonText:Hide()
+    end
+    
+    -- Notificamos al carrusel para que se actualice (aunque ahora solo quitaremos la lógica de ahí)
+    if self.updateCarouselVisibility then
+        self:updateCarouselVisibility()
+    end
+end
+
 
 --- Displays a center-screen notification using RaidNotice_AddMessage.
 --- Avoids any chat log output.

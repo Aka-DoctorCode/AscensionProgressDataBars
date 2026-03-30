@@ -1,5 +1,5 @@
 ## Interface: 120001
-## Title: Ascension Progress Data Bars
+## Title: Ascension Progress Data Bar
 ## Notes: Minimalist information bars with advanced customization.
 ## Author: AkaDoctorCode
 ## Category: Interface
@@ -34,6 +34,7 @@ Styles.lua
 ConfigPanel/ConfigUtils.lua
 ConfigPanel/UIFactory.lua
 ConfigPanel/BarsLayout.lua
+ConfigPanel/CustomGrid.lua
 ConfigPanel/TextLayout.lua
 ConfigPanel/Behavior.lua
 ConfigPanel/Colors.lua

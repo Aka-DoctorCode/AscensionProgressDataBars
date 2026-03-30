@@ -15,7 +15,7 @@
 local addonName, addonTable = ...
 ---@class AscensionBars
 local ascensionBars = LibStub("AceAddon-3.0"):GetAddon(addonName)
-local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
@@ -26,12 +26,12 @@ local function getBarColor(barKey)
     if barObj and barObj.color then
         return barObj.color
     end
-    if barKey == "xp" then return { r = 0.0, g = 0.4, b = 0.9 } end
-    if barKey == "rep" then return { r = 0.0, g = 1.0, b = 0.0 } end
-    if barKey == "honor" then return { r = 0.8, g = 0.2, b = 0.2 } end
-    if barKey == "houseXp" then return { r = 1.0, g = 0.5, b = 0.1 } end
-    if barKey == "azerite" then return { r = 0.9, g = 0.8, b = 0.5 } end
-    return { r = 1, g = 1, b = 1 }
+    if barKey == "xp" then return { r = 0.0, g = 0.4, b = 0.9 } end -- #0066e6
+    if barKey == "rep" then return { r = 0.0, g = 1.0, b = 0.0 } end -- #00ff00
+    if barKey == "honor" then return { r = 0.8, g = 0.2, b = 0.2 } end -- #cc3333
+    if barKey == "houseXp" then return { r = 1.0, g = 0.5, b = 0.1 } end -- #ff801a
+    if barKey == "azerite" then return { r = 0.9, g = 0.8, b = 0.5 } end -- #e6cc80
+    return { r = 1, g = 1, b = 1 } -- #ffffff
 end
 
 -------------------------------------------------------------------------------
@@ -276,18 +276,6 @@ function ascensionBars:updateFixedMessages()
 
     fixedMessages = {}
 
-    if self.paragonText then
-        local text = self.paragonText:GetText()
-        if text and text ~= "" then
-            local rawText = text:gsub("|c%x+", ""):gsub("|r", "")
-            table.insert(fixedMessages, {
-                text = rawText,
-                color = { r = 0.0, g = 1.0, b = 0.0 },
-                id = "PARAGON"
-            })
-        end
-    end
-
     if self.houseRewardText then
         local text = self.houseRewardText:GetText()
         if text and text ~= "" then
@@ -339,6 +327,13 @@ function ascensionBars:initCarousel()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
         updateFont()
     end)
+    
+    -- Register gain events
+    self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", "handleGainMessages")
+    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", "handleGainMessages")
+    self:RegisterEvent("CHAT_MSG_COMBAT_HONOR_GAIN", "handleGainMessages")
+    self:RegisterEvent("CHAT_MSG_CURRENCY", "handleGainMessages")
+    
     carousel:Hide()
 end
 
@@ -365,6 +360,63 @@ function ascensionBars:updateCarouselVisibility()
         clearTimers()
         text:SetText("")
         currentMessage.text = ""
+    end
+end
+
+-------------------------------------------------------------------------------
+-- Gain messages handling (XP, Rep, Honor, Azerite)
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Gain messages handling (XP, Rep, Honor, Azerite, House)
+-------------------------------------------------------------------------------
+function ascensionBars:handleGainMessages(event, message)
+    if not message or message == "" then return end
+
+    -- 1. Reputation Handling
+    local repPattern = _G.FACTION_STANDING_INCREASED:gsub("%%s", "(.+)"):gsub("%%d", "(%%d+)")
+    local factionName, repAmount = string.match(message, repPattern)
+    if factionName and repAmount then
+        self:pushCarouselEvent("REP", factionName, factionName, tonumber(repAmount))
+        return
+    end
+
+    -- 2. Experience Handling
+    -- Priority to _G.EXPERIENCE_POINTS to avoid AceLocale "Missing entry" crashes
+    local xpPattern = _G.COMBATLOG_XPGAIN_FIRSTPERSON:gsub("%%d", "(%%d+)"):gsub("%%s", ".*")
+    local xpAmount = string.match(message, xpPattern)
+    if xpAmount then
+        local label = _G.EXPERIENCE_POINTS or "Experience"
+        self:pushCarouselEvent("XP", "PLAYER_XP", label, tonumber(xpAmount))
+        return
+    end
+
+    -- 3. Honor Handling
+    local honorPattern = _G.COMBATLOG_HONORGAIN:gsub("%%s", ".*"):gsub("%%d", "(%%d+)")
+    local honorAmount = string.match(message, honorPattern)
+    if honorAmount then
+        local label = _G.HONOR or "Honor"
+        self:pushCarouselEvent("HONOR", "PLAYER_HONOR", label, tonumber(honorAmount))
+        return
+    end
+
+    -- 4. Azerite & Currencies
+    -- Azerite is treated as a currency in Retail
+    local azeriteAmount = string.match(message, "gain (%d+) Azerite") or string.match(message, "obtained (%d+) Azerite")
+    if azeriteAmount then
+        local label = _G.AZERITE_POWER or "Azerite"
+        self:pushCarouselEvent("AZERITE", "PLAYER_AZERITE", label, tonumber(azeriteAmount))
+        return
+    end
+
+    -- 5. House XP (Custom system detection)
+    -- Safe check for L["House XP"] to prevent crashes if locale failed to load
+    local houseAmount = string.match(message, "gain (%d+) House XP") or string.match(message, "received (%d+) House XP")
+    if houseAmount then
+        local label = "House XP"
+        if L and L["House XP"] then label = L["House XP"] end
+        self:pushCarouselEvent("HOUSE", "PLAYER_HOUSE_XP", label, tonumber(houseAmount))
+        return
     end
 end
 

@@ -15,13 +15,13 @@
 local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
-local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local colors = ascensionBars.colors
 local files = ascensionBars.files
 local menuStyle = ascensionBars.menuStyle
 local layoutFactory = addonTable.layoutFactory
 
-function createConfigFrame()
+function CreateConfigFrame()
     if not layoutFactory then return end
     if ascensionBars.configFrame then return end
 
@@ -36,7 +36,7 @@ function createConfigFrame()
     configFrame:RegisterForDrag("LeftButton")
     configFrame:SetScript("OnDragStart", configFrame.StartMoving)
     configFrame:SetScript("OnDragStop", configFrame.StopMovingOrSizing)
-    
+
     configFrame:SetResizable(true)
     configFrame:SetResizeBounds(400, 300)
     
@@ -88,26 +88,26 @@ function createConfigFrame()
     end)
 
     local configModeCheck = CreateFrame("CheckButton", nil, configFrame, "UICheckButtonTemplate")
-        configModeCheck:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 8)
-        configModeCheck:SetSize(menuStyle.checkboxSize, menuStyle.checkboxSize)
-        configModeCheck.text = configModeCheck:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
-        configModeCheck.text:SetPoint("LEFT", configModeCheck, "RIGHT", 5, 0)
-        configModeCheck.text:SetText(locales["CONFIG_MODE"])
-        configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
+    configModeCheck:SetPoint("BOTTOMLEFT", menuStyle.contentPadding, 8)
+    configModeCheck:SetSize(menuStyle.checkboxSize, menuStyle.checkboxSize)
+    configModeCheck.text = configModeCheck:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    configModeCheck.text:SetPoint("LEFT", configModeCheck, "RIGHT", 5, 0)
+    configModeCheck.text:SetText(locales["CONFIG_MODE"])
+    configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
         
-        configModeCheck:SetScript("OnClick", function(self)
-            -- Update the state and refresh the bars
-            ascensionBars.state.isConfigMode = self:GetChecked()
-            ascensionBars:updateDisplay(true)
-        end)
-    
-        -- Sync checkbox state whenever the frame is shown
-        configFrame:HookScript("OnShow", function()
-            configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
-        end)
+    configModeCheck:SetScript("OnClick", function(self)
+        ascensionBars.state.isConfigMode = self:GetChecked()
+        ascensionBars:updateDisplay(true)
+    end)
+
+    -- When the config frame is shown, sync the checkbox state
+    configFrame:SetScript("OnShow", function(self)
+        configModeCheck:SetChecked(ascensionBars.state.isConfigMode)
+    end)
 
     local tabNames = {
         locales["TAB_BARS_LAYOUT"],
+        locales["TAB_CUSTOM_GRID"],
         locales["TAB_TEXT_LAYOUT"],
         locales["TAB_BEHAVIOR"],
         locales["TAB_COLORS"],
@@ -117,6 +117,7 @@ function createConfigFrame()
     
     local buildFuncs = {
         function(panel) if addonTable.barsLayoutTab then addonTable.barsLayoutTab:build(panel) end end,
+        function(panel) if addonTable.customGridTab then addonTable.customGridTab:build(panel) end end,
         function(panel) if addonTable.textLayoutTab then addonTable.textLayoutTab:build(panel) end end,
         function(panel) if addonTable.behaviorTab then addonTable.behaviorTab:build(panel) end end,
         function(panel) if addonTable.colorsTab then addonTable.colorsTab:build(panel) end end,
@@ -130,7 +131,7 @@ end
 
 function ascensionBars:refreshConfigUI()
     if not self.configFrame then
-        createConfigFrame()
+        CreateConfigFrame()
     end
 
     if self.configFrame then
@@ -143,7 +144,7 @@ function ascensionBars:refreshConfigUI()
         self.configTabs = nil
 
         -- Re-initialize
-        createConfigFrame()
+        CreateConfigFrame()
 
         if wasShown then
             self.configFrame:Show()
@@ -154,6 +155,4 @@ function ascensionBars:refreshConfigUI()
     end
 end
 
-function ascensionBars:refreshConfig() 
-    self:refreshConfigUI() 
-end
+-- REFRESH CONFIG: Handled in core-addon via refreshConfigUI calls

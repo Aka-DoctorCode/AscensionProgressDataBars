@@ -27,12 +27,24 @@ legend:SetMovable(true)
 legend:EnableMouse(true)
 legend:SetFrameStrata("TOOLTIP")
 legend:SetClipsChildren(true) 
+legend:Hide()
 
-legend:SetPoint("RIGHT", UIParent, "RIGHT", -20, 0)
+-- Puntos se inicializan en updateLegend, recuperando del perfil activo
+legend:ClearAllPoints()
 
 legend:RegisterForDrag("LeftButton")
 legend:SetScript("OnDragStart", function(self) self:StartMoving() end)
-legend:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() end)
+legend:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local profile = ascensionBars.db and ascensionBars.db.profile
+    if profile then
+        local point, _, relativePoint, xOfs, yOfs = self:GetPoint()
+        profile.legendPoint = point
+        profile.legendRelativePoint = relativePoint
+        profile.legendX = xOfs
+        profile.legendY = yOfs
+    end
+end)
 
 local shadow = legend:CreateTexture(nil, "BACKGROUND")
 shadow:SetPoint("TOPLEFT", legend, "TOPLEFT", -2, 2)
@@ -55,11 +67,22 @@ local function ApplyFontAndOutline(fontString, size, outline)
     fontString:SetFont(f, size, finalOutline)
 end
 
+local lastProfile = nil
 function ascensionBars:updateLegend()
     local profile = self.db and self.db.profile
     if not profile or not profile.legendEnabled then
         legend:Hide()
         return
+    end
+
+    if profile ~= lastProfile then
+        legend:ClearAllPoints()
+        local p = profile.legendPoint or "RIGHT"
+        local rp = profile.legendRelativePoint or "RIGHT"
+        local x = profile.legendX or -20
+        local y = profile.legendY or 0
+        legend:SetPoint(p, UIParent, rp, x, y)
+        lastProfile = profile
     end
 
     legend:Show()

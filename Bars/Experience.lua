@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local core = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast core AscensionBars
-local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 
 -------------------------------------------------------------------------------
 -- MODULE DEFINITION

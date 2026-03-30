@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local L = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local L = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
@@ -26,14 +26,10 @@ local profilesTab = addonTable.profilesTab
 -- UI Refresh Helper
 -------------------------------------------------------------------------------
 local function refreshConfigPanel()
-    ascensionBars:updateDisplay()
-    if ascensionBars.configFrame and ascensionBars.configFrame:IsShown() then
-        if ascensionBars.configFrame.Refresh then
-            ascensionBars.configFrame:Refresh()
-        else
-            ascensionBars.configFrame:Hide()
-            C_Timer.After(0.01, function() ascensionBars:toggleConfig() end)
-        end
+    if ascensionBars.refreshConfig then
+        ascensionBars:refreshConfig()
+    else
+        ascensionBars:updateDisplay(true)
     end
 end
 

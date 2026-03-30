@@ -1,12 +1,10 @@
-<h1>V39</h1>
+<h1>V40</h1>
 <ul>
-    <li>Refactored the code to be more efficient when rendering the bars</li>
-    <li>Improvement on the modularization of the code for scalability and maintainability</li>
-    <li>ADD: New grid system to display bar, with presents a totally customizable layout for the bars</li>
-    <li>ADD: Profiles system to save and load different layouts</li>
-    <li>FIX: both the absolute value and percentage toggles where not working</li>
-    <li>UI/UX Improvements to the config menu to allocate the new options</li>
-    *<li>Known Bug: the reward text is not showing unless toggle show on top is activated.</li>
+    <li>Add: A carrousel to display all the gains the bars have gotten over the past seconds </li>
+    <li>Add: Press 'Esc' to close the config panel</li>
+    <li>Change: Custom grid have been remove to it's own tab on the menu as it is consider a "advance mode"</li>
+    <li>Change: Honor and Housing default position is back to the bottom block</li>
+    <li>Fix: The Paragon alerts were not displayed correctly</li>
 </ul>
 <br>
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>

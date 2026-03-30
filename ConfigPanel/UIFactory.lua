@@ -550,6 +550,67 @@ function layoutFactory:createScrollPanel(args)
     return scrollFrame, content
 end
 
+function layoutFactory:createInput(args)
+    local elementID, parent, text = args.elementID, args.parent, args.text
+    local onEnterPressed, width, yOffset, xOffset = args.onEnterPressed, args.width, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Input"
+    
+    local style = getStyle(elementID)
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
+    local actualWidth = width or 200
+
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetSize(actualWidth, 40)
+    frame:SetPoint("TOPLEFT", actualX, yOffset)
+
+    local label = frame:CreateFontString(nil, "OVERLAY", menuStyle.labelFont)
+    label:SetPoint("TOPLEFT", 0, 0)
+    label:SetText(text)
+    label:SetTextColor(unpack(colors.textLight))
+
+    local editBox = CreateFrame("EditBox", nil, frame, "InputBoxTemplate")
+    editBox:SetSize(actualWidth, 20)
+    editBox:SetPoint("BOTTOMLEFT", 6, 0)
+    editBox:SetAutoFocus(false)
+    editBox:SetFontObject(menuStyle.labelFont)
+
+    editBox:SetScript("OnEnterPressed", function(self)
+        if onEnterPressed then onEnterPressed(self:GetText()) end
+        self:ClearFocus()
+    end)
+
+    return frame, yOffset - 50
+end
+
+function layoutFactory:createButton(args)
+    local elementID, parent, text, onClick = args.elementID, args.parent, args.text, args.onClick
+    local width, height, yOffset, xOffset = args.width, args.height, args.yOffset, args.xOffset
+    
+    ascensionBars.registeredElements = ascensionBars.registeredElements or {}
+    ascensionBars.registeredElements[elementID] = "Button"
+    
+    local style = getStyle(elementID)
+    local actualX = xOffset or style.contentPadding or menuStyle.contentPadding
+    local actualWidth = width or 120
+    local actualHeight = height or 28
+
+    local btn = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
+    btn:SetSize(actualWidth, actualHeight)
+    btn:SetPoint("TOPLEFT", actualX, yOffset)
+    btn:SetText(text)
+
+    local btnFont = btn:GetFontString()
+    if btnFont then btnFont:SetFontObject(menuStyle.labelFont) end
+
+    btn:SetScript("OnClick", function()
+        if onClick then onClick() end
+    end)
+
+    return btn, yOffset - (actualHeight + 10)
+end
+
 function layoutFactory:createTabbedInterface(parent, tabNames, buildFuncs, initialIndex)
     local tabs = {}
     local panels = {}
@@ -726,6 +787,24 @@ function layoutModel:dropdown(elementID, text, options, getter, setter, width, x
     })
     self.y = newY
     return dd
+end
+
+function layoutModel:input(elementID, text, width, xOffset, onEnterPressed)
+    local inp, newY = layoutFactory:createInput({
+        elementID = elementID, parent = self.parent, text = text,
+        width = width, xOffset = xOffset, yOffset = self.y, onEnterPressed = onEnterPressed
+    })
+    self.y = newY
+    return inp
+end
+
+function layoutModel:button(elementID, text, width, height, xOffset, onClick)
+    local btn, newY = layoutFactory:createButton({
+        elementID = elementID, parent = self.parent, text = text,
+        width = width, height = height, xOffset = xOffset, yOffset = self.y, onClick = onClick
+    })
+    self.y = newY
+    return btn
 end
 
 function layoutModel:beginSection(xOffset, width)

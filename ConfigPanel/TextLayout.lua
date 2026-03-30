@@ -15,7 +15,7 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
@@ -148,15 +148,15 @@ function textLayoutTab:build(panel)
     ---------------------------------------------------------------------------
     mainLayout:header("VisibilityHeader", L("EVENTS_VISIBILITY", "Events & Visibility"))
     startY = mainLayout.y
-    -- <li>Add: (HALF COMPLETE) A carrousel to display all the gains the bars have gotten over the past seconds </li>
-    -- -- Column 1 (Left)
-    -- mainLayout:checkbox("EnableCarouselToggle", L("ENABLE_CAROUSEL", "Enable Carousel"), nil,
-    --     function() return profile.carouselEnabled end,
-    --     function(v)
-    --         profile.carouselEnabled = v
-    --         ascensionBars:updateDisplay()
-    --         if panel.updateLayout then panel:updateLayout() end
-    --     end, col1X)
+
+    -- Column 1 (Left)
+    mainLayout:checkbox("EnableCarouselToggle", L("ENABLE_CAROUSEL", "Enable Carousel"), nil,
+        function() return profile.carouselEnabled end,
+        function(v)
+            profile.carouselEnabled = v
+            ascensionBars:updateDisplay()
+            if panel.updateLayout then panel:updateLayout() end
+        end, col1X)
 
     mainLayout:checkbox("LegendEnabledToggle", L("LATERAL_LEGEND", "Lateral Legend"), nil,
         function() return profile.legendEnabled end,

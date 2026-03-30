@@ -12,11 +12,15 @@
 -------------------------------------------------------------------------------
 
 local addonName, addonTable = ...
-local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 
 ---@class AscensionBars
----@field db { profile: table, global: table, ResetProfile: function }
----@field activeBars table
+---@field db { profile: table, global: table, RegisterCallback: function, SetProfile: function, GetProfiles: function, GetCurrentProfile: function, CopyProfile: function, DeleteProfile: function, ResetProfile: function }
+---@field paragonText FontString
+---@field renderParagonText function
+---@field scanParagonRewards function
+---@field notifyParagonRewardsAvailable function
+---@field activeBars table<string, table>
 ---@field xp table
 ---@field rep table
 ---@field honor table
@@ -39,26 +43,26 @@ local Locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
 ---@field files table
 ---@field menuStyle table
 ---@field houseRewardText FontString
----@field paragonText FontString
 ---@field hoverFrame Frame
 ---@field registeredElements table
 ---@field configTabs table
 ---@field refreshConfig function
----@field ResetProfile function
 ---@field refreshConfigUI function
 ---@field updateDisplay function
 ---@field updateVisibility function
 ---@field setupBar function
 ---@field getClassColor function
 ---@field refreshHousingFavor function
----@field scanParagonRewards function
----@field notifyParagonRewardsAvailable function
 ---@field setupTextHolders function
 ---@field acquireTexture function
 ---@field updateStandardBar function
 ---@field cleanupTextures function
 ---@field hideBlizzardFrames function
 ---@field createBars function
+---@field createDynamicBar function
+---@field removeDynamicBar function
+---@field searchFactionText string
+---@field selectedFactionToAdd number
 ---@field updateLayout function
 ---@field IsEnabled function
 ---@field RegisterChatCommand function
@@ -177,6 +181,15 @@ function ascensionBars:createFrames()
         self.hoverFrame:EnableMouse(false)
     end
 
+    if not self.paragonText then
+        self.paragonText = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    end
+
+    if not self.houseRewardText then
+        self.houseRewardText = UIParent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    end
+
+
     local barDefs = {
         { key = "XP",      name = "AscensionXPBar_XP"      },
         { key = "Rep",     name = "AscensionXPBar_Rep"     },
@@ -190,6 +203,14 @@ function ascensionBars:createFrames()
         self.activeBars[def.key] = self:createBar(def.name)
     end
 
+    if self.db and self.db.profile and self.db.profile.bars then
+        for k, v in pairs(self.db.profile.bars) do
+            if string.match(k, "^Rep_%d+$") then
+                self.activeBars[k] = self:createBar("AscensionXPBar_" .. k)
+            end
+        end
+    end
+
     -- Backward-compat aliases consumed by bar modules
     self.xp      = self.activeBars["XP"]
     self.rep     = self.activeBars["Rep"]
@@ -201,7 +222,23 @@ function ascensionBars:createFrames()
     if self.houseXp then self.houseXp.bar:Hide() end
     if self.azerite then self.azerite.bar:Hide() end
 
-    self.paragonText = self.textHolder:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+
+end
+
+function ascensionBars:createDynamicBar(barKey)
+    if self.activeBars[barKey] then return end
+    self.activeBars[barKey] = self:createBar("AscensionXPBar_" .. barKey)
+    if addonTable.dataText and addonTable.dataText.initBarText then
+        addonTable.dataText:initBarText(self.activeBars[barKey])
+    end
+end
+
+function ascensionBars:removeDynamicBar(barKey)
+    if not self.activeBars[barKey] then return end
+    local barObj = self.activeBars[barKey]
+    if barObj.bar then barObj.bar:Hide() end
+    if barObj.txFrame then barObj.txFrame:Hide() end
+    self.activeBars[barKey] = nil
 end
 
 function ascensionBars:createBar(name)
@@ -701,7 +738,11 @@ function ascensionBars:updateVisibility()
     end
 
     if self.textHolder then self.textHolder:SetAlpha(baseAlpha) end
+    
+    -- Actualizamos el texto de Paragon para aplicar cambios de posición/tamaño inmediatamente
+    if self.scanParagonRewards then self:scanParagonRewards() end
 end
+
 
 -------------------------------------------------------------------------------
 -- INITIALIZATION
@@ -725,10 +766,12 @@ function ascensionBars:OnInitialize()
         if p.textFollowBar    ~= nil then p.textFollowBar    = nil end
         if p.bars then
             for _, v in pairs(p.bars) do
-                if v.textBlock then v.textBlock = nil end
-                if v.textOrder then v.textOrder = nil end
-                if v.textX     then v.textX     = nil end
-                if v.textY     then v.textY     = nil end
+                if v then
+                    if v.textBlock then v.textBlock = nil end
+                    if v.textOrder then v.textOrder = nil end
+                    if v.textX     then v.textX     = nil end
+                    if v.textY     then v.textY     = nil end
+                end
             end
         end
     end
@@ -761,8 +804,7 @@ function ascensionBars:OnInitialize()
     local function toggleConfig()
         self:toggleConfig()
     end
-    self:RegisterChatCommand("ascensionBars", toggleConfig)
-    self:RegisterChatCommand("ab", toggleConfig)
+    self:RegisterChatCommand("apb", toggleConfig)
 
     self:createFrames()
 end
@@ -876,6 +918,21 @@ function ascensionBars:OnDisable()
 end
 
 function ascensionBars:refreshConfig()
+    -- Ensure all dynamic bars (e.g. extra reputations) from the new profile exist
+    if self.db and self.db.profile and self.db.profile.bars then
+        for k, _ in pairs(self.db.profile.bars) do
+            if string.match(k, "^Rep_%d+$") then
+                self:createDynamicBar(k)
+            end
+        end
+    end
+
+    -- Refresh the configuration UI if it's currently loaded
+    if self.refreshConfigUI then
+        self:refreshConfigUI()
+    end
+
+    -- Update the actual bars on screen
     self:updateDisplay(true)
 end
 

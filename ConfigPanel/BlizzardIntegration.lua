@@ -15,13 +15,13 @@ local addonName, addonTable = ...
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 
 local colors = ascensionBars.colors
 local menuStyle = ascensionBars.menuStyle
 
 local blizzardPanel = CreateFrame("Frame", "AscensionBars_BlizPanel", UIParent)
-blizzardPanel.name = "Ascension Progress DataBars"
+blizzardPanel.name = "Ascension Progress Data Bar"
 blizzardPanel:Hide()
 
 local function buildBlizUI()

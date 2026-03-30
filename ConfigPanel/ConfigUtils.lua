@@ -18,7 +18,7 @@ addonTable.configUtils = {}
 ---@type AscensionBars
 local ascensionBars = addonTable.main or LibStub("AceAddon-3.0"):GetAddon(addonName)
 ---@cast ascensionBars AscensionBars
-local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionBars")
+local locales = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local configUtils = addonTable.configUtils
 
 -- Extracts the correct block identifier safely

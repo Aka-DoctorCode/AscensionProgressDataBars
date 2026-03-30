@@ -12,13 +12,15 @@
 -------------------------------------------------------------------------------
 
 local _, addonTable = ...
-local Locales = _G.LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enUS", true) or
-    _G.LibStub("AceLocale-3.0"):NewLocale("AscensionBars", "enGB")
+local Locales = _G.LibStub("AceLocale-3.0"):NewLocale("AscensionProgressDataBars", "enUS", true) or
+    _G.LibStub("AceLocale-3.0"):NewLocale("AscensionProgressDataBars", "enGB")
 
 if not Locales then return end
 
--- General Configuration
-Locales["ADDON_NAME"] = "Ascension Progress Data Bars"
+-------------------------------------------------------------------------------
+-- GENERAL
+-------------------------------------------------------------------------------
+Locales["ADDON_NAME"] = "Ascension Progress Data Bar"
 Locales["CONFIG_MODE"] = "Config Mode"
 Locales["CONFIG_MODE_DESC"] = "Show dummy bars to visualize changes in real-time."
 Locales["FACTION_STANDINGS_RESET"] = "Reset Defaults"
@@ -27,15 +29,29 @@ Locales["AND"] = " AND "
 Locales["CONFIG_MODULE_MISSING"] = "AscensionBars: Configuration module not found."
 Locales["TOGGLE_CONFIG_WINDOW"] = "Toggle Config Window"
 
--- Tabs
+-------------------------------------------------------------------------------
+-- CAROUSEL GAINS
+-------------------------------------------------------------------------------
+Locales["Experience"] = "Experience"
+Locales["Reputation"] = "Reputation"
+Locales["House XP"] = "House XP"
+Locales["Honor"] = "Honor"
+Locales["Azerite"] = "Azerite"
+
+-------------------------------------------------------------------------------
+-- TABS
+-------------------------------------------------------------------------------
 Locales["TAB_BARS_LAYOUT"] = "Bars Layout"
+Locales["TAB_CUSTOM_GRID"] = "Custom Bars"
 Locales["TAB_TEXT_LAYOUT"] = "Text Layout"
 Locales["TAB_BEHAVIOR"] = "Behavior"
 Locales["TAB_COLORS"] = "Colors"
 Locales["TAB_PARAGON_ALERTS"] = "Alerts"
 Locales["TAB_PROFILES"] = "Profiles"
 
--- UI Controls & Labels
+-------------------------------------------------------------------------------
+-- UI CONTROLS & LABELS
+-------------------------------------------------------------------------------
 Locales["ENABLE"] = "Enable"
 Locales["ANCHOR"] = "Anchor"
 Locales["TOP"] = "Top"
@@ -81,7 +97,9 @@ Locales["CAROUSEL_X_OFFSET"] = "X Offset"
 Locales["CAROUSEL_Y_OFFSET"] = "Y Offset"
 Locales["CAROUSEL_BG_ALPHA"] = "Background Alpha"
 
--- Experience Bar
+-------------------------------------------------------------------------------
+-- EXPERIENCE BAR
+-------------------------------------------------------------------------------
 Locales["EXPERIENCE"] = "Experience"
 Locales["XP_BAR_DATA"] = "Experience Bar Data | 0/0 (0.0%)"
 Locales["XP_BAR_CONFIG_TEXT"] = "Experience: 75% (Resting)"
@@ -93,7 +111,9 @@ Locales["LEVEL_TEXT_ABS"] = "Level %d | %s / %s"
 Locales["LEVEL_TEXT_PCT"] = "Level %d | %.1f%%"
 Locales["RESTED_LABEL"] = "Rested: %s"
 
--- Reputation Bar
+-------------------------------------------------------------------------------
+-- REPUTATION BAR
+-------------------------------------------------------------------------------
 Locales["REPUTATION"] = "Reputation"
 Locales["REP_BAR_DATA"] = "Reputation Bar Data | 0/0 (0.0%)"
 Locales["PARAGON"] = "Paragon"
@@ -101,13 +121,20 @@ Locales["RENOWN_LEVEL"] = "Renown Level"
 Locales["REWARD_PENDING_STATUS"] = "Reward Pending"
 Locales["REWARD_PENDING_SINGLE"] = " REWARD PENDING!"
 Locales["REWARD_PENDING_PLURAL"] = " REWARDS PENDING!"
+Locales["ADD_CUSTOM_REPUTATION"] = "Add Custom Reputation"
+Locales["SEARCH_FACTION"] = "Search Faction"
+Locales["SELECT_FACTION"] = "Select Faction"
+Locales["ADD"] = "Add"
+Locales["DELETE"] = "Delete"
 
 -- Reputation Display Patterns
 Locales["REP_LABEL_FORMAT"] = "%s (%s)"
 Locales["REP_VALUE_FORMAT_FULL"] = "%s / %s (%.1f%%)"
 Locales["REP_VALUE_FORMAT_PCT"] = "(%.1f%%)"
 
--- Honor Bar
+-------------------------------------------------------------------------------
+-- HONOR BAR
+-------------------------------------------------------------------------------
 Locales["HONOR"] = "Honor"
 Locales["HONOR_LEVEL_SIMPLE"] = "Honor Level %d"
 Locales["ENABLE_HONOR_BAR"] = "Enable Honor Bar"
@@ -115,14 +142,18 @@ Locales["HONOR_BAR_DATA"] = "Honor: 0%"
 Locales["HONOR_BAR_HEIGHT"] = "Honor Bar Height"
 Locales["HONOR_LEVEL_FORMAT"] = "Honor Level %d | %s/%s (%.1f%%)"
 
--- Azerite Bar
+-------------------------------------------------------------------------------
+-- AZERITE BAR
+-------------------------------------------------------------------------------
 Locales["AZERITE"] = "Azerite"
 Locales["ENABLE_AZERITE_BAR"] = "Enable Azerite Bar"
 Locales["AZERITE_BAR_DATA"] = "Azerite Power: 0%"
 Locales["AZERITE_BAR_HEIGHT"] = "Azerite Bar Height"
 Locales["AZERITE_LEVEL_FORMAT"] = "Azerite Level %d | %s/%s (%.1f%%)"
 
--- Housing Favor Bar
+-------------------------------------------------------------------------------
+-- HOUSING FAVOR BAR
+-------------------------------------------------------------------------------
 Locales["HOUSE_FAVOR"] = "House Favor Level"
 Locales["ENABLE_HOUSE_XP_BAR"] = "Enable House Favor Bar"
 Locales["HOUSE_XP"] = "House Favor"
@@ -133,7 +164,9 @@ Locales["HOUSE_LEVEL_PCT"]    = "%s Level %d | (%.1f%%)"
 Locales["HOUSE_LEVEL_SIMPLE"] = "%s Level %d"
 Locales["HOUSE_UPGRADES_AVAILABLE"] = "HOUSE UPGRADES AVAILABLE FOR %s"
 
--- Appearance Tab
+-------------------------------------------------------------------------------
+-- TEXT LAYOUT TAB
+-------------------------------------------------------------------------------
 Locales["TEXT_AND_FONT"] = "Text and Font"
 Locales["LAYOUT_MODE"] = "Layout Mode"
 Locales["ALL_IN_ONE_LINE"] = "All in one line"
@@ -153,7 +186,9 @@ Locales["GROUP_1"] = "Group 1"
 Locales["GROUP_2"] = "Group 2"
 Locales["GROUP_3"] = "Group 3"
 
--- Behavior Tab
+-------------------------------------------------------------------------------
+-- BEHAVIOR TAB
+-------------------------------------------------------------------------------
 Locales["AUTO_HIDE_LOGIC"] = "Auto-Hide Logic"
 Locales["SHOW_ON_MOUSEOVER"] = "Show on Mouseover"
 Locales["HIDE_IN_COMBAT"] = "Hide in Combat"
@@ -163,7 +198,9 @@ Locales["SHOW_PERCENTAGE"] = "Show Percentage"
 Locales["SHOW_ABSOLUTE_VALUES"] = "Show Absolute Values"
 Locales["SHOW_SPARK"] = "Show Spark"
 
--- Colors Tab
+-------------------------------------------------------------------------------
+-- COLORS TAB
+-------------------------------------------------------------------------------
 Locales["USE_CLASS_COLOR"] = "Use Class Color"
 Locales["CUSTOM_XP_COLOR"] = "Custom XP Color"
 Locales["SHOW_RESTED_BAR"] = "Show Rested Bar"
@@ -176,7 +213,9 @@ Locales["HOUSE_REWARD_COLOR"] = "House Reward Text Color"
 Locales["HOUSE_REWARD_Y_OFFSET"] = "House Reward Y Offset"
 Locales["AZERITE_COLOR"] = "Azerite Color"
 
--- Reputation Standings
+-------------------------------------------------------------------------------
+-- REPUTATION STANDINGS
+-------------------------------------------------------------------------------
 Locales["HATED"] = "Hated"
 Locales["HOSTILE"] = "Hostile"
 Locales["UNFRIENDLY"] = "Unfriendly"
@@ -189,19 +228,38 @@ Locales["MAXED"] = "Maxed"
 Locales["RENOWN"] = "Renown"
 Locales["RANK_NUM"] = "Rank %d"
 
--- Paragon Alerts
+-------------------------------------------------------------------------------
+-- PARAGON ALERTS
+-------------------------------------------------------------------------------
 Locales["ALERT_STYLING"] = "Alert Styling"
-Locales["SHOW_ON_TOP"] = "Show on Top"
 Locales["SPLIT_LINES"] = "Split Lines"
-Locales["VERTICAL_OFFSET_Y"] = "Vertical Offset Y"
 Locales["ALERT_COLOR"] = "Alert Color"
 Locales["REWARD_AVAILABLE"] = "REWARD AVAILABLE TO BE COLLECTED"
 Locales["REWARD_ON_CHAR"] = "REWARD AVAILABLE ON %s"
 Locales["PARAGON_TEXT_SIZE"] = "Alert Text Size"
-Locales["PARAGON_TEXT_Y"] = "Alert Y Offset"
-Locales["PARAGON_ON_TOP"] = "Show Alert at Top of Screen"
 
--- Text Layout Tab
+-------------------------------------------------------------------------------
+-- CUSTOM GRID MODE
+-------------------------------------------------------------------------------
+Locales["CUSTOM_GRID"] = "Custom Bars"
+Locales["CUSTOM_GRID_ENABLE"] = "Enable Custom Grid Layout"
+Locales["CUSTOM_GRID_DESC"] = "Activate to build a custom multi-column layout. When enabled, the standard bar order is ignored and bars are placed in the exact row and column you assign them to."
+Locales["ENABLE_ADVANCED_GRID"] = "Enable Custom Grid (Advanced)"
+Locales["CUSTOM_GRID_DISABLED_MSG"] = "Enable Custom Grid (Advanced) above to configure custom layouts."
+Locales["GRID_OPTIONS"] = "Grid Configuration"
+Locales["GRID_ROWS"] = "Total Rows"
+Locales["GRID_COLS_FOR_ROW"] = "Cols for Row %d"
+Locales["GRID_CELL"] = "Row %d - Col %d"
+Locales["GRID_PRESET"] = "Layout Preset"
+Locales["PRESET_CUSTOM"] = "Custom"
+Locales["PRESET_2X1"] = "2x1 (2 Rows, 1 Col)"
+Locales["PRESET_2X2"] = "2x2 (2 Rows, 2 Cols)"
+Locales["PRESET_3X2"] = "3x2 (3 Rows, 2 Cols)"
+Locales["ASSIGN_BAR"] = "Assign Bar"
+
+-------------------------------------------------------------------------------
+-- TEXT LAYOUT (additional)
+-------------------------------------------------------------------------------
 Locales["BLOCK_TEXT_MODE"] = "Text Behavior"
 Locales["TEXT_VISIBILITY_MODE"] = "Text Visibility Mode"
 Locales["FOCUS_MODE"] = "Show on Hover"
@@ -221,28 +279,16 @@ Locales["LEGEND_TEXT_SIZE"] = "Legend Text Size"
 Locales["LEGEND_BG_ALPHA"] = "Background Alpha"
 Locales["LEGEND_FONT_OUTLINE"] = "Legend Font Outline"
 
--- Config/Preview Strings
+-------------------------------------------------------------------------------
+-- CONFIG / PREVIEW STRINGS
+-------------------------------------------------------------------------------
 Locales["CONFIG_FACTION_A_REWARD"] = "[CONFIG] FACTION A REWARD"
 Locales["CONFIG_FACTION_B_REWARD"] = "[CONFIG] FACTION B REWARD"
 Locales["CONFIG_MULTIPLE_REWARDS"] = "[CONFIG] MULTIPLE REWARDS PENDING!"
 
--- Custom Grid Mode
-Locales["CUSTOM_GRID_ENABLE"] = "Enable Custom Grid Layout"
-Locales["CUSTOM_GRID_DESC"] = "Activate to build a custom multi-column layout. When enabled, the standard bar order is ignored and bars are placed in the exact row and column you assign them to."
-Locales["GRID_OPTIONS"] = "Grid Configuration"
-Locales["GRID_ROWS"] = "Total Rows"
-Locales["GRID_COLS_FOR_ROW"] = "Cols for Row %d"
-Locales["GRID_CELL"] = "Row %d - Col %d"
-
--- Grid Layout Presets
-Locales["GRID_PRESET"] = "Layout Preset"
-Locales["PRESET_CUSTOM"] = "Custom"
-Locales["PRESET_2X1"] = "2x1 (2 Rows, 1 Col)"
-Locales["PRESET_2X2"] = "2x2 (2 Rows, 2 Cols)"
-Locales["PRESET_3X2"] = "3x2 (3 Rows, 2 Cols)"
-Locales["ASSIGN_BAR"] = "Assign Bar"
-
--- Profiles Tab
+-------------------------------------------------------------------------------
+-- PROFILES TAB
+-------------------------------------------------------------------------------
 Locales["PROFILES"] = "Profiles"
 Locales["PROFILE_DESC_1"] = "You can change the active database profile, so you can have different settings for every character."
 Locales["PROFILE_DESC_2"] = "Reset the current profile back to its default values."
