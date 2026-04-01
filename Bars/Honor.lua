@@ -31,7 +31,7 @@ HonorModule.core  = core
 
 function HonorModule:OnEnable()
     self:RegisterEvent("HONOR_XP_UPDATE",    "onHonorUpdate")
-    self:RegisterEvent("HONOR_LEVEL_UPDATE",  "onUpdate")
+    self:RegisterEvent("HONOR_LEVEL_UPDATE",  "onHonorLevelUp")
 end
 
 function HonorModule:OnDisable()
@@ -46,17 +46,37 @@ function HonorModule:onHonorUpdate()
     local state = self.core.state
     if not state then return end
 
-    local current = UnitHonor("player") or 0
-    local last    = state.lastHonor
+    local current    = UnitHonor("player")    or 0
+    local currentMax = UnitHonorMax("player") or 0
+    local last       = state.lastHonor    or 0
+    local lastMax    = state.lastHonorMax or 0
 
-    if last and last > 0 and current > last then
-        local gained = current - last
-        if self.core.pushCarouselEvent then
+    if last > 0 then
+        local gained = 0
+        if current >= last then
+            gained = current - last
+        else
+            -- Honor wrapped: player gained an honor level
+            local remainingInLevel = (lastMax > last) and (lastMax - last) or 0
+            gained = remainingInLevel + current
+        end
+        if gained > 0 and self.core.pushCarouselEvent then
             self.core:pushCarouselEvent("HONOR", "honor", "Honor", gained)
         end
     end
 
-    state.lastHonor = current
+    state.lastHonor    = current
+    state.lastHonorMax = currentMax
+    self.core:updateDisplay()
+end
+
+function HonorModule:onHonorLevelUp()
+    -- Reset cached honor baseline after leveling so the next onHonorUpdate starts clean.
+    local state = self.core.state
+    if state then
+        state.lastHonor    = UnitHonor("player")    or 0
+        state.lastHonorMax = UnitHonorMax("player") or 0
+    end
     self.core:updateDisplay()
 end
 

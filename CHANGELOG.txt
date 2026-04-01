@@ -1,10 +1,6 @@
-<h1>V40</h1>
+<h1>@project-version@</h1>
 <ul>
-    <li>Add: A carrousel to display all the gains the bars have gotten over the past seconds </li>
-    <li>Add: Press 'Esc' to close the config panel</li>
-    <li>Change: Custom grid have been remove to it's own tab on the menu as it is consider a "advance mode"</li>
-    <li>Change: Honor and Housing default position is back to the bottom block</li>
-    <li>Fix: The Paragon alerts were not displayed correctly</li>
+    <li>Several performance improvements</li>
 </ul>
 <br>
-<h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>
+<h3>Positive feedback is always appreciated, it helps me to continue working on this project</h3>

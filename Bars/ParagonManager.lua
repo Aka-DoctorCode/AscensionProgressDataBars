@@ -37,7 +37,7 @@ function ascensionBars:scanParagonRewards()
     self.db.global.paragonRewards = self.db.global.paragonRewards or {}
 
     local currentRewards = {}
-    local pendingList = {} -- Para el renderizado local
+    local pendingList = {}
     local foundAny = false
     local numFactions = C_Reputation.GetNumFactions()
 
@@ -64,7 +64,7 @@ function ascensionBars:scanParagonRewards()
         end
     end
 
-    -- Actualizamos el renderizador persistente (estilo AscensionBars)
+    -- Update the persistent paragon text renderer
     self:renderParagonText(pendingList)
 end
 
@@ -96,18 +96,19 @@ function ascensionBars:renderParagonText(pending)
             for _, info in ipairs(pending) do
                 table.insert(names, string.upper(info.name))
             end
-            
+
+            local totalCount = #names
             local factionStr = ""
-            if #names == 1 then
+            if totalCount == 1 then
                 factionStr = names[1]
-            elseif #names == 2 then
+            elseif totalCount == 2 then
                 factionStr = names[1] .. (Locales["AND"] or " AND ") .. names[2]
             else
                 local last = table.remove(names)
                 factionStr = table.concat(names, ", ") .. (Locales["AND"] or " AND ") .. last
             end
 
-            local suffix = (#pending > 1) and (Locales["REWARD_PENDING_PLURAL"] or " REWARDS PENDING!") or (Locales["REWARD_PENDING_SINGLE"] or " REWARD PENDING!")
+            local suffix = (totalCount > 1) and (Locales["REWARD_PENDING_PLURAL"] or " REWARDS PENDING!") or (Locales["REWARD_PENDING_SINGLE"] or " REWARD PENDING!")
             textContent = hex .. factionStr .. suffix .. "|r"
         end
 
@@ -125,7 +126,6 @@ function ascensionBars:renderParagonText(pending)
         self.paragonText:Hide()
     end
     
-    -- Notificamos al carrusel para que se actualice (aunque ahora solo quitaremos la lógica de ahí)
     if self.updateCarouselVisibility then
         self:updateCarouselVisibility()
     end
@@ -153,13 +153,14 @@ function ascensionBars:notifyParagonRewardsAvailable(rewards)
         table.insert(names, string.upper(factionName))
     end
 
+    local totalCount = #names
     local factionStr = names[1] or ""
-    if #names > 1 then
+    if totalCount > 1 then
         local last = table.remove(names)
         factionStr = table.concat(names, ", ") .. (Locales["AND"] or " & ") .. last
     end
 
-    local suffix = (#names > 1) and (Locales["REWARD_PENDING_PLURAL"] or " have rewards!") or (Locales["REWARD_PENDING_SINGLE"] or " has a reward!")
+    local suffix = (totalCount > 1) and (Locales["REWARD_PENDING_PLURAL"] or " have rewards!") or (Locales["REWARD_PENDING_SINGLE"] or " has a reward!")
     local message = hex .. factionStr .. suffix .. "|r"
 
     if _G.RaidNotice_AddMessage and _G.RaidWarningFrame and _G.ChatTypeInfo then

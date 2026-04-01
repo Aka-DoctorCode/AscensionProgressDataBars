@@ -31,6 +31,35 @@ ReputationModule.core  = core
 
 function ReputationModule:OnEnable()
     self:RegisterEvent("UPDATE_FACTION", "onUpdateFaction")
+    self:initializeCache()
+end
+
+function ReputationModule:initializeCache()
+    local state = self.core.state
+    if not state then return end
+    state.lastReputation = state.lastReputation or {}
+
+    if not (C_Reputation and C_Reputation.GetNumFactions and C_Reputation.GetFactionDataByIndex) then
+        return
+    end
+
+    local numFactions = C_Reputation.GetNumFactions()
+    if not numFactions then return end
+
+    for i = 1, numFactions do
+        local factionData = C_Reputation.GetFactionDataByIndex(i)
+        if factionData and factionData.factionID then
+            local id = factionData.factionID
+            local normalized = self:getFactionData(id)
+            if normalized then
+                state.lastReputation[id] = {
+                    value = normalized.currentValue or 0,
+                    max   = normalized.maxValue or 1,
+                    level = normalized.levelName or ""
+                }
+            end
+        end
+    end
 end
 
 function ReputationModule:OnDisable()
@@ -42,7 +71,6 @@ end
 -------------------------------------------------------------------------------
 
 function ReputationModule:onUpdateFaction()
-    if self.core.scanParagonRewards then self.core:scanParagonRewards() end
 
     local state  = self.core.state
     if not state then return end
@@ -89,10 +117,6 @@ function ReputationModule:onUpdateFaction()
                     end
                 end
 
-                if type(lastInfo) ~= "table" then
-                    state.lastReputation[id] = {}
-                end
-                
                 state.lastReputation[id] = {
                     value = currentVal,
                     max   = currentMax,
@@ -236,10 +260,6 @@ function ReputationModule:renderSingleRepBarLive(repKey, targetFactionId)
 
     local name, reaction, curVal, maxVal, standingLabel
     local isMaxLevel, hasParagon = false, false
-    local characterKey = UnitName("player") .. "-" .. GetRealmName()
-
-
-
     if not name then
         if targetFactionId then
             local normalized = self:getFactionData(targetFactionId)

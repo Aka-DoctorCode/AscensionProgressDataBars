@@ -18,6 +18,8 @@ Locales\deDE.lua
 
 # Core
 AscensionProgressDataBars.lua
+Constants.lua
+Styles.lua
 Bars\DataText.lua
 Bars\Experience.lua
 Bars\ParagonManager.lua
@@ -27,8 +29,6 @@ Bars\Housing.lua
 Bars\Azerite.lua
 Bars\Legend.lua
 Bars\Carousel.lua
-Constants.lua
-Styles.lua
 
 # Config Panel
 ConfigPanel/ConfigUtils.lua

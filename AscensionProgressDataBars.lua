@@ -738,9 +738,6 @@ function ascensionBars:updateVisibility()
     end
 
     if self.textHolder then self.textHolder:SetAlpha(baseAlpha) end
-    
-    -- Actualizamos el texto de Paragon para aplicar cambios de posición/tamaño inmediatamente
-    if self.scanParagonRewards then self:scanParagonRewards() end
 end
 
 
@@ -867,9 +864,10 @@ function ascensionBars:onPlayerEnteringWorld()
     if self.refreshHousingFavor then self:refreshHousingFavor() end
 
     if not self.state then return end
-    self.state.lastXP     = UnitXP("player")   or 0
-    self.state.lastXPMax  = UnitXPMax("player") or 0
-    self.state.lastHonor  = UnitHonor("player") or 0
+    self.state.lastXP      = UnitXP("player")     or 0
+    self.state.lastXPMax   = UnitXPMax("player")  or 0
+    self.state.lastHonor   = UnitHonor("player")  or 0
+    self.state.lastHonorMax = UnitHonorMax("player") or 0
 
     if C_AzeriteItem and C_AzeriteItem.FindActiveAzeriteItem then
         local itemLoc = C_AzeriteItem.FindActiveAzeriteItem()

@@ -4,13 +4,12 @@
 -- File: Bars/Carousel.lua
 -- Version: @project-version@
 -------------------------------------------------------------------------------
--- Copyright (c) 2025–2026 Aka-DoctorCode. All Rights Reserved.
+-- Copyright (c) 2025-2026 Aka-DoctorCode. All Rights Reserved.
 --
 -- This software and its source code are the exclusive property of the author.
 -- No part of this file may be copied, modified, redistributed, or used in
 -- derivative works without express written permission.
 -------------------------------------------------------------------------------
-
 
 local addonName, addonTable = ...
 ---@class AscensionBars
@@ -19,23 +18,39 @@ local L = LibStub("AceLocale-3.0"):GetLocale("AscensionProgressDataBars")
 local dataText = addonTable.dataText
 
 -------------------------------------------------------------------------------
--- Colores semánticos
+-- Semantic bar color resolver
+-- Reads directly from activeBars using PascalCase keys to avoid alias dependency.
 -------------------------------------------------------------------------------
-local function getBarColor(barKey)
-    local barObj = ascensionBars[barKey]
-    if barObj and barObj.color then
-        return barObj.color
+local barColorKeyMap = {
+    REP     = "Rep",
+    XP      = "XP",
+    HONOR   = "Honor",
+    HOUSE   = "HouseXp",
+    AZERITE = "Azerite",
+}
+
+local barColorFallbacks = {
+    REP     = { r = 0.0, g = 1.0, b = 0.0 }, -- #00ff00
+    XP      = { r = 0.0, g = 0.4, b = 0.9 }, -- #0066e6
+    HONOR   = { r = 0.8, g = 0.2, b = 0.2 }, -- #cc3333
+    HOUSE   = { r = 1.0, g = 0.5, b = 0.1 }, -- #ff801a
+    AZERITE = { r = 0.9, g = 0.8, b = 0.5 }, -- #e6cc80
+}
+
+local function getCategoryColor(category)
+    local activeBarsKey = barColorKeyMap[category]
+    if activeBarsKey then
+        local barObj = ascensionBars.activeBars and ascensionBars.activeBars[activeBarsKey]
+        if barObj and barObj.color then
+            return barObj.color
+        end
+        return barColorFallbacks[category] or { r = 1, g = 1, b = 1 }
     end
-    if barKey == "xp" then return { r = 0.0, g = 0.4, b = 0.9 } end -- #0066e6
-    if barKey == "rep" then return { r = 0.0, g = 1.0, b = 0.0 } end -- #00ff00
-    if barKey == "honor" then return { r = 0.8, g = 0.2, b = 0.2 } end -- #cc3333
-    if barKey == "houseXp" then return { r = 1.0, g = 0.5, b = 0.1 } end -- #ff801a
-    if barKey == "azerite" then return { r = 0.9, g = 0.8, b = 0.5 } end -- #e6cc80
-    return { r = 1, g = 1, b = 1 } -- #ffffff
+    return { r = 1, g = 1, b = 1 }
 end
 
 -------------------------------------------------------------------------------
--- Estructuras de datos
+-- Data structures
 -------------------------------------------------------------------------------
 local batchData = {}
 local dynamicQueue = {}
@@ -55,7 +70,7 @@ local displayTimer = nil
 local fixedRotationTimer = nil
 
 -------------------------------------------------------------------------------
--- Marco del carrusel con fondo y posición configurable
+-- Carousel frame with configurable background and position
 -------------------------------------------------------------------------------
 local carousel = CreateFrame("Frame", "AscensionBars_Carousel", UIParent)
 carousel:SetSize(500, 30)
@@ -63,13 +78,13 @@ carousel:SetFrameStrata("TOOLTIP")
 carousel:EnableMouse(true)
 carousel:SetClipsChildren(false)
 
--- Fondo (sombra expandida) similar a la leyenda
+-- Background shadow layer
 local shadow = carousel:CreateTexture(nil, "BACKGROUND")
 shadow:SetPoint("TOPLEFT", carousel, "TOPLEFT", -2, 2)
 shadow:SetPoint("BOTTOMRIGHT", carousel, "BOTTOMRIGHT", 2, -2)
-shadow:SetColorTexture(0, 0, 0, 0.4)  -- alpha se actualizará después
+shadow:SetColorTexture(0, 0, 0, 0.4)
 
--- Texto
+-- Text label
 local text = carousel:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
 text:SetAllPoints()
 text:SetJustifyH("CENTER")
@@ -84,10 +99,11 @@ local function updateFont()
     local outline = profile.fontOutline or "OUTLINE"
     text:SetFont(fontPath, 18, outline)
 end
-updateFont()
+-- NOTE: updateFont() is NOT called here at load time because ascensionBars.db
+-- is nil until OnInitialize. It is called on PLAYER_ENTERING_WORLD instead.
 
 -------------------------------------------------------------------------------
--- Funciones auxiliares
+-- Helper functions
 -------------------------------------------------------------------------------
 local function setTextColor(color)
     text:SetTextColor(color.r, color.g, color.b)
@@ -98,12 +114,11 @@ local function clearTimers()
     if fixedRotationTimer then fixedRotationTimer:Cancel() fixedRotationTimer = nil end
 end
 
--- Declaración previa de funciones que se llamarán entre sí
+-- Forward declarations for mutually recursive functions
 local startDisplayTimer
 local showNextFixed
 local showNextMessage
 
--- Implementación de startDisplayTimer
 startDisplayTimer = function(duration)
     if isPaused then return end
     clearTimers()
@@ -127,7 +142,6 @@ startDisplayTimer = function(duration)
     end)
 end
 
--- Implementación de showNextFixed
 showNextFixed = function()
     if isPaused then return end
     if #dynamicQueue > 0 then
@@ -157,7 +171,6 @@ showNextFixed = function()
     startDisplayTimer(7)
 end
 
--- Implementación de showNextMessage
 showNextMessage = function()
     if #dynamicQueue > 0 then
         local msg = table.remove(dynamicQueue, 1)
@@ -177,7 +190,7 @@ showNextMessage = function()
 end
 
 -------------------------------------------------------------------------------
--- Control de estado
+-- State control
 -------------------------------------------------------------------------------
 local function pauseAll()
     isPaused = true
@@ -201,27 +214,19 @@ end
 local function processBatch()
     batchTimer = nil
 
+    local profile = ascensionBars.db and ascensionBars.db.profile
+    if not profile then
+        batchData = {}
+        return
+    end
+
     for category, subs in pairs(batchData) do
         for subId, data in pairs(subs) do
             local amount = data.amount
             if amount > 0 then
                 local label = data.label
-                local color
-                if category == "REP" then
-                    color = getBarColor("rep")
-                elseif category == "XP" then
-                    color = getBarColor("xp")
-                elseif category == "HONOR" then
-                    color = getBarColor("honor")
-                elseif category == "HOUSE" then
-                    color = getBarColor("houseXp")
-                elseif category == "AZERITE" then
-                    color = getBarColor("azerite")
-                else
-                    color = { r = 1, g = 1, b = 1 }
-                end
-
-                local amountStr = dataText:FormatValue(amount, ascensionBars.db.profile)
+                local color = getCategoryColor(category)
+                local amountStr = dataText:FormatValue(amount, profile)
                 local msgText = string.format("+%s %s", amountStr, label)
                 table.insert(dynamicQueue, {
                     text = msgText,
@@ -253,11 +258,18 @@ local function resetBatchTimer()
 end
 
 -------------------------------------------------------------------------------
--- API pública
+-- Public API
 -------------------------------------------------------------------------------
+
+--- Pushes a new update event to the carousel queue.
+-- Called internally by bar modules (XP, Rep, Honor, etc.) when values change.
+-- @param category string The internal category (e.g., "REP", "XP").
+-- @param subId string|number Unique identifier for the sub-category (e.g., FactionID).
+-- @param label string The display name for the gain.
+-- @param amount number The increased amount to display.
 function ascensionBars:pushCarouselEvent(category, subId, label, amount)
     local profile = self.db and self.db.profile
-    if not profile or not profile.carouselEnabled or not amount or amount == 0 then return end
+    if not profile or not profile.carouselEnabled or not amount or amount <= 0 then return end
 
     if not batchData[category] then
         batchData[category] = {}
@@ -277,13 +289,14 @@ function ascensionBars:updateFixedMessages()
     fixedMessages = {}
 
     if self.houseRewardText then
-        local text = self.houseRewardText:GetText()
-        if text and text ~= "" then
-            local rawText = text:gsub("|c%x+", ""):gsub("|r", "")
+        local rewardText = self.houseRewardText:GetText()
+        if rewardText and rewardText ~= "" then
+            -- Strip hex color codes for rotation display
+            local rawText = rewardText:gsub("|c%x+", ""):gsub("|r", "")
             table.insert(fixedMessages, {
-                text = rawText,
+                text  = rawText,
                 color = { r = 1.0, g = 0.5, b = 0.1 },
-                id = "HOUSE"
+                id    = "HOUSE"
             })
         end
     end
@@ -295,7 +308,7 @@ function ascensionBars:updateFixedMessages()
 end
 
 -------------------------------------------------------------------------------
--- Hover
+-- Mouse hover
 -------------------------------------------------------------------------------
 carousel:SetScript("OnEnter", function()
     pauseAll()
@@ -307,7 +320,7 @@ carousel:SetScript("OnLeave", function()
 end)
 
 -------------------------------------------------------------------------------
--- Sincronización con combate
+-- Combat sync
 -------------------------------------------------------------------------------
 function ascensionBars:updateCarouselCombatState(combat)
     inCombat = combat
@@ -321,19 +334,12 @@ function ascensionBars:updateCarouselCombatState(combat)
 end
 
 -------------------------------------------------------------------------------
--- Inicialización y visibilidad (con posición configurable)
+-- Initialization and visibility
 -------------------------------------------------------------------------------
 function ascensionBars:initCarousel()
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
         updateFont()
     end)
-    
-    -- Register gain events
-    self:RegisterEvent("CHAT_MSG_COMBAT_FACTION_CHANGE", "handleGainMessages")
-    self:RegisterEvent("CHAT_MSG_COMBAT_XP_GAIN", "handleGainMessages")
-    self:RegisterEvent("CHAT_MSG_COMBAT_HONOR_GAIN", "handleGainMessages")
-    self:RegisterEvent("CHAT_MSG_CURRENCY", "handleGainMessages")
-    
     carousel:Hide()
 end
 
@@ -342,13 +348,11 @@ function ascensionBars:updateCarouselVisibility()
     if not profile then return end
 
     if profile.carouselEnabled then
-        -- Aplicar posición desde el perfil (anclado a TOP)
         carousel:ClearAllPoints()
         carousel:SetPoint("TOP", UIParent, "TOP",
             profile.carouselXOffset or 0,
-            profile.carouselYOffset or -50)   -- valor por defecto: -50
+            profile.carouselYOffset or -50)
 
-        -- Aplicar alpha del fondo
         local bgAlpha = profile.carouselBgAlpha
         if bgAlpha == nil then bgAlpha = 0.4 end
         shadow:SetColorTexture(0, 0, 0, bgAlpha)
@@ -363,63 +367,5 @@ function ascensionBars:updateCarouselVisibility()
     end
 end
 
--------------------------------------------------------------------------------
--- Gain messages handling (XP, Rep, Honor, Azerite)
--------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------
--- Gain messages handling (XP, Rep, Honor, Azerite, House)
--------------------------------------------------------------------------------
-function ascensionBars:handleGainMessages(event, message)
-    if not message or message == "" then return end
-
-    -- 1. Reputation Handling
-    local repPattern = _G.FACTION_STANDING_INCREASED:gsub("%%s", "(.+)"):gsub("%%d", "(%%d+)")
-    local factionName, repAmount = string.match(message, repPattern)
-    if factionName and repAmount then
-        self:pushCarouselEvent("REP", factionName, factionName, tonumber(repAmount))
-        return
-    end
-
-    -- 2. Experience Handling
-    -- Priority to _G.EXPERIENCE_POINTS to avoid AceLocale "Missing entry" crashes
-    local xpPattern = _G.COMBATLOG_XPGAIN_FIRSTPERSON:gsub("%%d", "(%%d+)"):gsub("%%s", ".*")
-    local xpAmount = string.match(message, xpPattern)
-    if xpAmount then
-        local label = _G.EXPERIENCE_POINTS or "Experience"
-        self:pushCarouselEvent("XP", "PLAYER_XP", label, tonumber(xpAmount))
-        return
-    end
-
-    -- 3. Honor Handling
-    local honorPattern = _G.COMBATLOG_HONORGAIN:gsub("%%s", ".*"):gsub("%%d", "(%%d+)")
-    local honorAmount = string.match(message, honorPattern)
-    if honorAmount then
-        local label = _G.HONOR or "Honor"
-        self:pushCarouselEvent("HONOR", "PLAYER_HONOR", label, tonumber(honorAmount))
-        return
-    end
-
-    -- 4. Azerite & Currencies
-    -- Azerite is treated as a currency in Retail
-    local azeriteAmount = string.match(message, "gain (%d+) Azerite") or string.match(message, "obtained (%d+) Azerite")
-    if azeriteAmount then
-        local label = _G.AZERITE_POWER or "Azerite"
-        self:pushCarouselEvent("AZERITE", "PLAYER_AZERITE", label, tonumber(azeriteAmount))
-        return
-    end
-
-    -- 5. House XP (Custom system detection)
-    -- Safe check for L["House XP"] to prevent crashes if locale failed to load
-    local houseAmount = string.match(message, "gain (%d+) House XP") or string.match(message, "received (%d+) House XP")
-    if houseAmount then
-        local label = "House XP"
-        if L and L["House XP"] then label = L["House XP"] end
-        self:pushCarouselEvent("HOUSE", "PLAYER_HOUSE_XP", label, tonumber(houseAmount))
-        return
-    end
-end
-
 ascensionBars:initCarousel()
 addonTable.carousel = carousel
-

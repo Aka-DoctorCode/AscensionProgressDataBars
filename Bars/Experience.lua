@@ -34,7 +34,7 @@ ExperienceModule.core = core
 function ExperienceModule:OnEnable()
     self:RegisterEvent("PLAYER_XP_UPDATE",  "onXPUpdate")
     self:RegisterEvent("UPDATE_EXHAUSTION",  "onUpdate")
-    self:RegisterEvent("PLAYER_LEVEL_UP",    "onUpdate")
+    self:RegisterEvent("PLAYER_LEVEL_UP",    "onLevelUp")
 end
 
 function ExperienceModule:OnDisable()
@@ -49,19 +49,37 @@ function ExperienceModule:onXPUpdate()
     local state = self.core.state
     if not state then return end
 
-    local currentXP = UnitXP("player")   or 0
+    local currentXP  = UnitXP("player")    or 0
     local currentMax = UnitXPMax("player") or 0
-    local lastXP = state.lastXP
+    local lastXP     = state.lastXP or 0
+    local lastXPMax  = state.lastXPMax or 0
 
-    if lastXP and lastXP > 0 and currentXP > lastXP then
-        local gained = currentXP - lastXP
-        if self.core.pushCarouselEvent then
+    if lastXP > 0 then
+        local gained = 0
+        if currentXP >= lastXP then
+            gained = currentXP - lastXP
+        else
+            -- XP wrapped: player leveled up
+            local remainingInLevel = (lastXPMax > lastXP) and (lastXPMax - lastXP) or 0
+            gained = remainingInLevel + currentXP
+        end
+        if gained > 0 and self.core.pushCarouselEvent then
             self.core:pushCarouselEvent("XP", "xp", "XP", gained)
         end
     end
 
     state.lastXP    = currentXP
     state.lastXPMax = currentMax
+    self.core:updateDisplay()
+end
+
+function ExperienceModule:onLevelUp()
+    -- Reset cached XP baseline after leveling so the next onXPUpdate starts clean.
+    local state = self.core.state
+    if state then
+        state.lastXP    = UnitXP("player")    or 0
+        state.lastXPMax = UnitXPMax("player") or 0
+    end
     self.core:updateDisplay()
 end
 

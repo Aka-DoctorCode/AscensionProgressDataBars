@@ -64,16 +64,24 @@ end
 local function getHouseMaxLevel(guid)
     if not guid or guid == 0 or guid == "0" then return 0 end
     if not (C_Housing and C_Housing.GetHouseLevelFavorForLevel) then return 0 end
-    local level = 1
-    while true do
-        local favorReq = C_Housing.GetHouseLevelFavorForLevel(level)
-        if not favorReq or favorReq <= 0 then
-            return level - 1
+    
+    local low = 1
+    local high = 100
+    local maxDetectedLevel = 0
+    
+    while low <= high do
+        local mid = math.floor((low + high) / 2)
+        local favorReq = C_Housing.GetHouseLevelFavorForLevel(mid)
+        
+        if favorReq and favorReq > 0 then
+            maxDetectedLevel = mid
+            low = mid + 1
+        else
+            high = mid - 1
         end
-        level = level + 1
-        if level > 100 then break end
     end
-    return 0
+    
+    return maxDetectedLevel
 end
 
 -------------------------------------------------------------------------------
