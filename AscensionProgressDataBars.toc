@@ -1,4 +1,4 @@
-## Interface: 120100
+## Interface: 120105
 ## Title: Ascension Progress Data Bar
 ## Notes: Minimalistic replacement bars for reputation, experience, honor, housing favor and other. Create custom bars for other reputations tracking. Paragon and house upgrades reward availability reminder
 ## Author: AkaDoctorCode
