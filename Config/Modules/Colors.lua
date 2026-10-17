@@ -178,13 +178,6 @@ function colorsTab:build(panel)
     
     col2Layout:beginSection(col2X, colWidth)
     col2Layout:label("ReputationHeader", locales["REPUTATION"], inner2X, colors.gold)
-    
-    col2Layout:checkbox("UseCustomFactionColorsCheckbox", locales["USE_CUSTOM_FACTION_COLORS"] or "Use Custom Faction Colors", locales["USE_CUSTOM_FACTION_COLORS_DESC"],
-        function() return profile.useCustomFactionColors end,
-        function(v)
-            profile.useCustomFactionColors = v
-            ascensionBars:updateDisplay()
-        end, inner2X - 6)
 
     col2Layout:checkbox("UseReactionColorsCheckbox", locales["USE_REACTION_COLORS"], locales["USE_REACTION_COLORS_DESC"],
         function() return profile.useReactionColorRep end,
@@ -230,60 +223,6 @@ function colorsTab:build(panel)
     end
     col2Layout.y = col2Layout.y - 12 -- Extra bottom padding
     col2Layout:endSection()
-
-    -- 5. Active Faction Colors (Dynamic section)
-    if profile.useCustomFactionColors then
-        local activeFactions = {}
-        
-        -- 1. Check watched faction
-        if _G.C_Reputation and _G.C_Reputation.GetWatchedFactionData then
-            local wd = _G.C_Reputation.GetWatchedFactionData()
-            if wd and wd.factionID then
-                table.insert(activeFactions, { id = wd.factionID, name = wd.name or locales["REPUTATION"] })
-            end
-        end
-        
-        -- 2. Check custom bars
-        for k, v in pairs(profile.bars) do
-            local fID = tonumber(string.match(k, "^Rep_(%d+)$"))
-            if fID and v.enabled then
-                -- Avoid duplicates
-                local exists = false
-                for _, f in ipairs(activeFactions) do if f.id == fID then exists = true break end end
-                if not exists then
-                    local name = v.name or ("Faction " .. fID)
-                    table.insert(activeFactions, { id = fID, name = name })
-                end
-            end
-        end
-
-        if #activeFactions > 0 then
-            col2Layout.y = col2Layout.y - 15
-            col2Layout:beginSection(col2X, colWidth)
-            col2Layout:label("ActiveFactionsHeader", locales["ACTIVE_FACTION_COLORS"] or "Active Faction Colors", inner2X, colors.gold)
-            col2Layout.y = col2Layout.y - 8
-
-            for _, f in ipairs(activeFactions) do
-                col2Layout:colorPicker("FactionColorPicker_" .. f.id, f.name, nil,
-                    function()
-                        if not profile.factionColors then profile.factionColors = {} end
-                        local c = profile.factionColors[f.id] 
-                                  or (ascensionBars.constants.FACTION_COLORS and ascensionBars.constants.FACTION_COLORS[f.id])
-                                  or profile.repBarColor
-                        if not c then return 1, 1, 1, 1 end
-                        return c.r, c.g, c.b, (c.a or 1)
-                    end,
-                    function(r, g, b, a)
-                        if not profile.factionColors then profile.factionColors = {} end
-                        profile.factionColors[f.id] = { r = r, g = g, b = b, a = a }
-                        ascensionBars:updateDisplay()
-                    end, picker2X, true)
-            end
-            
-            col2Layout.y = col2Layout.y - 12
-            col2Layout:endSection()
-        end
-    end
 
     -- Calculate the lowest Y point between the 2 columns to set the canvas height
     local maxBottomY = math.min(col1Layout.y, col2Layout.y)

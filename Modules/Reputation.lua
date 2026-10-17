@@ -313,15 +313,9 @@ function ReputationModule:renderSingleRepBarLive(repKey, targetFactionId)
         local rBarColor   = profile.repBarColor or { r = 0, g = 1, b = 0, a = 1 }
         local color       = (useReaction and repColors and repColors[reaction]) or rBarColor
 
-        -- Custom Faction Color Override
-        if profile.useCustomFactionColors and targetFactionId then
-            local customColor = profile.factionColors and profile.factionColors[targetFactionId]
-            if not customColor and core.constants.FACTION_COLORS then
-                customColor = core.constants.FACTION_COLORS[targetFactionId]
-            end
-            if customColor then
-                color = customColor
-            end
+        -- Apply color variation for adjacent reputations with the same level
+        if variationStep and variationStep > 0 and self.core.getRepColorVariation then
+            color = self.core:getRepColorVariation(color, variationStep)
         end
 
         self.core:setupBar(repObj, 0, max, cur, color)
@@ -345,17 +339,158 @@ function ReputationModule:renderSingleRepBarLive(repKey, targetFactionId)
     end
 end
 
+-------------------------------------------------------------------------------
+-- ADJACENCY COLOR VARIATION COMPUTATION
+-------------------------------------------------------------------------------
+
+--- Computes cyclic variation steps (0: Base, 1: -20% darker, 2: +15% lighter)
+-- for adjacent reputation bars that share the same standing level / reaction.
+-- @param repBarList table Array of { key = string, reaction = number|string }
+-- @return table Map of barKey -> step (0, 1, or 2)
+function ReputationModule:computeColorVariations(repBarList)
+    local profile = self.core.db and self.core.db.profile
+    if not profile or not repBarList or #repBarList == 0 then return {} end
+
+    local repBarsByKey = {}
+    for _, info in ipairs(repBarList) do
+        repBarsByKey[info.key] = info
+    end
+
+    local adj = {}
+    local function addEdge(k1, k2)
+        if not k1 or not k2 or k1 == k2 then return end
+        if not repBarsByKey[k1] or not repBarsByKey[k2] then return end
+        if not adj[k1] then adj[k1] = {} end
+        if not adj[k2] then adj[k2] = {} end
+        adj[k1][k2] = true
+        adj[k2][k1] = true
+    end
+
+    local gridMaster = profile.customGridMasterEnabled
+    local customGrids = profile.customGrids or {}
+    local blocks = { "TOP", "BOTTOM" }
+
+    for _, blockName in ipairs(blocks) do
+        local grid = customGrids[blockName]
+        if gridMaster and grid and grid.enabled and grid.assignments then
+            local numRows = grid.numRows or 1
+            for r = 1, numRows do
+                local cols = (grid.colsPerRow and grid.colsPerRow[r]) or 1
+                for c = 1, cols do
+                    local currentKey = grid.assignments[r] and grid.assignments[r][c]
+                    if currentKey and repBarsByKey[currentKey] then
+                        local rightKey = grid.assignments[r] and grid.assignments[r][c + 1]
+                        if rightKey and repBarsByKey[rightKey] then
+                            addEdge(currentKey, rightKey)
+                        end
+                        local downKey = grid.assignments[r + 1] and grid.assignments[r + 1][c]
+                        if downKey and repBarsByKey[downKey] then
+                            addEdge(currentKey, downKey)
+                        end
+                    end
+                end
+            end
+        else
+            local blockBars = {}
+            if profile.bars then
+                for _, info in ipairs(repBarList) do
+                    local bConfig = profile.bars[info.key]
+                    local bBlock = (bConfig and bConfig.block) or "TOP"
+                    if bBlock == blockName and (bConfig and bConfig.enabled) then
+                        table.insert(blockBars, { key = info.key, order = (bConfig and bConfig.order) or 0 })
+                    end
+                end
+            end
+            table.sort(blockBars, function(a, b) return a.order < b.order end)
+            for i = 1, #blockBars - 1 do
+                addEdge(blockBars[i].key, blockBars[i + 1].key)
+            end
+        end
+    end
+
+    local assignedSteps = {}
+    for _, info in ipairs(repBarList) do
+        local key = info.key
+        local myReaction = info.reaction
+
+        local usedSteps = {}
+        if adj[key] then
+            for neighborKey in pairs(adj[key]) do
+                local neighborInfo = repBarsByKey[neighborKey]
+                if neighborInfo and neighborInfo.reaction == myReaction then
+                    local nStep = assignedSteps[neighborKey]
+                    if nStep ~= nil then
+                        usedSteps[nStep] = true
+                    end
+                end
+            end
+        end
+
+        local chosenStep = 0
+        if not usedSteps[0] then
+            chosenStep = 0
+        elseif not usedSteps[1] then
+            chosenStep = 1
+        elseif not usedSteps[2] then
+            chosenStep = 2
+        else
+            chosenStep = 0
+        end
+
+        assignedSteps[key] = chosenStep
+    end
+
+    return assignedSteps
+end
+
 function ReputationModule:renderLive()
     local profile = self.core.db and self.core.db.profile
     if not profile then return end
 
-    self:renderSingleRepBarLive("Rep", nil)
+    -- 1. Gather all active reputation bars
+    local activeReps = {}
+    local useReaction = profile.useReactionColorRep
+
+    local repConfig = profile.bars and profile.bars["Rep"]
+    if repConfig and repConfig.enabled and self.core.activeBars["Rep"] then
+        local targetFactionId = nil
+        if C_Reputation and C_Reputation.GetWatchedFactionData then
+            local wd = C_Reputation.GetWatchedFactionData()
+            if wd then targetFactionId = wd.factionID end
+        end
+        local reaction = 5
+        if targetFactionId then
+            local norm = self:getFactionData(targetFactionId)
+            if norm and norm.reaction then reaction = norm.reaction end
+        end
+        table.insert(activeReps, { key = "Rep", factionId = targetFactionId, reaction = useReaction and reaction or "STATIC" })
+    end
+
+    if profile.bars then
+        for k, v in pairs(profile.bars) do
+            if v and v.enabled and self.core.activeBars[k] and string.match(k, "^Rep_(%d+)$") then
+                local factionId = tonumber(string.match(k, "^Rep_(%d+)$"))
+                local reaction = 5
+                if factionId then
+                    local norm = self:getFactionData(factionId)
+                    if norm and norm.reaction then reaction = norm.reaction end
+                end
+                table.insert(activeReps, { key = k, factionId = factionId, reaction = useReaction and reaction or "STATIC" })
+            end
+        end
+    end
+
+    -- 2. Compute variations for adjacent bars sharing the same level
+    local steps = self:computeColorVariations(activeReps)
+
+    -- 3. Render bars with assigned steps
+    self:renderSingleRepBarLive("Rep", nil, steps["Rep"] or 0)
     
     if profile.bars then
         for k, v in pairs(profile.bars) do
             if string.match(k, "^Rep_(%d+)$") then
                 local factionId = tonumber(string.match(k, "^Rep_(%d+)$"))
-                self:renderSingleRepBarLive(k, factionId)
+                self:renderSingleRepBarLive(k, factionId, steps[k] or 0)
             end
         end
     end
@@ -365,7 +500,7 @@ end
 -- CONFIG PREVIEW RENDER
 -------------------------------------------------------------------------------
 
-function ReputationModule:renderSingleRepBarConfig(repKey)
+function ReputationModule:renderSingleRepBarConfig(repKey, variationStep)
     local profile = self.core.db and self.core.db.profile
     if not profile then return end
 
@@ -383,17 +518,10 @@ function ReputationModule:renderSingleRepBarConfig(repKey)
     if repObj.txFrame then repObj.txFrame:Show() end
 
     local repColor = profile.repBarColor or { r = 0, g = 1, b = 0, a = 1 }
-    
-    -- Apply custom color override if enabled and ID exists
-    local factionId = tonumber(string.match(repKey, "^Rep_(%d+)$"))
-    if profile.useCustomFactionColors and factionId then
-        local customColor = profile.factionColors and profile.factionColors[factionId]
-        if not customColor and core.constants.FACTION_COLORS then
-            customColor = core.constants.FACTION_COLORS[factionId]
-        end
-        if customColor then
-            repColor = customColor
-        end
+
+    -- Apply color variation for adjacent reputations with the same level in preview
+    if variationStep and variationStep > 0 and self.core.getRepColorVariation then
+        repColor = self.core:getRepColorVariation(repColor, variationStep)
     end
 
     self.core:setupBar(repObj, 0, 100, 50, repColor)
@@ -417,12 +545,28 @@ function ReputationModule:renderConfig()
     local profile = self.core.db and self.core.db.profile
     if not profile then return end
 
-    self:renderSingleRepBarConfig("Rep")
+    local activeReps = {}
+    local repConfig = profile.bars and profile.bars["Rep"]
+    if repConfig and repConfig.enabled and self.core.activeBars["Rep"] then
+        table.insert(activeReps, { key = "Rep", reaction = 5 })
+    end
+
+    if profile.bars then
+        for k, v in pairs(profile.bars) do
+            if v and v.enabled and self.core.activeBars[k] and string.match(k, "^Rep_(%d+)$") then
+                table.insert(activeReps, { key = k, reaction = 5 })
+            end
+        end
+    end
+
+    local steps = self:computeColorVariations(activeReps)
+
+    self:renderSingleRepBarConfig("Rep", steps["Rep"] or 0)
     
     if profile.bars then
         for k, v in pairs(profile.bars) do
             if string.match(k, "^Rep_(%d+)$") then
-                self:renderSingleRepBarConfig(k)
+                self:renderSingleRepBarConfig(k, steps[k] or 0)
             end
         end
     end

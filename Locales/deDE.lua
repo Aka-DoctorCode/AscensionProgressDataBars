@@ -93,10 +93,6 @@ Locales["CAROUSEL_OPTIONS"] = "Karussell-Optionen"
 Locales["CAROUSEL_X_OFFSET"] = "X-Versatz"
 Locales["CAROUSEL_Y_OFFSET"] = "Y-Versatz"
 Locales["CAROUSEL_BG_ALPHA"] = "Hintergrundalpha"
-Locales["USE_CUSTOM_FACTION_COLORS"] = "Benutzerdefinierte Fraktionsfarben verwenden"
-Locales["USE_CUSTOM_FACTION_COLORS_DESC"] = "Wenden Sie einzigartige, offiziell gestaltete Farben auf bestimmte Fraktionen in aktiven Ruf-Leisten an."
-Locales["CUSTOM_FACTION_COLORS"] = "Benutzerdefinierte Fraktionsfarben"
-Locales["ACTIVE_FACTION_COLORS"] = "Aktive Fraktionsfarben"
 
 -------------------------------------------------------------------------------
 -- EXPERIENCE BAR

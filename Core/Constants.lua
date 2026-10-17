@@ -48,8 +48,6 @@ ascensionBars.defaults = {
         blockTextMode = "FOCUS",      -- "FOCUS" | "GRID" | "NONE"
         useCompactFormat = false,     -- Show compact numbers (e.g., 1.2k)
         useDecimals = true,           -- Show one decimal place in percentages
-        useCustomFactionColors = true, -- Use specific colors for certain reputation factions
-        factionColors = {},            -- User overrides for faction colors [id] = {r,g,b,a}
 
         -- -------------------------------------------------------------------------------
         -- PER‑BLOCK CUSTOMIZATION
@@ -265,287 +263,82 @@ ascensionBars.tabs = {}
 ascensionBars.panels = {}
 
 -------------------------------------------------------------------------------
--- FACTION SPECIFIC COLORS
+-- COLOR UTILITIES & ADJACENCY VARIATIONS
 -------------------------------------------------------------------------------
 
-local function hexToRGB(hex)
-    local r = tonumber(hex:sub(2,3), 16) / 255
-    local g = tonumber(hex:sub(4,5), 16) / 255
-    local b = tonumber(hex:sub(6,7), 16) / 255
-    return { r = r, g = g, b = b, a = 1 }
+--- Converts RGB components (0-1) to HSL (H: 0-360, S: 0-1, L: 0-1).
+local function rgbToHSL(r, g, b)
+    local max = math.max(r, g, b)
+    local min = math.min(r, g, b)
+    local h, s, l
+    l = (max + min) / 2
+
+    if max == min then
+        h = 0
+        s = 0
+    else
+        local d = max - min
+        s = l > 0.5 and (d / (2 - max - min)) or (d / (max + min))
+        if max == r then
+            h = ((g - b) / d) + (g < b and 6 or 0)
+        elseif max == g then
+            h = ((b - r) / d) + 2
+        else
+            h = ((r - g) / d) + 4
+        end
+        h = h * 60
+    end
+    return h, s, l
 end
 
-local rawFactionColors = {
-    -- Classic / Vanilla
-    [469] = "#001289", 
-    [529] = "#F0F0F0", 
-    [87] = "#8A0303", 
-    [21] = "#ADD8E6", 
-    [910] = "#CD7F32",
-    [609] = "#228B23", 
-    [909] = "#800081", 
-    [69] = "#4B0083", 
-    [1447] = "#00CED2", 
-    [577] = "#F8F8F9",
-    [729] = "#F0F8FD", 
-    [369] = "#D2B48C", 
-    [92] = "#C2B281", 
-    [54] = "#E6F5EC", 
-    [66] = "#660101",
-    [749] = "#00BFEF", 
-    [47] = "#8A151B", 
-    [93] = "#C2B282", 
-    [76] = "#8C1617", 
-    [470] = "#A0522E",
-    [349] = "#2C2C2C", 
-    [890] = "#1A2B5C", 
-    [169] = "#C2A45D", 
-    [730] = "#B0C4DE", 
-    [72] = "#0033A1",
-    [510] = "#4A5D23", 
-    [509] = "#DAA526", 
-    [59] = "#4A4A4B", 
-    [81] = "#654321", 
-    [576] = "#8B4514",
-    [68] = "#660066", 
-    [889] = "#8A0707", 
-    [589] = "#B0E0E6",
-    -- The Burning Crusade
-    [1012] = "#556B30", 
-    [942] = "#32CD33", 
-    [946] = "#00008B", 
-    [989] = "#DAA521", 
-    [978] = "#8F5E4D",
-    [1011] = "#8B7356", 
-    [1015] = "#483D8C", 
-    [1038] = "#DA70D6", 
-    [1077] = "#FFA501", 
-    [911] = "#B20000",
-    [970] = "#7FFFD5", 
-    [932] = "#FFD701", 
-    [933] = "#EE82EE", 
-    [930] = "#990099", 
-    [941] = "#CD8540",
-    [990] = "#F0E68D", 
-    [934] = "#DC143D", 
-    [935] = "#E6E6FB", 
-    [967] = "#9932CD", 
-    [947] = "#8B0001",
-    [922] = "#708091",
-    -- Wrath of the Lich King
-    [1037] = "#2B4F82", 
-    [1106] = "#E8E8E8", 
-    [1068] = "#F5F5DC", 
-    [1104] = "#D2691E", 
-    [1052] = "#8B2526",
-    [1090] = "#8A2BE3", 
-    [1098] = "#2F4F50", 
-    [1156] = "#69696A", 
-    [1126] = "#ADD8E7", 
-    [1067] = "#556B31",
-    [1073] = "#87CEEC", 
-    [1105] = "#9ACD33", 
-    [1094] = "#C0C0C1", 
-    [1119] = "#E0FFFA", 
-    [1124] = "#FF2400",
-    [1064] = "#D2B48D", 
-    [1091] = "#B8860C", 
-    [1050] = "#104E8C", 
-    [1085] = "#8B1A1B",
-    -- Cataclysm
-    [1204] = "#FF4501", 
-    [1177] = "#778899", 
-    [1133] = "#FF7F00", 
-    [1172] = "#4A0405", 
-    [1134] = "#1A1A1B",
-    [1158] = "#2E8B58", 
-    [1178] = "#424242", 
-    [1173] = "#F4A461", 
-    [1135] = "#20B2AB", 
-    [1171] = "#8B6915",
-    [1174] = "#6B8E24",
-    -- Mists of Pandaria
-    [1341] = "#00CED3", 
-    [1277] = "#8B5A2B", 
-    [1375] = "#B22223", 
-    [1275] = "#FFC0CB", 
-    [1492] = "#FFFFE1",
-    [1283] = "#556B2E", 
-    [1282] = "#4682B4", 
-    [1228] = "#A52A2A", 
-    [1281] = "#D2691F", 
-    [1269] = "#FFD702",
-    [1279] = "#8B4513", 
-    [1352] = "#CC0000", 
-    [1273] = "#800080", 
-    [1387] = "#9370DC", 
-    [1337] = "#BDB76B",
-    [1358] = "#FFD000", 
-    [1276] = "#A0522C", 
-    [1376] = "#4169E2", 
-    [1271] = "#FF8C01", 
-    [1242] = "#66CDAA",
-    [1270] = "#1B1B1B", 
-    [1435] = "#800001", 
-    [1278] = "#FF4502", 
-    [1388] = "#DC143E", 
-    [1302] = "#4682B5",
-    [1359] = "#0A0A0A", 
-    [1345] = "#FFE4B5", 
-    [1272] = "#8FBC90", 
-    [1280] = "#DA70D6", 
-    [1353] = "#008081",
-    -- Warlords of Draenor
-    [1740] = "#DC143C", 
-    [1515] = "#301934", 
-    [1731] = "#EEDC83", 
-    [1738] = "#F0E68C", 
-    [1733] = "#2F4F4F",
-    [1445] = "#F0F8FE", 
-    [1847] = "#DAA522", 
-    [1708] = "#FFFFF0", 
-    [1741] = "#20B2AA", 
-    [1849] = "#00FF00",
-    [1710] = "#BDB76C", 
-    [1711] = "#D26920", 
-    [1737] = "#4B0082", 
-    [1850] = "#006400", 
-    [1736] = "#CD853F",
-    [1739] = "#FF8C00", 
-    [1848] = "#8B0002", 
-    [1681] = "#FF0001", 
-    [1682] = "#0000F0",
-    -- Legion
-    [2099] = "#4A8B9A", 
-    [2170] = "#BA55D4", 
-    [2045] = "#7CFC01", 
-    [2165] = "#FFFFE2", 
-    [2135] = "#CD7F33",
-    [1975] = "#00BFFF", 
-    [2100] = "#5F9EA0", 
-    [1900] = "#40E0D1", 
-    [1883] = "#00FA9B", 
-    [1828] = "#8B4516",
-    [2097] = "#7FFFD4", 
-    [2102] = "#32CD32", 
-    [2098] = "#00FA9A", 
-    [2101] = "#8A2BE2", 
-    [2040] = "#FFFFF1",
-    [1859] = "#8A2BE4", 
-    [1894] = "#006401", 
-    [1948] = "#DAA523",
-    -- Battle for Azeroth
-    [2159] = "#191971", 
-    [2393] = "#000080", 
-    [2392] = "#4169E1", 
-    [2164] = "#00FFFF", 
-    [2394] = "#87CEFA",
-    [2395] = "#FFC100", 
-    [2389] = "#FF1493", 
-    [2161] = "#2F4F51", 
-    [2388] = "#00CED1", 
-    [2160] = "#008082",
-    [2415] = "#E6E6FC", 
-    [2391] = "#B87334", 
-    [2162] = "#4682B6", 
-    [2156] = "#8B008C", 
-    [2157] = "#8B0003",
-    [2373] = "#48D1CD", 
-    [2163] = "#556B32", 
-    [2417] = "#DAA524", 
-    [2390] = "#2E8B57", 
-    [2158] = "#F4A462",
-    [2400] = "#0000CE", 
-    [2103] = "#FFD703",
-    -- Shadowlands
-    [2450] = "#2F4F4E", 
-    [2446] = "#008080", 
-    [2454] = "#D2B48D", 
-    [2413] = "#8B0004", 
-    [2464] = "#191970",
-    [2455] = "#696969", 
-    [2470] = "#2F4F52", 
-    [2456] = "#556B2F", 
-    [2457] = "#8B0005", 
-    [2451] = "#228B22",
-    [2458] = "#E0FFFF", 
-    [2447] = "#EE82EE", 
-    [2463] = "#A52A2B", 
-    [2448] = "#C0C0C0", 
-    [2461] = "#3CB371",
-    [2452] = "#FFD700", 
-    [2453] = "#8B4515", 
-    [2459] = "#F5DEB3", 
-    [2462] = "#9ACD32", 
-    [2460] = "#A9A9A9",
-    [2472] = "#FFDABA", 
-    [2407] = "#87CEED", 
-    [2439] = "#800000", 
-    [2449] = "#8B008B", 
-    [2445] = "#5C1D1E",
-    [2478] = "#FFFFE3", 
-    [2410] = "#556B33", 
-    [2465] = "#0000CF", 
-    [2432] = "#A9A9AA",
-    -- Dragonflight
-    [2544] = "#C0C0C2", 
-    [2615] = "#D2B48E", 
-    [2550] = "#0000CD", 
-    [2507] = "#8B4517", 
-    [2574] = "#32CD34",
-    [2568] = "#9ACD34", 
-    [2511] = "#5F9EA1", 
-    [2564] = "#A0522F", 
-    [2503] = "#6B8E25", 
-    [2518] = "#2C2C2D",
-    [2553] = "#DAA525", 
-    [2510] = "#B8860D", 
-    [2526] = "#FAFAFA", 
-    [2517] = "#1A1A1A",
-    -- The War Within
-    [2675] = "#0A2B4C", 
-    [2640] = "#B8860B", 
-    [2590] = "#A9A9AB", 
-    [2669] = "#4B0085", 
-    [2657] = "#800082",
-    [2664] = "#8B0006", 
-    [2685] = "#FFD704", 
-    [2570] = "#FFFACE", 
-    [2665] = "#D32F2F", 
-    [2663] = "#D2B48F",
-    [2594] = "#8B008D", 
-    [2609] = "#3E2723", 
-    [2653] = "#00FF7F", 
-    [2605] = "#483D8B", 
-    [2606] = "#1B5E20",
-    [2600] = "#4B0084", 
-    [2614] = "#BF360C", 
-    [2635] = "#4A148C", 
-    [2607] = "#8A2BE2", 
-    [2601] = "#E6E6FA",
-    [2602] = "#311B92", 
-    [2671] = "#8B4518",
-    -- Midnight
-    [2696] = "#557A2B", 
-    [2712] = "#9E1B1E", 
-    [2713] = "#4D712C", 
-    [2704] = "#0BDE9E", 
-    [2711] = "#6C2E9C",
-    [2781] = "#006402", 
-    [2714] = "#3E3B4F", 
-    [2780] = "#2E8B59", 
-    [2710] = "#E5C158", 
-    [2770] = "#A62438",
-    [2699] = "#36175E", 
-    [2744] = "#B22224", 
-    [2709] = "#FFFA11", 
-    [2706] = "#556B34",
-    -- Other / Global
-    [1169] = "#D4AF37", 
-    [2593] = "#8B4519",
-}
+local function hueToRGB(p, q, t)
+    if t < 0 then t = t + 1 end
+    if t > 1 then t = t - 1 end
+    if t < 1/6 then return p + (q - p) * 6 * t end
+    if t < 1/2 then return q end
+    if t < 2/3 then return p + (q - p) * (2/3 - t) * 6 end
+    return p
+end
 
-ascensionBars.constants.FACTION_COLORS = {}
-for id, hex in pairs(rawFactionColors) do
-    ascensionBars.constants.FACTION_COLORS[id] = hexToRGB(hex)
+--- Converts HSL components (H: 0-360, S: 0-1, L: 0-1) to RGB (0-1).
+local function hslToRGB(h, s, l)
+    local r, g, b
+    if s == 0 then
+        r, g, b = l, l, l
+    else
+        h = h / 360
+        local q = l < 0.5 and (l * (1 + s)) or (l + s - l * s)
+        local p = 2 * l - q
+        r = hueToRGB(p, q, h + 1/3)
+        g = hueToRGB(p, q, h)
+        b = hueToRGB(p, q, h - 1/3)
+    end
+    return r, g, b
+end
+
+ascensionBars.rgbToHSL = rgbToHSL
+ascensionBars.hslToRGB = hslToRGB
+
+--- Returns a color variation for adjacent reputation bars with the same level.
+-- Step 0: Base color (unchanged)
+-- Step 1: -20% luminosity (darker)
+-- Step 2: +15% luminosity (lighter)
+function ascensionBars:getRepColorVariation(baseColor, step)
+    if not baseColor or not step or step == 0 then
+        return baseColor
+    end
+
+    local h, s, l = rgbToHSL(baseColor.r or 1, baseColor.g or 1, baseColor.b or 1)
+    local newL = l
+
+    if step == 1 then
+        -- -20% luminosity
+        newL = math.max(0.05, l * 0.80)
+    elseif step == 2 then
+        -- +15% luminosity
+        newL = math.min(0.95, l + (1.0 - l) * 0.15)
+    end
+
+    local r, g, b = hslToRGB(h, s, newL)
+    return { r = r, g = g, b = b, a = baseColor.a or 1 }
 end

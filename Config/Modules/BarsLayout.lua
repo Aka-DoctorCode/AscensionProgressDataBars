@@ -69,12 +69,16 @@ local function getBarColor(barKey, profile)
             fID = tonumber(string.match(barKey, "%d+"))
         end
 
-        if fID and profile.useCustomFactionColors then
-            local custom = profile.factionColors and profile.factionColors[fID]
-            if not custom and ascensionBars.constants and ascensionBars.constants.FACTION_COLORS then
-                custom = ascensionBars.constants.FACTION_COLORS[fID]
+        if fID and profile.useReactionColorRep and profile.repColors then
+            local repMod = ascensionBars.GetModule and ascensionBars:GetModule("Reputation", true)
+            local norm = repMod and repMod.getFactionData and repMod:getFactionData(fID)
+            if norm and norm.reaction and profile.repColors[norm.reaction] then
+                color = profile.repColors[norm.reaction]
+            else
+                color = profile.repBarColor
             end
-            if custom then color = custom end
+        else
+            color = profile.repBarColor
         end
     end
     return color or { r = 1, g = 1, b = 1, a = 1 }

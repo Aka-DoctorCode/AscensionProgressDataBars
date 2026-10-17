@@ -93,10 +93,6 @@ Locales["CAROUSEL_OPTIONS"] = "Настройки карусели"
 Locales["CAROUSEL_X_OFFSET"] = "Смещение по X"
 Locales["CAROUSEL_Y_OFFSET"] = "Смещение по Y"
 Locales["CAROUSEL_BG_ALPHA"] = "Прозрачность фона"
-Locales["USE_CUSTOM_FACTION_COLORS"] = "Использовать особые цвета фракций"
-Locales["USE_CUSTOM_FACTION_COLORS_DESC"] = "Применяйте уникальные цвета в официальном стиле для определенных фракций на активных панелях репутации."
-Locales["CUSTOM_FACTION_COLORS"] = "Особые цвета фракций"
-Locales["ACTIVE_FACTION_COLORS"] = "Цвета активных фракций"
 
 -------------------------------------------------------------------------------
 -- EXPERIENCE BAR

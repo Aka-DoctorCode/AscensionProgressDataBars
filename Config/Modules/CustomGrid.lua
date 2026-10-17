@@ -408,18 +408,6 @@ local function buildReputationSection(panel, startY, availableWidth)
     layoutRep:beginSection(menuStyle.contentPadding, availableWidth - menuStyle.contentPadding * 2)
     layoutRep.y = layoutRep.y - 12 -- Equalized top margin
 
-    layoutRep:header("CustomRepColorsHeader", locales["CUSTOM_FACTION_COLORS"] or "Custom Faction Colors", menuStyle.contentPadding + 10)
-    layoutRep.y = layoutRep.y - 3
-    layoutRep:checkbox("UseCustomFactionColorsToggle", locales["USE_CUSTOM_FACTION_COLORS"], locales["USE_CUSTOM_FACTION_COLORS_DESC"],
-        function() return profile.useCustomFactionColors end,
-        function(v) 
-            profile.useCustomFactionColors = v
-            ascensionBars:updateDisplay()
-            if panel and panel.updateLayout then panel:updateLayout() end
-        end,
-        menuStyle.contentPadding + 10)
-    layoutRep.y = layoutRep.y - 10
-
     -- Search row
     local rowY = layoutRep.y
     local marginX = menuStyle.contentPadding + 10 -- Centered horizontally

@@ -3,7 +3,7 @@
 ## Notes: Minimalistic replacement bars for reputation, experience, honor, housing favor and other. Create custom bars for other reputations tracking. Paragon and house upgrades reward availability reminder
 ## Author: AkaDoctorCode
 ## Category: Interface
-## Version: @project-version@
+## Version: V59
 ## SavedVariables: AscensionProgressDataBarsDB
 ## RequiredDeps: AscensionSuit
 ## IconTexture: Interface\AddOns\AscensionProgressDataBars\Media\AkaDoctorCode.png

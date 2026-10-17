@@ -93,10 +93,6 @@ Locales["CAROUSEL_OPTIONS"] = "Opções do Carrrossel"
 Locales["CAROUSEL_X_OFFSET"] = "Deslocamento X"
 Locales["CAROUSEL_Y_OFFSET"] = "Deslocamento Y"
 Locales["CAROUSEL_BG_ALPHA"] = "Alfa do Fundo"
-Locales["USE_CUSTOM_FACTION_COLORS"] = "Usar cores de facção personalizadas"
-Locales["USE_CUSTOM_FACTION_COLORS_DESC"] = "Aplica cores exclusivas com temática oficial a facções específicas nas barras de reputação ativas."
-Locales["CUSTOM_FACTION_COLORS"] = "Cores de facção personalizadas"
-Locales["ACTIVE_FACTION_COLORS"] = "Cores de facções ativas"
 
 -------------------------------------------------------------------------------
 -- EXPERIENCE BAR

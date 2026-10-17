@@ -1,6 +1,9 @@
-<h1>@project-version@</h1>
+<h1>V59</h1>
 <ul>
-    <li>.toc update</li>
+    <li>Removed static faction-specific colors logic and cleaned up redundant options in configuration panels.</li>
+    <li>Added automatic HSL color variations (base, -20% darker, +15% lighter) to differentiate adjacent reputation bars that share the same standing level.</li>
+    <li>Supports 2D contact detection in Custom Grids (rows and columns) as well as consecutive bars in standard stacked blocks.</li>
+    <li>Applies dynamically to both live rendering and configuration preview mode.</li>
 </ul>
 <br>
 <h2>Positive feedback is always appreciated, it helps me to continue working on this project</h2>
